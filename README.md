@@ -80,3 +80,31 @@ AlcoaBase is designed to be deployed quickly via Docker Compose.
 3. **Run the Setup Wizard:**
 
    Open your browser and navigate to http://localhost:3000. You will be greeted by the AlcoaBase Setup Wizard. Follow the steps to create your root administrator account, configure your AI hardware settings, and (optionally) seed the database with demo users, BPMN workflows, and SOPs.
+
+---
+
+## 🧪 Computer System Validation (CSV)
+
+To prove to auditors that your local instance of AlcoaBase functions exactly as specified, you can trigger the automated CSV process.
+
+1. Navigate to the Admin Dashboard -> Validation.
+2. Click **"Run Full System Validation"**.
+3. A dedicated, isolated testing user will automatically run through complete lifecycles (creation, approval, PDF generation, signing, and data extraction).
+4. Upon completion, a digitally signed CSV Report (PDF) will be deposited directly into your AlcoaBase document repository.
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Whether it's improving the AI prompts, adding new PDF field types, or enhancing the BPMN engine, please check out our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## 📄 License
+
+This project is licensed under the [Apache 2.0 License](LICENSE).
+```
+
+
+
+
+
+   
