@@ -31,6 +31,8 @@ This requirements document covers seven core modules: Document Management, Deter
 - **MinIO_Store**: The S3-compatible object storage service used for physical PDF file storage.
 - **Knowledge_Service**: The backend service responsible for document indexing, vector embedding generation, semantic and hybrid search, and conversational RAG queries against the document corpus.
 - **LLM_Engine**: The locally hosted vLLM-based large language model inference engine used for all AI operations including document understanding, training content generation, and conversational queries.
+- **Model_Manager**: The backend service responsible for managing multiple LLM models on a single GPU, including on-demand loading/unloading, model scheduling, and GPU memory management. Model identifiers and paths are configured via environment variables.
+- **OCR_Engine**: The vision-LLM-based component that extracts text from scanned (image-based) PDF documents using a multimodal model loaded on-demand via the Model_Manager.
 - **RAG_Pipeline**: The LlamaIndex-based retrieval-augmented generation pipeline that combines vector search with LLM inference to answer questions grounded in the document corpus.
 - **Vector_Store**: The OpenSearch-based vector database that stores document embeddings for semantic and hybrid (lexical + semantic) search.
 - **Training_Content_Generator**: The LLM-powered component that automatically generates training materials (quizzes, summaries, key-point extractions) from SOP documents.
@@ -38,6 +40,8 @@ This requirements document covers seven core modules: Document Management, Deter
 - **Agent_Registry**: The component that manages selectable AI agent configurations, including loading, validating, and switching between agent definitions.
 - **Agent_Definition**: A YAML file that describes an AI agent's behavior, system prompt, tool access, and DSPy module configuration. Agent definitions are portable and shareable between users.
 - **DSPy**: The framework used to define, optimize, and compose LLM-based agent pipelines for document generation and knowledge tasks.
+- **Document_Reviewer**: The LLM-powered component that performs AI-driven document reviews using specialized review agents, checking structural completeness, required chapters, content quality, and compliance against document-type-specific rules defined in Review_Agent_Definition YAML files.
+- **Review_Agent_Definition**: A YAML file that describes an AI review agent's behavior, including the required document structure (chapters, sections), compliance checklists, review criteria, and DSPy module configuration. Review agent definitions are portable and shareable, following the same schema versioning as Agent_Definitions.
 
 ## Requirements
 
@@ -185,16 +189,18 @@ This requirements document covers seven core modules: Document Management, Deter
 
 ### Requirement 13: Document Indexing and Vector Embedding
 
-**User Story:** As a regulated user, I want all documents to be automatically indexed and embedded for semantic search, so that I can find relevant content across the entire document corpus regardless of exact keyword matches.
+**User Story:** As a regulated user, I want all documents — including scanned PDFs — to be automatically indexed with multilingual embeddings for semantic search, so that I can find relevant content across the entire document corpus regardless of exact keyword matches or document language.
 
 #### Acceptance Criteria
 
-1. WHEN a new document or document version is stored in the ALC_System, THE Knowledge_Service SHALL automatically extract the text content and generate vector embeddings using the local LLM_Engine.
+1. WHEN a new document or document version is stored in the ALC_System, THE Knowledge_Service SHALL automatically extract the text content and generate multilingual vector embeddings using the local embedding model managed by the Model_Manager.
 2. WHEN embeddings are generated, THE Knowledge_Service SHALL store the embeddings in the Vector_Store (OpenSearch) along with the Document-UUID, version number, and document metadata.
 3. WHEN a document version is superseded, THE Knowledge_Service SHALL retain the embeddings for the previous version and index the new version separately.
 4. THE Knowledge_Service SHALL process document indexing asynchronously via Celery background tasks, without blocking the document upload response.
 5. IF the LLM_Engine is unavailable during document upload, THEN THE Knowledge_Service SHALL queue the indexing task for retry and SHALL NOT block the document storage operation.
-6. THE Knowledge_Service SHALL support indexing of PDF, DOCX, and plain text document formats.
+6. THE Knowledge_Service SHALL support indexing of PDF (including scanned/image-based PDFs), DOCX, and plain text document formats.
+7. WHEN a scanned (image-based) PDF is uploaded, THE OCR_Engine SHALL extract text using a vision-capable LLM loaded on-demand via the Model_Manager, before passing the extracted text to the embedding pipeline.
+8. THE Knowledge_Service SHALL use a multilingual embedding model capable of generating semantically meaningful embeddings across multiple languages, so that cross-language search queries return relevant results.
 
 ### Requirement 14: Semantic and Hybrid Search
 
@@ -234,17 +240,21 @@ This requirements document covers seven core modules: Document Management, Deter
 5. WHEN training content is generated, THE Training_Content_Generator SHALL store the generated materials linked to the SOP Document-UUID and version number, and record the generation event in the audit trail.
 6. THE Training_Content_Generator SHALL allow a training coordinator to review and approve generated training content before it is presented to trainees.
 
-### Requirement 17: Data Sovereignty and Local-Only AI Processing
+### Requirement 17: Data Sovereignty, Local-Only AI Processing, and Model Management
 
-**User Story:** As a compliance officer, I want all AI and LLM processing to run entirely on local infrastructure with no external network communication, so that data sovereignty is maintained in air-gapped GxP environments.
+**User Story:** As a compliance officer, I want all AI and LLM processing to run entirely on local infrastructure with configurable models that are loaded and unloaded on demand to share a single GPU, so that data sovereignty is maintained and hardware resources are used efficiently.
 
 #### Acceptance Criteria
 
-1. THE LLM_Engine SHALL run entirely within the local Docker Compose deployment, using vLLM for inference on local GPU or CPU hardware.
+1. THE LLM_Engine SHALL run entirely within the local Docker Compose deployment, using vLLM for inference on local GPU (optimized for NVIDIA Blackwell) or CPU hardware.
 2. THE ALC_System SHALL NOT transmit any document content, embeddings, queries, or user data to external servers or cloud APIs for AI processing.
 3. THE Knowledge_Service SHALL store all vector embeddings exclusively in the local OpenSearch instance.
 4. WHEN the ALC_System is deployed in air-gapped mode, THE LLM_Engine SHALL operate using pre-downloaded model weights with no requirement for internet connectivity.
 5. THE ALC_System SHALL provide a CPU-mock mode for the LLM_Engine that enables local development and testing without GPU hardware, with reduced inference performance.
+6. THE Model_Manager SHALL support configuring all model identifiers, local file paths, and GPU memory limits via environment variables (`.env` file), so that models can be changed without code modifications.
+7. THE Model_Manager SHALL load and unload models on demand to share a single GPU between the chat/generation LLM, the multilingual embedding model, and the OCR vision model, ensuring only one large model occupies GPU memory at a time.
+8. THE Model_Manager SHALL expose a health endpoint reporting which model is currently loaded, GPU memory usage, and model readiness status.
+9. IF a requested model fails to load (e.g., insufficient GPU memory, missing model weights), THEN THE Model_Manager SHALL return a descriptive error and SHALL NOT leave the GPU in an inconsistent state.
 
 ### Requirement 18: AI-Powered Document Generation
 
@@ -320,3 +330,30 @@ This requirements document covers seven core modules: Document Management, Deter
 4. WHEN the signed certificate is generated, THE Document_Service SHALL store the certificate in the AlcoaBase document repository under the document type "Validation Report".
 5. IF the Playwright test suite does not achieve a 100% pass rate, THEN THE CSV_Runner SHALL generate a failure report detailing which tests failed and their corresponding URS requirement identifiers, and SHALL NOT generate a signed validation certificate.
 6. WHEN the validation certificate is generated, THE CSV_Runner SHALL include the URS document version hash to establish which version of the requirements was validated.
+
+### Requirement 24: AI-Powered Document Review
+
+**User Story:** As a quality reviewer, I want the system to perform an AI-driven review of documents before they advance in the workflow, so that structural completeness, required chapters, and content quality are verified consistently and efficiently.
+
+#### Acceptance Criteria
+
+1. WHEN a user requests an AI review of a document, THE Document_Reviewer SHALL analyze the document content using the review agent selected for the document's type (matched by document tag).
+2. WHEN a review is performed, THE Document_Reviewer SHALL check the document against the required chapter structure defined in the Review_Agent_Definition, reporting any missing, incomplete, or out-of-order sections.
+3. WHEN a review is performed, THE Document_Reviewer SHALL evaluate the content quality against the compliance checklist defined in the Review_Agent_Definition (e.g., presence of purpose statement, scope definition, safety warnings, references, version history).
+4. WHEN a review is completed, THE Document_Reviewer SHALL produce a structured review report containing: a pass/fail status per required chapter, a list of findings with severity (Critical, Major, Minor, Informational), specific text references (section and page), and actionable recommendations for each finding.
+5. WHEN a review report is generated, THE Document_Reviewer SHALL store the review report linked to the Document-UUID, document version, review agent identifier, and reviewer user ID, and record the review event in the audit trail.
+6. THE Document_Reviewer SHALL use the local LLM_Engine for all review operations, with no external API calls or network requests.
+7. IF the selected review agent's required chapter list is empty or the Review_Agent_Definition is invalid, THEN THE Document_Reviewer SHALL reject the review request with a descriptive error message.
+
+### Requirement 25: Review Agent Definitions via YAML
+
+**User Story:** As an admin, I want to define specialized document review agents as YAML files that specify required chapters, compliance checklists, and review criteria per document type, so that review rules are transparent, versionable, and shareable across the organization.
+
+#### Acceptance Criteria
+
+1. THE Agent_Registry SHALL load Review_Agent_Definition YAML files that define the review agent name, target document tag, required chapter structure (ordered list of required and optional sections), compliance checklist items, severity classification rules, and DSPy module configuration.
+2. WHEN a Review_Agent_Definition YAML file is loaded, THE Agent_Registry SHALL validate the YAML against the review agent schema and reject invalid definitions with a descriptive error message.
+3. THE Agent_Registry SHALL support importing and exporting Review_Agent_Definition YAML files, enabling users to share review configurations between ALC_System instances.
+4. THE ALC_System SHALL include example Review_Agent_Definition YAML files for common document types (e.g., SOP review agent, deviation report review agent, validation protocol review agent).
+5. WHEN a user requests a document review, THE Agent_Registry SHALL automatically select the review agent whose target document tag matches the document's tag, or allow the user to manually select a review agent.
+6. FOR ALL valid Review_Agent_Definition YAML files, WHEN the file is exported from one ALC_System instance and imported into another instance running the same or newer schema version, THE Agent_Registry SHALL load the review agent without modification (portability round-trip property).

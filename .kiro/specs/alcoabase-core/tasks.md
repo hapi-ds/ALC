@@ -5,10 +5,10 @@
 - [ ] 1.1 Create Docker Compose configuration with services: PostgreSQL, MinIO, OpenSearch, Redis, backend (FastAPI), frontend (React/Vite), vLLM, Celery worker, CSV runner (Playwright)
 - [ ] 1.2 Create backend Python project with `uv` and `pyproject.toml` using `src/` layout (`src/backend/src/alcoabase/`)
 - [ ] 1.3 Create FastAPI application entry point (`main.py`) with CORS, middleware registration, and API router
-- [ ] 1.4 Create Pydantic Settings configuration (`config.py`) loading from environment variables (database URL, MinIO credentials, Redis URL, OpenSearch URL, vLLM URL)
+- [ ] 1.4 Create Pydantic Settings configuration (`config.py`) loading from environment variables: database URL, MinIO credentials, Redis URL, OpenSearch URL, vLLM base URL, and model configuration (MODEL_CHAT_NAME, MODEL_CHAT_PATH, MODEL_CHAT_MAX_GPU_MEMORY_GB, MODEL_EMBEDDING_NAME, MODEL_EMBEDDING_PATH, MODEL_EMBEDDING_DIMENSION, MODEL_OCR_NAME, MODEL_OCR_PATH, GPU_DEVICE_ID, MODEL_MANAGER_MODE)
 - [ ] 1.5 Create SQLAlchemy 2.0 async engine and session factory (`database.py`) with SQLAlchemy-Continuum plugin initialization
 - [ ] 1.6 Create frontend React project with Vite, TypeScript, Tailwind CSS, and shadcn/ui
-- [ ] 1.7 Create `.env.example` with all required environment variables documented
+- [ ] 1.7 Create `.env.example` with all required environment variables documented, including model configuration section (chat LLM name/path/memory, embedding model name/path/dimension, OCR model name/path, GPU device ID, model manager mode)
 - [ ] 1.8 Create Dockerfiles for backend (multi-stage, non-root), frontend (multi-stage nginx), and CSV runner (Playwright base image)
 
 ## Task 2: Database Models and Audit Infrastructure
@@ -122,16 +122,17 @@
 
 ## Task 12: Knowledge Service (Document Indexing + Search)
 
-- [ ] 12.1 Create `KnowledgeService` with document text extraction: support PDF (PyMuPDF), DOCX (python-docx), and plain text formats
-- [ ] 12.2 Implement text chunking: 512-token chunks with 50-token overlap
-- [ ] 12.3 Implement vector embedding generation via local LLM_Engine (vLLM API)
-- [ ] 12.4 Implement OpenSearch indexing: store chunks + embeddings with Document-UUID, version, and metadata
-- [ ] 12.5 Create Celery task for async document indexing with retry on LLM_Engine unavailability (exponential backoff)
-- [ ] 12.6 Implement hybrid search: combine BM25 lexical + kNN semantic search in OpenSearch
-- [ ] 12.7 Implement ABAC filtering on search results: exclude documents user lacks permission for
-- [ ] 12.8 Implement CSV record exclusion: filter out `is_csv_validation_record = True` from all standard searches
-- [ ] 12.9 Create FastAPI router `/api/search` with POST (hybrid search) endpoint returning ranked results with Document-UUID, title, version, excerpt, relevance score
-- [ ] 12.10 Write unit tests for text extraction, chunking, and search result filtering
+- [ ] 12.1 Create `KnowledgeService` with document text extraction: support digital PDF (PyMuPDF), DOCX (python-docx), and plain text formats
+- [ ] 12.2 Implement scanned PDF detection: check if PDF pages contain extractable text; if not, delegate to OCR_Engine for vision-LLM-based text extraction
+- [ ] 12.3 Implement text chunking: 512-token chunks with 50-token overlap
+- [ ] 12.4 Implement multilingual vector embedding generation via Model_Manager: call `ensure_model(EMBEDDING)` to load the multilingual embedding model, then generate embeddings
+- [ ] 12.5 Implement OpenSearch indexing: store chunks + multilingual embeddings with Document-UUID, version, metadata, and detected language
+- [ ] 12.6 Create Celery task for async document indexing with retry on model unavailability (exponential backoff); task calls Model_Manager to load required models on-demand
+- [ ] 12.7 Implement hybrid search: combine BM25 lexical + kNN semantic search in OpenSearch using multilingual embeddings for cross-language query support
+- [ ] 12.8 Implement ABAC filtering on search results: exclude documents user lacks permission for
+- [ ] 12.9 Implement CSV record exclusion: filter out `is_csv_validation_record = True` from all standard searches
+- [ ] 12.10 Create FastAPI router `/api/search` with POST (hybrid search) endpoint returning ranked results with Document-UUID, title, version, excerpt, relevance score
+- [ ] 12.11 Write unit tests for text extraction (digital and scanned), chunking, multilingual embedding generation, and search result filtering
 
 ## Task 13: RAG Pipeline (Conversational Knowledge Queries)
 
@@ -189,13 +190,23 @@
 - [ ] 17.8 Implement failure report generation on non-100% pass rate with failed test REQ-IDs
 - [ ] 17.9 Write unit tests for URS parser and traceability matrix builder
 
-## Task 18: Data Sovereignty and Local-Only AI
+## Task 18: Model Manager, OCR Engine, and Data Sovereignty
 
-- [ ] 18.1 Configure vLLM Docker container with GPU passthrough (NVIDIA) and CPU fallback mode
-- [ ] 18.2 Configure Docker Compose network with no outbound internet access for AI containers
-- [ ] 18.3 Create model weight volume mount configuration for air-gapped deployment
-- [ ] 18.4 Implement CPU-mock mode for LLM_Engine: lightweight local model or mock responses for development/testing
-- [ ] 18.5 Document air-gapped deployment procedure in README
+- [ ] 18.1 Create `ModelManager` service with `ModelRole` enum (CHAT, EMBEDDING, OCR) and async lock for serialized model swaps
+- [ ] 18.2 Implement `ensure_model(role)`: unload current model if different, load requested model via vLLM API, wait for readiness health check, return vLLM API URL
+- [ ] 18.3 Implement `get_status()` health endpoint: return currently loaded model role, model name, GPU memory usage, and readiness status
+- [ ] 18.4 Implement `unload_current()` for explicit GPU memory release
+- [ ] 18.5 Implement model configuration via Pydantic Settings from `.env`: MODEL_CHAT_NAME/PATH/MAX_GPU_MEMORY_GB, MODEL_EMBEDDING_NAME/PATH/DIMENSION, MODEL_OCR_NAME/PATH, GPU_DEVICE_ID, MODEL_MANAGER_MODE (gpu/cpu/mock)
+- [ ] 18.6 Create `OCREngine` service: detect scanned PDFs (no extractable text), convert PDF pages to images via PyMuPDF `get_pixmap()`, send to vision model via Model_Manager, concatenate extracted text
+- [ ] 18.7 Integrate Model_Manager into all AI consumers: RAG_Pipeline, Document_Generator, Document_Reviewer, Training_Content_Generator, and Knowledge_Service call `ensure_model()` before inference
+- [ ] 18.8 Configure vLLM Docker container with NVIDIA Blackwell GPU passthrough and CPU fallback mode
+- [ ] 18.9 Configure Docker Compose network with no outbound internet access for AI containers
+- [ ] 18.10 Create model weight volume mount configuration (`/models/`) for air-gapped deployment with pre-downloaded weights
+- [ ] 18.11 Implement CPU-mock mode for Model_Manager: return mock embeddings (random vectors of correct dimension) and mock LLM responses for development/testing
+- [ ] 18.12 Create FastAPI endpoint `GET /api/models/status` returning current model, GPU memory, readiness
+- [ ] 18.13 Document air-gapped deployment procedure in README including model download instructions
+- [ ] 18.14 Write unit tests: model swap serialization (concurrent requests wait for lock), error handling on failed model load, mock mode returns correct-dimension embeddings
+- [ ] 18.15 Write unit tests: OCR_Engine correctly detects scanned vs. digital PDFs, extracts text from scanned pages
 
 ## Task 19: Frontend Core Shell
 
@@ -210,15 +221,34 @@
 - [ ] 19.9 Create agent selection UI: list agents, select for RAG/generation, import/export
 - [ ] 19.10 Create validation dashboard: trigger CSV run, view results, download certificates
 - [ ] 19.11 Create re-authentication dialog for electronic signature flows
-- [ ] 19.12 Create admin dashboard with user management, role assignment, and system configuration
+- [ ] 19.12 Create document review UI: trigger AI review, display structured review report with per-chapter results, findings by severity, and recommendations
+- [ ] 19.13 Create admin dashboard with user management, role assignment, and system configuration
 
-## Task 20: Integration Testing and End-to-End Verification
+## Task 21: Document Reviewer (AI-Powered Review)
 
-- [ ] 20.1 Create pytest fixtures for database setup, MinIO mock, and test user creation
-- [ ] 20.2 Write integration tests for complete document lifecycle: create → version → search → retrieve
-- [ ] 20.3 Write integration tests for complete PDF workflow: template create → PDF generate → fill → upload → extract → verify data
-- [ ] 20.4 Write integration tests for complete workflow lifecycle: Draft → Review → Approved → InTraining → Active
-- [ ] 20.5 Write integration tests for training gate: untrained user blocked, trained user permitted
-- [ ] 20.6 Write integration tests for audit trail: verify version entries for all CRUD operations
-- [ ] 20.7 Write integration tests for CSV isolation: validation records excluded from standard searches
-- [ ] 20.8 Run full Playwright CSV test suite and verify traceability matrix generation
+- [ ] 21.1 Create `DocumentReviewer` service with review agent resolution: match document tag to `Review_Agent_Definition.target_document_tag`, allow manual agent override, return HTTP 400 if no matching review agent found
+- [ ] 21.2 Implement structure check DSPy module: parse document headings/sections, compare against `required_chapters` list from Review_Agent_Definition, report missing/incomplete/out-of-order required sections
+- [ ] 21.3 Implement content review DSPy module: evaluate each section against `compliance_checklist` items, retrieve similar approved documents via Knowledge_Service for comparison, classify findings by `severity_rules` (Critical, Major, Minor, Informational)
+- [ ] 21.4 Implement `ReviewReport` and `ReviewFinding` Pydantic models: per-chapter pass/fail, findings with severity/section/description/recommendation, overall status (Pass, Pass with Findings, Fail)
+- [ ] 21.5 Implement review report persistence: store review report linked to Document-UUID, document version, review agent ID, and reviewer user ID; record review event in audit trail
+- [ ] 21.6 Create FastAPI endpoint `POST /api/documents/{uuid}/review` accepting optional `review_agent_id` parameter, returning structured ReviewReport
+- [ ] 21.7 Extend Agent_Registry to support `agent_type: "review"` with additional schema fields: `target_document_tag`, `required_chapters` (ordered list with required/optional flag), `compliance_checklist`, `severity_rules`
+- [ ] 21.8 Update JSON Schema (`agent-definition-v1.json`) to include review agent fields as conditional requirements when `agent_type == "review"`
+- [ ] 21.9 Create example Review_Agent_Definition YAML files: SOP review agent (required chapters: Purpose, Scope, Responsibilities, Procedure, Safety, References, Revision History), deviation report review agent, validation protocol review agent
+- [ ] 21.10 Implement review agent import/export via Agent_Registry (same portability as generation agents)
+- [ ] 21.11 Write property-based tests: for documents with random subsets of required chapters removed, all omissions are detected by the structure check
+- [ ] 21.12 Write property-based tests: review agent tag matching resolves correct agent for matching tags, returns error for unmatched tags
+- [ ] 21.13 Write property-based tests: review agent YAML portability round-trip — export then import produces equivalent definition including required_chapters, compliance_checklist, and severity_rules
+- [ ] 21.14 Write unit tests: review report structure validation, finding severity classification, audit trail recording
+
+## Task 22: Integration Testing and End-to-End Verification
+
+- [ ] 22.1 Create pytest fixtures for database setup, MinIO mock, and test user creation
+- [ ] 22.2 Write integration tests for complete document lifecycle: create → version → search → retrieve
+- [ ] 22.3 Write integration tests for complete PDF workflow: template create → PDF generate → fill → upload → extract → verify data
+- [ ] 22.4 Write integration tests for complete workflow lifecycle: Draft → Review → Approved → InTraining → Active
+- [ ] 22.5 Write integration tests for training gate: untrained user blocked, trained user permitted
+- [ ] 22.6 Write integration tests for audit trail: verify version entries for all CRUD operations
+- [ ] 22.7 Write integration tests for CSV isolation: validation records excluded from standard searches
+- [ ] 22.8 Write integration tests for AI document review: submit document → receive structured review report with chapter results and findings
+- [ ] 22.9 Run full Playwright CSV test suite and verify traceability matrix generation

@@ -114,9 +114,12 @@ alcoabase/
 │   │   │       │   ├── knowledge_service.py   # Indexing + search
 │   │   │       │   ├── rag_pipeline.py        # LlamaIndex RAG
 │   │   │       │   ├── document_generator.py  # AI doc generation
+│   │   │       │   ├── document_reviewer.py   # AI doc review
 │   │   │       │   ├── training_content_generator.py
 │   │   │       │   ├── agent_registry.py      # YAML agent loading
 │   │   │       │   ├── storage_service.py     # MinIO abstraction
+│   │   │       │   ├── model_manager.py       # GPU model loading/unloading
+│   │   │       │   ├── ocr_engine.py          # Vision LLM for scanned PDFs
 │   │   │       │   └── uuid_service.py        # Document-UUID + Field-UUID gen
 │   │   │       ├── tasks/
 │   │   │       │   ├── __init__.py
@@ -138,6 +141,7 @@ alcoabase/
 │   │       ├── test_audit_service.py
 │   │       ├── test_knowledge_service.py
 │   │       ├── test_agent_registry.py
+│   │       ├── test_document_reviewer.py
 │   │       └── test_uuid_service.py
 │   ├── frontend/
 │   │   ├── package.json
@@ -187,7 +191,10 @@ alcoabase/
 │   └── examples/
 │       ├── sop-drafting-agent.yaml
 │       ├── deviation-report-agent.yaml
-│       └── protocol-summary-agent.yaml
+│       ├── protocol-summary-agent.yaml
+│       ├── sop-review-agent.yaml              # Review agent for SOPs
+│       ├── deviation-review-agent.yaml        # Review agent for deviation reports
+│       └── protocol-review-agent.yaml         # Review agent for validation protocols
 └── docs/
 ```
 
@@ -503,15 +510,18 @@ class AuditMiddleware:
 
 ### 9. Knowledge Service (OpenSearch + LlamaIndex)
 
-**Technology:** OpenSearch for vector storage + hybrid search, LlamaIndex for RAG orchestration, vLLM for local inference.
+**Technology:** OpenSearch for vector storage + hybrid search, LlamaIndex for RAG orchestration, vLLM for local inference, Model_Manager for on-demand model loading.
 
 **Document Indexing Flow:**
 1. Document uploaded → Celery task dispatched
-2. Text extracted from PDF/DOCX/TXT using appropriate parser
-3. Text chunked into overlapping segments (512 tokens, 50 token overlap)
-4. Embeddings generated via local LLM_Engine
-5. Chunks + embeddings stored in OpenSearch with metadata (Document-UUID, version, tags)
-6. If LLM_Engine unavailable → task queued for retry (exponential backoff)
+2. Detect if PDF is scanned (no extractable text via PyMuPDF)
+3. If scanned → `OCR_Engine.extract_text()` (Model_Manager loads vision model on-demand)
+4. If digital → standard text extraction from PDF/DOCX/TXT using appropriate parser
+5. Text chunked into overlapping segments (512 tokens, 50 token overlap)
+6. `Model_Manager.ensure_model(EMBEDDING)` → load multilingual embedding model
+7. Multilingual embeddings generated via local embedding model (e.g., multilingual-e5-large-instruct)
+8. Chunks + embeddings stored in OpenSearch with metadata (Document-UUID, version, tags, language)
+9. If model unavailable → task queued for retry (exponential backoff)
 
 **Hybrid Search:**
 ```python
@@ -558,14 +568,147 @@ class RAGPipeline:
 5. Generated document stored as Draft in Document_Service
 6. Provenance recorded in audit trail (source UUIDs, agent ID, timestamp)
 
+### 10a. Document Reviewer (AI-Powered)
+
+**Technology:** DSPy for structured review pipeline, LlamaIndex for retrieval, local vLLM.
+
+**Review Agent Definition YAML Schema:**
+```yaml
+# agents/examples/sop-review-agent.yaml
+schema_version: "1.0"
+agent_type: "review"                    # Distinguishes from generation agents
+name: "SOP Review Agent"
+description: "Reviews SOPs for structural completeness and GxP compliance"
+target_document_tag: "SOP"              # Auto-matched to documents with this tag
+system_prompt: |
+  You are an expert GxP compliance reviewer. Analyze the document for
+  structural completeness, regulatory compliance, and content quality.
+  Be specific about findings and provide actionable recommendations.
+required_chapters:                       # Ordered list of expected sections
+  - name: "Purpose"
+    required: true
+    description: "Clear statement of the procedure's objective"
+  - name: "Scope"
+    required: true
+    description: "Defines applicability, boundaries, and affected departments"
+  - name: "Responsibilities"
+    required: true
+    description: "Roles and their specific duties within this procedure"
+  - name: "Definitions"
+    required: false
+    description: "Glossary of technical terms used in the document"
+  - name: "Materials and Equipment"
+    required: false
+    description: "List of required materials, reagents, and equipment"
+  - name: "Procedure"
+    required: true
+    description: "Step-by-step instructions for performing the activity"
+  - name: "Safety Precautions"
+    required: true
+    description: "Hazard warnings, PPE requirements, and emergency procedures"
+  - name: "References"
+    required: true
+    description: "Referenced documents, standards, and regulations"
+  - name: "Revision History"
+    required: true
+    description: "Version log with dates, authors, and change descriptions"
+compliance_checklist:                    # Items checked beyond chapter structure
+  - "Document has a unique document number"
+  - "Version number follows major.minor convention"
+  - "All procedural steps are numbered sequentially"
+  - "Safety warnings appear before the steps they relate to"
+  - "All referenced documents include document numbers"
+  - "Approval signatures section is present"
+severity_rules:
+  critical: "Missing required chapter, safety information absent"
+  major: "Incomplete section, ambiguous procedural steps"
+  minor: "Formatting inconsistencies, missing optional sections"
+  informational: "Style suggestions, readability improvements"
+dspy_modules:
+  - name: "structure_check"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.1
+      max_tokens: 2048
+  - name: "content_review"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.2
+      max_tokens: 4096
+knowledge_scopes:
+  tags: ["SOP", "Procedure", "Guideline"]
+```
+
+**Review Pipeline:**
+```python
+# src/backend/src/alcoabase/services/document_reviewer.py
+class DocumentReviewer:
+    async def review_document(
+        self, document_uuid: str, version: str, review_agent_id: str | None, user_id: int
+    ) -> ReviewReport:
+        """Perform AI-driven document review using specialized review agent."""
+        # 1. Load document content from Document_Service
+        # 2. Resolve review agent:
+        #    a. If review_agent_id provided → use that agent
+        #    b. Else → match document tag to Review_Agent_Definition.target_document_tag
+        #    c. If no match → raise HTTP 400
+        # 3. Validate Review_Agent_Definition (required_chapters not empty)
+        # 4. Run structure_check DSPy module:
+        #    - Parse document headings/sections
+        #    - Compare against required_chapters list
+        #    - Report missing, incomplete, or out-of-order sections
+        # 5. Run content_review DSPy module:
+        #    - Evaluate each section against compliance_checklist
+        #    - Retrieve reference documents via Knowledge_Service for comparison
+        #    - Classify findings by severity_rules
+        # 6. Build ReviewReport:
+        #    - Per-chapter pass/fail status
+        #    - Findings list with severity, section reference, description, recommendation
+        #    - Overall review summary
+        # 7. Store review report, record in audit trail
+        # 8. Return ReviewReport
+
+class ReviewReport(BaseModel):
+    document_uuid: str
+    document_version: str
+    review_agent_id: str
+    reviewer_user_id: int
+    timestamp: datetime
+    overall_status: str  # "Pass", "Pass with Findings", "Fail"
+    chapter_results: list[ChapterResult]  # per-chapter pass/fail
+    findings: list[ReviewFinding]         # severity, section, description, recommendation
+    summary: str
+
+class ReviewFinding(BaseModel):
+    severity: str       # Critical, Major, Minor, Informational
+    chapter: str        # Which chapter/section
+    page_or_section: str
+    description: str
+    recommendation: str
+```
+
+**Review Flow:**
+1. User selects document and clicks "AI Review" (or review is triggered before a workflow transition)
+2. Document_Reviewer resolves the review agent by document tag (or user selects manually)
+3. Structure check: LLM parses document headings and compares against `required_chapters`
+4. Content review: LLM evaluates each section against `compliance_checklist` and `severity_rules`
+5. Knowledge_Service retrieves similar approved documents for comparison (style, completeness)
+6. Structured ReviewReport generated with per-chapter results and actionable findings
+7. Report stored linked to Document-UUID, version, agent ID; audit trail recorded
+8. User can address findings and re-run review before advancing the document in the workflow
+
 ### 11. Agent Registry (YAML-Based)
 
 **Technology:** Pydantic for YAML validation, JSON Schema for agent definition format.
 
 **Agent Definition YAML Schema (v1):**
+
+The schema supports two agent types via the `agent_type` field: `"generation"` (default, for document creation) and `"review"` (for document review). Review agents include additional fields: `target_document_tag`, `required_chapters`, `compliance_checklist`, and `severity_rules`.
+
 ```yaml
 # agents/examples/sop-drafting-agent.yaml
 schema_version: "1.0"
+agent_type: "generation"
 name: "SOP Drafting Agent"
 description: "Generates Standard Operating Procedure drafts based on existing SOPs"
 system_prompt: |
@@ -674,14 +817,112 @@ class CSVTaggingMiddleware:
         return response
 ```
 
-### 15. Data Sovereignty Enforcement
+### 15. Model Manager and Data Sovereignty Enforcement
 
-**Design Constraints:**
-- vLLM container runs locally within Docker Compose (GPU passthrough or CPU mode)
+**Technology:** vLLM for inference, custom Model_Manager service for GPU scheduling, Pydantic Settings for `.env` configuration.
+
+**Model Catalog (configured via `.env`):**
+The system uses three distinct model roles, all configurable via environment variables:
+
+```bash
+# .env — Model Configuration
+# Chat/Generation LLM (loaded for RAG, document generation, review, training content)
+MODEL_CHAT_NAME=meta-llama/Llama-3.3-70B-Instruct
+MODEL_CHAT_PATH=/models/llama-3.3-70b-instruct
+MODEL_CHAT_MAX_GPU_MEMORY_GB=60
+MODEL_CHAT_TENSOR_PARALLEL_SIZE=1
+
+# Multilingual Embedding Model (loaded for document indexing and search)
+MODEL_EMBEDDING_NAME=intfloat/multilingual-e5-large-instruct
+MODEL_EMBEDDING_PATH=/models/multilingual-e5-large-instruct
+MODEL_EMBEDDING_MAX_GPU_MEMORY_GB=4
+MODEL_EMBEDDING_DIMENSION=1024
+
+# Vision/OCR Model (loaded on-demand for scanned PDF text extraction)
+MODEL_OCR_NAME=Qwen/Qwen2.5-VL-72B-Instruct
+MODEL_OCR_PATH=/models/qwen2.5-vl-72b-instruct
+MODEL_OCR_MAX_GPU_MEMORY_GB=60
+
+# GPU Configuration
+GPU_DEVICE_ID=0
+VLLM_BASE_URL=http://vllm:8000
+MODEL_MANAGER_MODE=gpu  # "gpu", "cpu", or "mock"
+```
+
+**Model Manager Service:**
+```python
+# src/backend/src/alcoabase/services/model_manager.py
+class ModelRole(str, Enum):
+    CHAT = "chat"           # RAG, generation, review, training content
+    EMBEDDING = "embedding"  # Multilingual document embeddings
+    OCR = "ocr"             # Vision model for scanned PDFs
+
+class ModelManager:
+    """Manages on-demand loading/unloading of LLM models on a single GPU."""
+
+    def __init__(self, settings: ModelSettings):
+        self._current_model: ModelRole | None = None
+        self._lock = asyncio.Lock()  # Serialize model swaps
+
+    async def ensure_model(self, role: ModelRole) -> str:
+        """Load the requested model if not already active. Returns vLLM API URL."""
+        async with self._lock:
+            if self._current_model == role:
+                return self._vllm_url
+            # 1. Unload current model (POST /v1/models/unload or restart vLLM)
+            # 2. Load requested model by role → resolve model name/path from settings
+            # 3. Wait for model readiness (health check loop)
+            # 4. Update self._current_model
+            # 5. Return vLLM API URL
+
+    async def get_status(self) -> ModelStatus:
+        """Return current model, GPU memory usage, readiness."""
+
+    async def unload_current(self) -> None:
+        """Explicitly unload the current model to free GPU memory."""
+```
+
+**Model Scheduling Strategy:**
+- Only one large model (chat or OCR) occupies the GPU at a time
+- The embedding model is small enough to coexist or is swapped in quickly
+- Model swaps are serialized via an async lock to prevent race conditions
+- Celery tasks that need a specific model call `ensure_model()` before inference
+- If a model swap fails, the error is propagated and the task is retried
+
+**OCR Engine (Vision LLM for Scanned PDFs):**
+```python
+# src/backend/src/alcoabase/services/ocr_engine.py
+class OCREngine:
+    """Extracts text from scanned/image-based PDFs using a vision LLM."""
+
+    async def extract_text(self, pdf_bytes: bytes) -> str:
+        """Convert scanned PDF pages to text via vision model."""
+        # 1. Request Model_Manager to load OCR model
+        url = await self.model_manager.ensure_model(ModelRole.OCR)
+        # 2. Convert PDF pages to images (PyMuPDF page.get_pixmap())
+        # 3. For each page image:
+        #    - Send to vLLM vision endpoint with prompt "Extract all text from this document page"
+        #    - Collect extracted text
+        # 4. Concatenate page texts
+        # 5. Return full document text
+```
+
+**Integration with Knowledge_Service:**
+The document indexing flow now handles both digital and scanned PDFs:
+1. Document uploaded → Celery task dispatched
+2. Detect if PDF is scanned (no extractable text via PyMuPDF)
+3. If scanned → `OCR_Engine.extract_text()` (loads vision model on-demand)
+4. If digital → standard PyMuPDF text extraction
+5. `Model_Manager.ensure_model(EMBEDDING)` → load multilingual embedding model
+6. Generate multilingual embeddings via embedding model
+7. Store chunks + embeddings in OpenSearch
+
+**Data Sovereignty Constraints:**
+- vLLM container runs locally within Docker Compose (Blackwell GPU passthrough)
 - No outbound network rules in Docker network configuration
 - OpenSearch runs locally, no cloud connectors
-- Model weights pre-downloaded and mounted as Docker volume
-- CPU-mock mode: replace vLLM with a lightweight local model or mock responses for dev/test
+- All model weights pre-downloaded and mounted as Docker volume at `/models/`
+- CPU-mock mode: Model_Manager returns mock embeddings and mock LLM responses for dev/test
 
 ## Correctness Properties
 
@@ -775,6 +1016,21 @@ class CSVTaggingMiddleware:
 - **Property:** For all extracted field values that do not match the expected data type (e.g., non-numeric value in a Float field), the extractor rejects the upload with validation errors and persists no partial data.
 - **Test approach:** Property-based test with Hypothesis generating invalid field values for each type.
 
+### Property 19: Review Agent Chapter Completeness Detection (Req 24, AC 2-3)
+- **Type:** Invariant
+- **Property:** For all documents and their matched Review_Agent_Definition, the Document_Reviewer detects every missing required chapter and every compliance checklist violation. No required chapter absence goes unreported.
+- **Test approach:** Property-based test with Hypothesis generating documents with random subsets of required chapters removed, verifying all omissions are detected.
+
+### Property 20: Review Agent Tag Matching (Req 25, AC 5)
+- **Type:** Invariant
+- **Property:** For all documents with a tag that matches a Review_Agent_Definition's `target_document_tag`, the Agent_Registry resolves the correct review agent. For documents with no matching review agent, the system returns an error.
+- **Test approach:** Property-based test with random document tags and review agent definitions, verifying correct resolution or error.
+
+### Property 21: Review Agent YAML Portability Round-Trip (Req 25, AC 6)
+- **Type:** Round-trip
+- **Property:** For all valid Review_Agent_Definition YAML files, exporting from one instance and importing into another instance (same or newer schema version) produces an equivalent review agent definition including required_chapters, compliance_checklist, and severity_rules.
+- **Test approach:** Property-based test: generate random valid review agent definitions → export → import → assert equivalence.
+
 ## Technology Choices
 
 | Component | Technology | Rationale |
@@ -789,7 +1045,10 @@ class CSVTaggingMiddleware:
 | Background Jobs | Celery + Redis | Proven async task queue |
 | Object Storage | MinIO | S3-compatible, self-hosted |
 | Vector Search | OpenSearch | Hybrid search (BM25 + kNN) |
-| LLM Inference | vLLM | High-performance local inference |
+| LLM Inference | vLLM | High-performance local inference, Blackwell GPU optimized |
+| Multilingual Embeddings | multilingual-e5-large-instruct | Cross-language semantic search |
+| OCR / Vision LLM | Qwen2.5-VL (or similar) | Scanned PDF text extraction via vision model |
+| Model Management | Custom Model_Manager | On-demand GPU model loading/unloading |
 | RAG Framework | LlamaIndex | Mature retrieval + generation pipeline |
 | Agent Framework | DSPy | Composable LLM pipelines |
 | Frontend | React + Vite + TypeScript | Fast dev, type safety |
