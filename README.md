@@ -12,15 +12,16 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
 ---
 
 ## ✨ Core Features
+Beside tradional document management (versioned storage of documents in folder structure with unique document number and meta tags for classification) following features are planned:
 
 * 🛡️ **ALCOA+ Data Integrity & Audit Trail**
   Cryptographic digital signatures (PAdES), strict versioning, and immutable database audit logs for every action (Who, What, When, Why).
-* 📄 **Deterministic PDF-to-Database Mapping**
+* 📄 **Deterministic PDF-to-Database Mapping for Protocols and Reports**
   A visual JSON-driven form builder that creates both React web forms and offline-capable PDFs. Using a proprietary **Dual-UUID** concept, data entered into offline PDFs is flawlessly extracted and mapped directly to relational PostgreSQL tables upon upload.
 * 🧠 **Local AI & Retrieval-Augmented Generation (RAG)**
   Ask questions against all your documents. Built for high-performance inference (optimized for NVIDIA Blackwell GPUs via `vLLM`) while maintaining 100% data sovereignty.
 * ⚙️ **Dynamic BPMN Workflows**
-  Admins can visually design document lifecycles (Draft -> Review -> Approved -> InTraining -> Active) using a drag-and-drop BPMN editor, executed securely by the Python backend.
+  Admins can visually design individual document lifecycles based on meta tags (Draft -> Review -> Approved -> InTraining -> Active) using a drag-and-drop BPMN editor, executed securely by the Python backend.
 * 🎓 **Training-Gated Execution (RBAC/ABAC)**
   Strict access control ensures users can only execute tasks or create reports for specific Standard Operating Procedures (SOPs) if they possess a valid, digitally signed training record for that exact document version.
 * ✅ **Automated Computer System Validation (CSV)**

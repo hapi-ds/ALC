@@ -6,7 +6,17 @@ Here is the detailed, structured requirements list for the business-critical cor
 
 ---
 
-## Module 1: Deterministic PDF Mapping (Dual-UUID)
+## Module 1: Basic Requirements for Document Management
+**REQ-DM-01: Document Input**
+* **Description:** It should be possible to store a wide variety of document types, organized into directories, uniquely assigned a document number, and categorized using tags.
+* **Acceptance Criteria:**
+    * **Given** the user saves a new file into a folder.
+    * **Then** the backend generates a unique `Document-UUID` for the new document (e.g. YYYY-NNNNN).
+    * **And** suggest a title.
+    * **And** ask the user for tags.
+
+
+## Module 2: Deterministic PDF Protocol to Report Mapping (Dual-UUID)
 
 **REQ-PDF-01: Generation of Template and Field UUIDs**
 * **Description:** When saving a new report template via the visual editor, the system must generate the JSON schema and assign immutable UUIDs to the form elements.
@@ -35,7 +45,7 @@ Here is the detailed, structured requirements list for the business-critical cor
 
 ---
 
-## Module 2: Workflows & Electronic Signatures
+## Module 3: Workflows & Electronic Signatures
 
 **REQ-WF-01: Enforcement of BPMN State Transitions**
 * **Description:** Documents may only transition states along the predefined BPMN paths configured by the admin.
@@ -57,7 +67,7 @@ Here is the detailed, structured requirements list for the business-critical cor
 
 ---
 
-## Module 3: Training Execution Gate (ABAC)
+## Module 4: Training Execution Gate (ABAC)
 
 **REQ-TRN-01: Automatic Training Assignment**
 * **Description:** When a new major version of an SOP is approved, the system must automatically issue training tasks to the assigned roles.
@@ -78,7 +88,7 @@ Here is the detailed, structured requirements list for the business-critical cor
 
 ---
 
-## Module 4: ALCOA+ Audit Trail
+## Module 5: ALCOA+ Audit Trail
 
 **REQ-AUD-01: Immutable Logging of Database Changes**
 * **Description:** Every creation, modification, or (logical) deletion of a GLP-relevant record must be logged systematically in a tamper-proof manner.
@@ -91,7 +101,7 @@ Here is the detailed, structured requirements list for the business-critical cor
 
 ---
 
-## Module 5: Computer System Validation (CSV) System
+## Module 6: Computer System Validation (CSV) System
 
 **REQ-CSV-01: Isolated Test Execution and Data Tagging**
 * **Description:** The CSV Runner must execute E2E tests without contaminating the production database, search results, or the actual audit trail.
