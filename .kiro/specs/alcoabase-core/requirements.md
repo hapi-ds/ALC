@@ -10,6 +10,7 @@ This requirements document covers seven core modules: Document Management, Deter
 
 - **ALC_System**: The AlcoaBase application as a whole, encompassing frontend, backend, and data layers.
 - **Document_Service**: The backend service responsible for storing, versioning, and retrieving documents and their metadata.
+- **Virtual_Folder**: A named, persistent tag-based filter that dynamically aggregates all documents matching configured tag criteria, providing quick-access views (e.g., "All SOPs", "Active Reports") without physically moving files.
 - **Template_Service**: The backend service responsible for managing report template JSON schemas, generating Field-UUIDs, and enforcing template immutability.
 - **PDF_Generator**: The ReportLab-based component that produces fillable AcroForm PDF documents from approved JSON template schemas.
 - **PDF_Extractor**: The PyMuPDF-based component that reads completed offline PDFs and maps field values back to relational database columns using Field-UUIDs.
@@ -68,6 +69,10 @@ This requirements document covers seven core modules: Document Management, Deter
 2. THE Document_Service SHALL allow retrieval of any specific version of a document by Document-UUID and version number.
 3. WHEN a user searches by tag, folder path, or Document-UUID, THE Document_Service SHALL return all matching documents with their current version metadata.
 4. THE Document_Service SHALL distinguish between major versions (content changes requiring re-training) and minor versions (editorial corrections).
+5. THE Document_Service SHALL support virtual folders — named, persistent tag-based filters (e.g., "All SOPs", "Active Reports") that dynamically aggregate all documents matching the configured tag criteria.
+6. WHEN a user creates a virtual folder, THE Document_Service SHALL persist the virtual folder definition (name, tag filter expression, sort order, creator user ID) and make it accessible from the navigation sidebar.
+7. WHEN a user opens a virtual folder, THE Document_Service SHALL return all documents whose tags match the virtual folder's filter expression, evaluated dynamically against the current document corpus.
+8. THE ALC_System SHALL provide a set of default virtual folders upon initial setup (e.g., "All SOPs", "All Reports", "All Templates", "Approved Documents", "Documents In Training").
 
 ### Requirement 3: Template Creation and Field-UUID Assignment
 

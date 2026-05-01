@@ -23,8 +23,9 @@
 - [ ] 2.8 Create `SignatureRecord` model for PAdES signature event logging
 - [ ] 2.9 Create `TrainingTask` and `TrainingRecord` models with SOP version linkage and completion status
 - [ ] 2.10 Create `AgentDefinition` model for persisted agent configurations
-- [ ] 2.11 Create Alembic migration configuration and initial migration
-- [ ] 2.12 Create audit middleware that injects user_id, reason_for_change, and server-side UTC timestamp into Continuum transaction context
+- [ ] 2.11 Create `VirtualFolder` model with name (unique), tag_filter (JSON), sort_order, is_system_default flag, and created_by foreign key
+- [ ] 2.12 Create Alembic migration configuration and initial migration
+- [ ] 2.13 Create audit middleware that injects user_id, reason_for_change, and server-side UTC timestamp into Continuum transaction context
 
 ## Task 3: UUID Generation Service
 
@@ -43,7 +44,10 @@
 - [ ] 4.5 Create `search_documents()` method: filter by tag, folder_path, Document-UUID with pagination
 - [ ] 4.6 Create Pydantic request/response schemas for document endpoints
 - [ ] 4.7 Create FastAPI router `/api/documents` with POST (create), POST (version), GET (retrieve), GET (search) endpoints
-- [ ] 4.8 Write unit tests for DocumentService: creation, versioning, search, error handling on storage failure
+- [ ] 4.8 Create virtual folder CRUD: `POST /api/virtual-folders` (create with name, tag_filter JSON, sort_order), `GET /api/virtual-folders` (list all), `GET /api/virtual-folders/{id}/documents` (dynamic query matching tag_filter), `PUT /api/virtual-folders/{id}` (update), `DELETE /api/virtual-folders/{id}` (reject deletion of system defaults)
+- [ ] 4.9 Create seed data for default virtual folders: "All SOPs" (tags=SOP), "All Reports" (tags=Report), "All Templates" (tags=Template), "Approved Documents" (status=Approved), "Documents In Training" (status=InTraining)
+- [ ] 4.10 Write unit tests for DocumentService: creation, versioning, search, error handling on storage failure
+- [ ] 4.11 Write unit tests for virtual folders: CRUD operations, dynamic document filtering by tag_filter, system default deletion protection
 
 ## Task 5: Template Service and Visual Form Builder
 
@@ -213,6 +217,7 @@
 - [ ] 19.1 Create application shell with React Router, navigation, and layout components
 - [ ] 19.2 Create Zustand stores for authentication, documents, templates, and search state
 - [ ] 19.3 Create document management pages: file browser, upload, version history, tag management
+- [ ] 19.4 Create virtual folder sidebar: display system default and user-created virtual folders in navigation, open virtual folder to show dynamically filtered document list, create/edit/delete virtual folders
 - [ ] 19.4 Create template visual form builder with drag-and-drop (react-hook-form + @hello-pangea/dnd)
 - [ ] 19.5 Create workflow BPMN editor interface for admin workflow definition
 - [ ] 19.6 Create training dashboard: task list, completion tracking, training content viewer

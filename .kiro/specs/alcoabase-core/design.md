@@ -236,6 +236,19 @@ class DocumentVersion(Base, AuditMixin):
 ```
 
 ```python
+# src/backend/src/alcoabase/models/virtual_folder.py
+class VirtualFolder(Base):
+    __tablename__ = "virtual_folders"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(200), unique=True)
+    tag_filter: Mapped[dict] = mapped_column(JSON)  # e.g. {"tags": ["SOP"], "status": "Active"}
+    sort_order: Mapped[str] = mapped_column(String(50), default="created_at_desc")
+    is_system_default: Mapped[bool] = mapped_column(default=False)  # True for built-in folders
+    created_by: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+```
+
+```python
 # src/backend/src/alcoabase/models/template.py
 class Template(Base, AuditMixin):
     __tablename__ = "templates"
@@ -308,6 +321,25 @@ class UUIDService:
 - `GET /api/documents/{uuid}` — Get document metadata
 - `GET /api/documents/{uuid}/versions/{version}` — Get specific version
 - `GET /api/documents?tag=X&folder=Y` — Search documents
+- `POST /api/virtual-folders` — Create virtual folder (name, tag filter, sort order)
+- `GET /api/virtual-folders` — List all virtual folders (system defaults + user-created)
+- `GET /api/virtual-folders/{id}/documents` — Get documents matching virtual folder filter (dynamic query)
+- `PUT /api/virtual-folders/{id}` — Update virtual folder filter/name
+- `DELETE /api/virtual-folders/{id}` — Delete user-created virtual folder (system defaults cannot be deleted)
+
+**Virtual Folder Design:**
+Virtual folders are persistent, named tag-based filters stored in PostgreSQL. They do not physically contain documents — opening a virtual folder executes a dynamic query against the document table filtered by the `tag_filter` expression. The `tag_filter` supports:
+- Tag matching: `{"tags": ["SOP"]}` — all documents with the "SOP" tag
+- Status filtering: `{"tags": ["SOP"], "status": "Active"}` — active SOPs only
+- Multi-tag: `{"tags": ["Report", "Lab-A"]}` — documents with both tags
+- Combined: `{"tags": ["SOP"], "status": "InTraining"}` — SOPs currently in training
+
+**Default Virtual Folders (seeded on setup):**
+- "All SOPs" → `{"tags": ["SOP"]}`
+- "All Reports" → `{"tags": ["Report"]}`
+- "All Templates" → `{"tags": ["Template"]}`
+- "Approved Documents" → `{"status": "Approved"}`
+- "Documents In Training" → `{"status": "InTraining"}`
 
 **Flow:**
 1. User uploads file → Document_Service generates Document-UUID
