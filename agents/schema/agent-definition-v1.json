@@ -1,0 +1,135 @@
+{
+  "title": "Agent Definition v1",
+  "description": "Schema for AlcoaBase Agent Definition YAML files (v1)",
+  "type": "object",
+  "required": ["schema_version", "name", "description", "system_prompt", "dspy_modules", "knowledge_scopes"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0"],
+      "description": "Schema version identifier. Must be 1.0 for this schema."
+    },
+    "agent_type": {
+      "type": "string",
+      "enum": ["generation", "review"],
+      "default": "generation",
+      "description": "Type of agent: generation for document creation, review for document review."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable name of the agent."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Description of what the agent does."
+    },
+    "system_prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "System prompt for the LLM defining the agent behavior."
+    },
+    "dspy_modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Module identifier name."
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "DSPy module type (e.g. ChainOfThought, ColBERTv2Retriever)."
+          },
+          "params": {
+            "type": "object",
+            "description": "Module-specific parameters.",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "List of DSPy modules in the pipeline."
+    },
+    "knowledge_scopes": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Document tags to scope knowledge retrieval."
+        }
+      },
+      "required": ["tags"],
+      "additionalProperties": false,
+      "description": "Knowledge retrieval scope configuration."
+    },
+    "example_usage": {
+      "type": "string",
+      "description": "Example usage instructions for the agent."
+    },
+    "target_document_tag": {
+      "type": "string",
+      "description": "Document tag this review agent targets (required for review agents)."
+    },
+    "required_chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "required"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Ordered list of expected document sections (for review agents)."
+    },
+    "compliance_checklist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Compliance items to check (for review agents)."
+    },
+    "severity_rules": {
+      "type": "object",
+      "properties": {
+        "critical": { "type": "string" },
+        "major": { "type": "string" },
+        "minor": { "type": "string" },
+        "informational": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "description": "Severity classification rules (for review agents)."
+    }
+  },
+  "if": {
+    "properties": {
+      "agent_type": { "const": "review" }
+    },
+    "required": ["agent_type"]
+  },
+  "then": {
+    "required": ["target_document_tag", "required_chapters", "compliance_checklist", "severity_rules"]
+  },
+  "additionalProperties": false
+}

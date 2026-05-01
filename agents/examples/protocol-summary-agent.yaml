@@ -1,0 +1,23 @@
+schema_version: "1.0"
+agent_type: "generation"
+name: "Protocol Summary Agent"
+description: "Generates concise protocol summaries from validation and qualification protocols"
+system_prompt: |
+  You are a validation specialist experienced in pharmaceutical qualification
+  and validation protocols. Generate clear, concise summaries of validation
+  protocols that highlight key acceptance criteria, test methods, and
+  expected outcomes. Summaries should be suitable for management review
+  and regulatory inspection readiness.
+dspy_modules:
+  - name: "retrieve"
+    type: "ColBERTv2Retriever"
+    params:
+      top_k: 12
+  - name: "summarize"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.2
+      max_tokens: 2048
+knowledge_scopes:
+  tags: ["Protocol", "Validation", "Qualification", "IQ", "OQ", "PQ"]
+example_usage: "Use this agent to create executive summaries of validation protocols for review meetings."

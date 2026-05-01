@@ -1,0 +1,321 @@
+# AlcoaBase - Docker Compose Configuration
+# All services run locally with no outbound internet access for AI containers.
+# Compose v2 format.
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Data Layer
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: alcoabase-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - alcoabase-net
+
+  minio:
+    image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+    container_name: alcoabase-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - alcoabase-net
+
+  opensearch:
+    image: opensearchproject/opensearch:2.16.0
+    container_name: alcoabase-opensearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - plugins.security.disabled=true
+      - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=${OPENSEARCH_INITIAL_ADMIN_PASSWORD}
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ports:
+      - "${OPENSEARCH_PORT:-9200}:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - alcoabase-net
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: alcoabase-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - alcoabase-net
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # AI / Inference
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  vllm:
+    image: vllm/vllm-openai:v0.6.1
+    container_name: alcoabase-vllm
+    restart: unless-stopped
+    environment:
+      - VLLM_HOST=0.0.0.0
+      - VLLM_PORT=8000
+    volumes:
+      - ${MODEL_WEIGHTS_PATH:-./models}:/models:ro
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    networks:
+      - alcoabase-ai-net
+      - alcoabase-net
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # CPU fallback: set VLLM_DEVICE=cpu in .env and remove the deploy.resources
+    # section above when running without GPU hardware.
+    profiles:
+      - gpu
+
+  vllm-cpu:
+    image: vllm/vllm-openai:v0.6.1
+    container_name: alcoabase-vllm-cpu
+    restart: unless-stopped
+    environment:
+      - VLLM_HOST=0.0.0.0
+      - VLLM_PORT=8000
+      - VLLM_DEVICE=cpu
+    volumes:
+      - ${MODEL_WEIGHTS_PATH:-./models}:/models:ro
+    ports:
+      - "${VLLM_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+    networks:
+      - alcoabase-ai-net
+      - alcoabase-net
+    profiles:
+      - cpu
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Application Layer
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  backend:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: alcoabase-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET:-alcoabase}
+      - MINIO_USE_SSL=false
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - OPENSEARCH_URL=http://opensearch:9200
+      - VLLM_BASE_URL=http://vllm:8000
+      - MODEL_CHAT_NAME=${MODEL_CHAT_NAME}
+      - MODEL_CHAT_PATH=${MODEL_CHAT_PATH}
+      - MODEL_CHAT_MAX_GPU_MEMORY_GB=${MODEL_CHAT_MAX_GPU_MEMORY_GB}
+      - MODEL_EMBEDDING_NAME=${MODEL_EMBEDDING_NAME}
+      - MODEL_EMBEDDING_PATH=${MODEL_EMBEDDING_PATH}
+      - MODEL_EMBEDDING_DIMENSION=${MODEL_EMBEDDING_DIMENSION}
+      - MODEL_OCR_NAME=${MODEL_OCR_NAME}
+      - MODEL_OCR_PATH=${MODEL_OCR_PATH}
+      - GPU_DEVICE_ID=${GPU_DEVICE_ID:-0}
+      - MODEL_MANAGER_MODE=${MODEL_MANAGER_MODE:-mock}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./agents:/app/agents:ro
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - alcoabase-net
+
+  celery-worker:
+    build:
+      context: ./src/backend
+      dockerfile: Dockerfile
+    container_name: alcoabase-celery-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "alcoabase.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - MINIO_BUCKET=${MINIO_BUCKET:-alcoabase}
+      - MINIO_USE_SSL=false
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - OPENSEARCH_URL=http://opensearch:9200
+      - VLLM_BASE_URL=http://vllm:8000
+      - MODEL_CHAT_NAME=${MODEL_CHAT_NAME}
+      - MODEL_CHAT_PATH=${MODEL_CHAT_PATH}
+      - MODEL_CHAT_MAX_GPU_MEMORY_GB=${MODEL_CHAT_MAX_GPU_MEMORY_GB}
+      - MODEL_EMBEDDING_NAME=${MODEL_EMBEDDING_NAME}
+      - MODEL_EMBEDDING_PATH=${MODEL_EMBEDDING_PATH}
+      - MODEL_EMBEDDING_DIMENSION=${MODEL_EMBEDDING_DIMENSION}
+      - MODEL_OCR_NAME=${MODEL_OCR_NAME}
+      - MODEL_OCR_PATH=${MODEL_OCR_PATH}
+      - GPU_DEVICE_ID=${GPU_DEVICE_ID:-0}
+      - MODEL_MANAGER_MODE=${MODEL_MANAGER_MODE:-mock}
+      - SECRET_KEY=${SECRET_KEY}
+    volumes:
+      - ./agents:/app/agents:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      opensearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A alcoabase.tasks.celery_app inspect ping --timeout 5 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - alcoabase-net
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    container_name: alcoabase-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:80/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - alcoabase-net
+
+  csv-runner:
+    build:
+      context: ./src/csv-runner
+      dockerfile: Dockerfile
+    container_name: alcoabase-csv-runner
+    environment:
+      - BASE_URL=http://frontend:80
+      - API_URL=http://backend:8080
+      - CSV_TEST_USER=${CSV_TEST_USER:-csv_test_user}
+      - CSV_TEST_PASSWORD=${CSV_TEST_PASSWORD}
+    volumes:
+      - csv_results:/app/results
+      - ./Requirements:/app/requirements:ro
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - alcoabase-net
+    profiles:
+      - validation
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Networks
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  alcoabase-net:
+    driver: bridge
+
+  # Isolated network for AI containers — no outbound internet access.
+  # The vLLM container connects to both networks so the backend can reach it
+  # via alcoabase-net, but the AI network itself has no external connectivity.
+  alcoabase-ai-net:
+    driver: bridge
+    internal: true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Volumes
+# ─────────────────────────────────────────────────────────────────────────────
+
+volumes:
+  postgres_data:
+  minio_data:
+  opensearch_data:
+  redis_data:
+  csv_results:

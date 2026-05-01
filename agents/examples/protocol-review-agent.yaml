@@ -1,0 +1,65 @@
+schema_version: "1.0"
+agent_type: "review"
+name: "Validation Protocol Review Agent"
+description: "Reviews validation protocols for completeness, test coverage, and acceptance criteria clarity"
+target_document_tag: "Protocol"
+system_prompt: |
+  You are an expert validation specialist. Review validation protocols
+  for completeness of test coverage, clarity of acceptance criteria,
+  and compliance with regulatory expectations for computer system validation.
+required_chapters:
+  - name: "Purpose"
+    required: true
+    description: "Objective of the validation activity"
+  - name: "Scope"
+    required: true
+    description: "System boundaries and validation coverage"
+  - name: "Responsibilities"
+    required: true
+    description: "Roles involved in validation execution and approval"
+  - name: "System Description"
+    required: true
+    description: "Description of the system under validation"
+  - name: "Risk Assessment"
+    required: true
+    description: "Risk-based approach to test case selection"
+  - name: "Test Cases"
+    required: true
+    description: "Detailed test cases with steps, expected results, and acceptance criteria"
+  - name: "Acceptance Criteria"
+    required: true
+    description: "Overall acceptance criteria for the validation"
+  - name: "Deviation Handling"
+    required: true
+    description: "Process for handling deviations during execution"
+  - name: "References"
+    required: true
+    description: "Referenced requirements, standards, and regulations"
+  - name: "Approval"
+    required: true
+    description: "Protocol approval signatures"
+compliance_checklist:
+  - "Each test case has a unique identifier"
+  - "Test cases trace to specific requirements"
+  - "Acceptance criteria are measurable and objective"
+  - "Test environment is specified"
+  - "Prerequisites for each test are documented"
+  - "Expected results are specific and verifiable"
+severity_rules:
+  critical: "Missing test cases for critical requirements, no acceptance criteria"
+  major: "Ambiguous expected results, incomplete traceability, missing risk assessment"
+  minor: "Test case numbering gaps, formatting inconsistencies"
+  informational: "Additional test scenarios suggested, documentation improvements"
+dspy_modules:
+  - name: "structure_check"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.1
+      max_tokens: 2048
+  - name: "content_review"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.2
+      max_tokens: 4096
+knowledge_scopes:
+  tags: ["Protocol", "Validation", "CSV"]

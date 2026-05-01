@@ -1,0 +1,65 @@
+[project]
+name = "alcoabase"
+version = "0.1.0"
+description = "AlcoaBase - Local Document & Knowledge Management System for GxP-regulated environments"
+authors = [
+    { name = "Hans Koehler", email = "hans@koehler.eu.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.30.0",
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.5.0",
+    # Database
+    "sqlalchemy[asyncio]>=2.0.35",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    # Audit trail
+    "sqlalchemy-continuum>=1.4.2",
+    # Object storage (MinIO)
+    "aioboto3>=13.0.0",
+    # Search
+    "opensearch-py>=2.7.0",
+    # Task queue
+    "redis>=5.2.0",
+    "celery>=5.4.0",
+    # PDF generation
+    "reportlab>=4.2.0",
+    # PDF extraction
+    "pymupdf>=1.24.0",
+    # BPMN workflows
+    "spiffworkflow>=1.3.0",
+    # Electronic signatures (PAdES)
+    "pyhanko>=0.25.0",
+    # AI / RAG
+    "llama-index>=0.11.0",
+    "dspy>=2.5.0",
+    # Document extraction
+    "python-docx>=1.1.0",
+    # Agent YAML configuration
+    "pyyaml>=6.0.0",
+    "jsonschema>=4.23.0",
+    # HTTP client
+    "httpx>=0.27.0",
+    # File uploads
+    "python-multipart>=0.0.12",
+    # Authentication
+    "passlib[bcrypt]>=1.7.4",
+    "python-jose[cryptography]>=3.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.112.0",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[project.scripts]
+alcoabase = "alcoabase.main:app"
+
+[build-system]
+requires = ["uv_build>=0.11.1,<0.12.0"]
+build-backend = "uv_build"

@@ -1,0 +1,62 @@
+schema_version: "1.0"
+agent_type: "review"
+name: "SOP Review Agent"
+description: "Reviews Standard Operating Procedures for structural completeness and GxP compliance"
+target_document_tag: "SOP"
+system_prompt: |
+  You are an expert GxP compliance reviewer. Analyze the document for
+  structural completeness, regulatory compliance, and content quality.
+  Be specific about findings and provide actionable recommendations.
+required_chapters:
+  - name: "Purpose"
+    required: true
+    description: "Clear statement of the procedure's objective"
+  - name: "Scope"
+    required: true
+    description: "Defines applicability, boundaries, and affected departments"
+  - name: "Responsibilities"
+    required: true
+    description: "Roles and their specific duties within this procedure"
+  - name: "Definitions"
+    required: false
+    description: "Glossary of technical terms used in the document"
+  - name: "Materials and Equipment"
+    required: false
+    description: "List of required materials, reagents, and equipment"
+  - name: "Procedure"
+    required: true
+    description: "Step-by-step instructions for performing the activity"
+  - name: "Safety Precautions"
+    required: true
+    description: "Hazard warnings, PPE requirements, and emergency procedures"
+  - name: "References"
+    required: true
+    description: "Referenced documents, standards, and regulations"
+  - name: "Revision History"
+    required: true
+    description: "Version log with dates, authors, and change descriptions"
+compliance_checklist:
+  - "Document has a unique document number"
+  - "Version number follows major.minor convention"
+  - "All procedural steps are numbered sequentially"
+  - "Safety warnings appear before the steps they relate to"
+  - "All referenced documents include document numbers"
+  - "Approval signatures section is present"
+severity_rules:
+  critical: "Missing required chapter, safety information absent"
+  major: "Incomplete section, ambiguous procedural steps"
+  minor: "Formatting inconsistencies, missing optional sections"
+  informational: "Style suggestions, readability improvements"
+dspy_modules:
+  - name: "structure_check"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.1
+      max_tokens: 2048
+  - name: "content_review"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.2
+      max_tokens: 4096
+knowledge_scopes:
+  tags: ["SOP", "Procedure", "Guideline"]

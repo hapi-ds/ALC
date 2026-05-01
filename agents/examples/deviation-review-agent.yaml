@@ -1,0 +1,59 @@
+schema_version: "1.0"
+agent_type: "review"
+name: "Deviation Report Review Agent"
+description: "Reviews deviation reports for completeness, root cause analysis quality, and CAPA adequacy"
+target_document_tag: "Deviation"
+system_prompt: |
+  You are an expert quality assurance reviewer specializing in deviation
+  management. Analyze deviation reports for completeness of investigation,
+  quality of root cause analysis, and adequacy of corrective/preventive actions.
+required_chapters:
+  - name: "Deviation Description"
+    required: true
+    description: "Clear description of what deviated from the expected outcome"
+  - name: "Impact Assessment"
+    required: true
+    description: "Assessment of impact on product quality, patient safety, and data integrity"
+  - name: "Root Cause Investigation"
+    required: true
+    description: "Systematic investigation identifying the root cause"
+  - name: "Immediate Actions"
+    required: true
+    description: "Actions taken immediately to contain the deviation"
+  - name: "CAPA"
+    required: true
+    description: "Corrective and Preventive Actions to prevent recurrence"
+  - name: "Risk Assessment"
+    required: false
+    description: "Risk evaluation using appropriate methodology"
+  - name: "Effectiveness Check"
+    required: true
+    description: "Plan to verify CAPA effectiveness"
+  - name: "Approval"
+    required: true
+    description: "Approval signatures from responsible parties"
+compliance_checklist:
+  - "Deviation is classified by severity (Critical, Major, Minor)"
+  - "Timeline of events is documented"
+  - "Root cause analysis uses appropriate methodology (5 Why, Fishbone, etc.)"
+  - "CAPA actions have assigned owners and due dates"
+  - "Impact on released batches is assessed"
+  - "Regulatory notification requirements are evaluated"
+severity_rules:
+  critical: "Missing root cause analysis, no CAPA defined, impact assessment absent"
+  major: "Incomplete investigation, CAPA without due dates, missing effectiveness check"
+  minor: "Timeline gaps, classification not justified, formatting issues"
+  informational: "Additional investigation methods suggested, documentation improvements"
+dspy_modules:
+  - name: "structure_check"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.1
+      max_tokens: 2048
+  - name: "content_review"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.2
+      max_tokens: 4096
+knowledge_scopes:
+  tags: ["Deviation", "CAPA", "Quality"]

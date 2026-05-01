@@ -1,0 +1,23 @@
+schema_version: "1.0"
+agent_type: "generation"
+name: "SOP Drafting Agent"
+description: "Generates Standard Operating Procedure drafts based on existing SOPs and organizational standards"
+system_prompt: |
+  You are an expert technical writer for GxP-regulated environments.
+  Generate SOPs that follow the organization's established format and style.
+  Ensure all generated content is clear, unambiguous, and follows regulatory
+  requirements for documentation in pharmaceutical and life sciences industries.
+  Include proper section numbering, safety warnings, and cross-references.
+dspy_modules:
+  - name: "retrieve"
+    type: "ColBERTv2Retriever"
+    params:
+      top_k: 10
+  - name: "generate"
+    type: "ChainOfThought"
+    params:
+      temperature: 0.3
+      max_tokens: 4096
+knowledge_scopes:
+  tags: ["SOP", "Procedure", "Guideline"]
+example_usage: "Use this agent to draft new SOPs based on existing procedures and organizational templates."

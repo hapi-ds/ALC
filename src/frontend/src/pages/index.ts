@@ -1,0 +1,12 @@
+export { DocumentsPage } from "./DocumentsPage";
+export { VirtualFoldersPage } from "./VirtualFoldersPage";
+export { TemplatesPage } from "./TemplatesPage";
+export { WorkflowsPage } from "./WorkflowsPage";
+export { TrainingPage } from "./TrainingPage";
+export { SearchPage } from "./SearchPage";
+export { KnowledgePage } from "./KnowledgePage";
+export { AgentsPage } from "./AgentsPage";
+export { ValidationPage } from "./ValidationPage";
+export { SignaturesPage } from "./SignaturesPage";
+export { ReviewPage } from "./ReviewPage";
+export { AdminPage } from "./AdminPage";

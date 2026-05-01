@@ -99,6 +99,103 @@ To prove to auditors that your local instance of AlcoaBase functions exactly as 
 
 We welcome contributions! Whether it's improving the AI prompts, adding new PDF field types, or enhancing the BPMN engine, please check out our [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
+---
+
+## 🔒 Air-Gapped Deployment
+
+AlcoaBase is designed for fully air-gapped environments where no internet connectivity is available. All AI inference runs locally using pre-downloaded model weights.
+
+### Model Download (Internet-Connected Machine)
+
+Before deploying to an air-gapped environment, download the required model weights on a machine with internet access:
+
+```bash
+# Create the models directory
+mkdir -p /models
+
+# Download the chat/generation model (Llama 3.3 70B Instruct)
+huggingface-cli download meta-llama/Llama-3.3-70B-Instruct \
+  --local-dir /models/llama-3.3-70b-instruct
+
+# Download the multilingual embedding model
+huggingface-cli download intfloat/multilingual-e5-large-instruct \
+  --local-dir /models/multilingual-e5-large-instruct
+
+# Download the OCR/vision model (Qwen2.5-VL 72B)
+huggingface-cli download Qwen/Qwen2.5-VL-72B-Instruct \
+  --local-dir /models/qwen2.5-vl-72b-instruct
+```
+
+### Transfer to Air-Gapped Environment
+
+Transfer the `/models/` directory to the target machine via approved media (USB drive, internal network share, etc.):
+
+```bash
+# Example: copy to target machine
+rsync -avP /models/ target-machine:/models/
+```
+
+### Configuration
+
+Configure the model paths in your `.env` file:
+
+```env
+# Model Manager Mode: gpu (production), cpu (fallback), mock (development)
+MODEL_MANAGER_MODE=gpu
+
+# Chat/Generation Model
+MODEL_CHAT_NAME=meta-llama/Llama-3.3-70B-Instruct
+MODEL_CHAT_PATH=/models/llama-3.3-70b-instruct
+MODEL_CHAT_MAX_GPU_MEMORY_GB=60
+
+# Multilingual Embedding Model
+MODEL_EMBEDDING_NAME=intfloat/multilingual-e5-large-instruct
+MODEL_EMBEDDING_PATH=/models/multilingual-e5-large-instruct
+MODEL_EMBEDDING_DIMENSION=1024
+
+# OCR/Vision Model
+MODEL_OCR_NAME=Qwen/Qwen2.5-VL-72B-Instruct
+MODEL_OCR_PATH=/models/qwen2.5-vl-72b-instruct
+
+# GPU Configuration
+GPU_DEVICE_ID=0
+```
+
+### Docker Compose Volume Mount
+
+The `docker-compose.yml` mounts the models directory into the vLLM container:
+
+```yaml
+services:
+  vllm:
+    volumes:
+      - /models:/models:ro
+```
+
+### Network Isolation
+
+AI containers are configured with no outbound internet access. The Docker Compose network configuration ensures:
+- The vLLM container has no external network access
+- All inter-service communication uses the internal Docker network
+- No document content, embeddings, or queries leave the deployment
+
+### Development Without GPU (Mock Mode)
+
+For local development and testing without GPU hardware:
+
+```env
+MODEL_MANAGER_MODE=mock
+```
+
+Mock mode returns:
+- Random vectors of the correct embedding dimension (1024) for embedding requests
+- Placeholder text responses for LLM completion requests
+- Simulated OCR text for scanned PDF processing
+
+This allows full application testing without GPU hardware or downloaded model weights.
+
+---
+
 ## 📄 License
 
 This project is licensed under the [Apache 2.0 License](LICENSE).
