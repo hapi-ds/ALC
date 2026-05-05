@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.schemas.document import (
     DocumentResponse,
     DocumentSearchResponse,
@@ -53,6 +54,7 @@ async def create_document(
     user_id: int = Form(default=1),
     session: AsyncSession = Depends(get_db_session),
     service: DocumentService = Depends(get_document_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentResponse:
     """Create a new document with file upload.
 
@@ -80,6 +82,7 @@ async def create_document(
     content_type = file.content_type or "application/octet-stream"
 
     try:
+        # TODO: Set company_id=tenant.company_id on created resource
         document = await service.create_document(
             session=session,
             file_data=file_data,
@@ -108,6 +111,7 @@ async def create_version(
     user_id: int = Form(default=1),
     session: AsyncSession = Depends(get_db_session),
     service: DocumentService = Depends(get_document_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentVersionResponse:
     """Create a new version of an existing document.
 
@@ -130,6 +134,7 @@ async def create_version(
     content_type = file.content_type or "application/octet-stream"
 
     try:
+        # TODO: Pass tenant.company_id to service layer for filtering
         version = await service.create_version(
             session=session,
             document_uuid=document_uuid,
@@ -151,6 +156,7 @@ async def get_document(
     document_uuid: str,
     session: AsyncSession = Depends(get_db_session),
     service: DocumentService = Depends(get_document_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentResponse:
     """Retrieve a document by its Document-UUID.
 
@@ -165,6 +171,7 @@ async def get_document(
     Raises:
         HTTPException: 404 if document not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     document = await service.get_document(session, document_uuid)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Document not found: {document_uuid}")
@@ -178,6 +185,7 @@ async def get_version(
     minor_version: int,
     session: AsyncSession = Depends(get_db_session),
     service: DocumentService = Depends(get_document_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentVersionResponse:
     """Retrieve a specific version of a document.
 
@@ -194,6 +202,7 @@ async def get_version(
     Raises:
         HTTPException: 404 if version not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     version = await service.get_version(session, document_uuid, major_version, minor_version)
     if version is None:
         raise HTTPException(
@@ -212,6 +221,7 @@ async def search_documents(
     limit: int = Query(default=20, ge=1, le=100),
     session: AsyncSession = Depends(get_db_session),
     service: DocumentService = Depends(get_document_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentSearchResponse:
     """Search documents with filtering and pagination.
 
@@ -227,6 +237,7 @@ async def search_documents(
     Returns:
         Search results with items and total count.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     result = await service.search_documents(
         session=session,
         tag=tag,
@@ -294,6 +305,7 @@ def get_document_generator() -> DocumentGenerator:
 async def generate_document(
     request: DocumentGenerateRequest,
     generator: DocumentGenerator = Depends(get_document_generator),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentGenerateResponse:
     """Generate a new document using AI (DSPy pipeline placeholder).
 
@@ -312,6 +324,7 @@ async def generate_document(
         HTTPException: 500 if generation fails.
     """
     try:
+        # TODO: Pass tenant.company_id to service layer for filtering
         result = await generator.generate(
             instructions=request.instructions,
             user_id=request.user_id,
@@ -412,6 +425,7 @@ async def review_document(
     document_uuid: str,
     request: DocumentReviewRequest = DocumentReviewRequest(),
     reviewer: DocumentReviewer = Depends(get_document_reviewer),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentReviewResponse:
     """Trigger AI-powered document review.
 
@@ -431,6 +445,7 @@ async def review_document(
         HTTPException: 404 if document not found.
     """
     try:
+        # TODO: Pass tenant.company_id to service layer for filtering
         # Placeholder: In production, would load document text from storage
         # For now, use empty text to demonstrate the flow
         report = reviewer.review_document(

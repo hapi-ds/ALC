@@ -59,6 +59,7 @@ def _create_audit_test_app() -> FastAPI:
     from fastapi import APIRouter
 
     from alcoabase.database import get_db_session
+    from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 
     # Override the database dependency with a mock session
     async def mock_db_session():  # type: ignore[no-untyped-def]
@@ -69,10 +70,20 @@ def _create_audit_test_app() -> FastAPI:
         session.execute.return_value = mock_result
         yield session
 
+    # Override tenant context with a mock tenant
+    async def mock_tenant_context() -> TenantContext:  # type: ignore[no-untyped-def]
+        return TenantContext(
+            company_id=1,
+            company_slug="default",
+            user_id=1,
+            membership_role="admin",
+        )
+
     api = APIRouter(prefix="/api")
     api.include_router(audit_router)
     app.include_router(api)
     app.dependency_overrides[get_db_session] = mock_db_session
+    app.dependency_overrides[get_tenant_context] = mock_tenant_context
 
     return app
 

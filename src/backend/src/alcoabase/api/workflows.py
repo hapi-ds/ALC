@@ -16,6 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.models.workflow import WorkflowDefinition
 from alcoabase.schemas.workflow import (
     DocumentStateResponse,
@@ -41,6 +42,7 @@ async def create_workflow(
     request: WorkflowCreateRequest,
     session: AsyncSession = Depends(get_db_session),
     engine: WorkflowEngine = Depends(_get_workflow_engine),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> WorkflowResponse:
     """Create a new workflow definition with BPMN validation.
 
@@ -73,6 +75,7 @@ async def create_workflow(
         )
 
     # Create the workflow definition
+    # TODO: Set company_id=tenant.company_id on created resource
     workflow_def = WorkflowDefinition(
         name=request.name,
         document_tag=request.document_tag,
@@ -102,6 +105,7 @@ async def update_workflow(
     request: WorkflowUpdateRequest,
     session: AsyncSession = Depends(get_db_session),
     engine: WorkflowEngine = Depends(_get_workflow_engine),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> WorkflowResponse:
     """Update an existing workflow definition.
 
@@ -120,6 +124,7 @@ async def update_workflow(
         HTTPException: 404 if workflow not found.
         HTTPException: 400 if validation fails.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     result = await session.execute(
         select(WorkflowDefinition).where(WorkflowDefinition.id == workflow_id)
     )
@@ -182,6 +187,7 @@ async def request_transition(
     request: TransitionRequest,
     session: AsyncSession = Depends(get_db_session),
     engine: WorkflowEngine = Depends(_get_workflow_engine),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TransitionResponse:
     """Request a state transition for a document.
 
@@ -199,6 +205,7 @@ async def request_transition(
     Raises:
         HTTPException: 400 if transition is invalid or no workflow defined.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     result = await engine.request_transition(
         session=session,
         document_uuid=request.document_uuid,
@@ -220,6 +227,7 @@ async def get_document_state(
     document_uuid: str,
     session: AsyncSession = Depends(get_db_session),
     engine: WorkflowEngine = Depends(_get_workflow_engine),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> DocumentStateResponse:
     """Get the current workflow state for a document.
 
@@ -234,6 +242,7 @@ async def get_document_state(
     Raises:
         HTTPException: 404 if document state not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     doc_state = await engine.get_document_state(session, document_uuid)
 
     if doc_state is None:
@@ -270,6 +279,7 @@ async def get_document_state(
 @router.get("", response_model=list[WorkflowResponse])
 async def list_workflows(
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[WorkflowResponse]:
     """List all workflow definitions.
 
@@ -279,6 +289,7 @@ async def list_workflows(
     Returns:
         List of all workflow definitions.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     result = await session.execute(select(WorkflowDefinition))
     workflows = result.scalars().all()
 

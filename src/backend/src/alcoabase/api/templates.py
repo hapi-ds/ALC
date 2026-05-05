@@ -14,6 +14,7 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.schemas.template import (
     TemplateCreate,
     TemplateResponse,
@@ -63,6 +64,7 @@ async def create_template(
     payload: TemplateCreate,
     session: AsyncSession = Depends(get_db_session),
     service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TemplateResponse:
     """Create a new template with auto-generated UUIDs.
 
@@ -81,6 +83,7 @@ async def create_template(
         HTTPException: 400 for invalid schema, 500 for internal errors.
     """
     try:
+        # TODO: Set company_id=tenant.company_id on created resource
         template = await service.create_template(
             session=session,
             name=payload.name,
@@ -100,6 +103,7 @@ async def update_template(
     payload: TemplateUpdate,
     session: AsyncSession = Depends(get_db_session),
     service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TemplateResponse:
     """Update a template (rejected if ReadOnly).
 
@@ -115,6 +119,7 @@ async def update_template(
     Raises:
         HTTPException: 400 if template is ReadOnly, 404 if not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     template = await service.update_template(
         session=session,
         document_uuid=document_uuid,
@@ -129,6 +134,7 @@ async def get_template(
     document_uuid: str,
     session: AsyncSession = Depends(get_db_session),
     service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TemplateResponse:
     """Retrieve a template by its Document-UUID.
 
@@ -143,6 +149,7 @@ async def get_template(
     Raises:
         HTTPException: 404 if template not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     template = await service.get_template(session, document_uuid)
     if template is None:
         raise HTTPException(
@@ -155,6 +162,7 @@ async def get_template(
 async def list_templates(
     session: AsyncSession = Depends(get_db_session),
     service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[TemplateResponse]:
     """List all templates.
 
@@ -165,6 +173,7 @@ async def list_templates(
     Returns:
         List of all templates with metadata and fields.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     templates = await service.list_templates(session)
     return [TemplateResponse.model_validate(t) for t in templates]
 
@@ -176,6 +185,7 @@ async def download_pdf(
     service: TemplateService = Depends(get_template_service),
     pdf_gen: PDFGenerator = Depends(get_pdf_generator),
     storage: StorageService = Depends(get_storage_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> Response:
     """Generate and download a fillable AcroForm PDF from a template.
 
@@ -195,6 +205,7 @@ async def download_pdf(
     Raises:
         HTTPException: 404 if template not found, 400 if not ReadOnly.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     template = await service.get_template(session, document_uuid)
     if template is None:
         raise HTTPException(

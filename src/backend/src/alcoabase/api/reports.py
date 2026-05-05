@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.models.report import Report, ReportFieldValue
 from alcoabase.models.template import Template
 from alcoabase.schemas.report import (
@@ -49,6 +50,7 @@ async def upload_pdf(
     user_id: int = 1,
     session: AsyncSession = Depends(get_db_session),
     extractor: PDFExtractor = Depends(get_pdf_extractor),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> ReportResponse:
     """Upload a completed PDF and extract field values.
 
@@ -98,6 +100,9 @@ async def upload_pdf(
             f"No template found matching this PDF.",
         )
 
+    # TODO: Validate cross-tenant template reference — reject with 403 if
+    # template belongs to a different company than tenant.company_id
+
     # Step 3: Extract and validate field values
     extracted = extractor.extract_data(pdf_bytes, template)
 
@@ -122,6 +127,7 @@ async def upload_pdf(
         )
 
     # Step 5: Atomic persistence — create Report + all ReportFieldValues
+    # TODO: Set company_id=tenant.company_id on created resource
     report = Report(
         document_uuid=document_uuid,
         template_id=template.id,

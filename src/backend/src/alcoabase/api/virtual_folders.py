@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.models.document import Document, DocumentTag
 from alcoabase.models.virtual_folder import VirtualFolder
 from alcoabase.schemas.document import (
@@ -31,6 +32,7 @@ async def create_virtual_folder(
     data: VirtualFolderCreate,
     user_id: int = Query(default=1),
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> VirtualFolderResponse:
     """Create a new virtual folder.
 
@@ -59,6 +61,7 @@ async def create_virtual_folder(
         is_system_default=False,
         created_by=user_id,
     )
+    # TODO: Set company_id=tenant.company_id on created resource
     session.add(folder)
     await session.flush()
 
@@ -68,6 +71,7 @@ async def create_virtual_folder(
 @router.get("", response_model=list[VirtualFolderResponse])
 async def list_virtual_folders(
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[VirtualFolderResponse]:
     """List all virtual folders (system defaults + user-created).
 
@@ -77,6 +81,7 @@ async def list_virtual_folders(
     Returns:
         List of all virtual folders.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     result = await session.execute(
         select(VirtualFolder).order_by(VirtualFolder.is_system_default.desc(), VirtualFolder.name)
     )
@@ -88,6 +93,7 @@ async def list_virtual_folders(
 async def get_virtual_folder(
     folder_id: int,
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> VirtualFolderResponse:
     """Get a virtual folder by ID.
 
@@ -116,6 +122,7 @@ async def get_virtual_folder_documents(
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=100),
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[DocumentResponse]:
     """Get documents matching a virtual folder's tag_filter.
 
@@ -143,6 +150,8 @@ async def get_virtual_folder_documents(
         raise HTTPException(status_code=404, detail="Virtual folder not found.")
 
     # Build dynamic query from tag_filter
+    # TODO: Pass tenant.company_id to service layer for filtering
+    # Ensure tag filter matches only documents within the same company
     query = select(Document).options(
         selectinload(Document.tags),
         selectinload(Document.versions),
@@ -172,6 +181,7 @@ async def update_virtual_folder(
     folder_id: int,
     data: VirtualFolderUpdate,
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> VirtualFolderResponse:
     """Update a virtual folder.
 
@@ -216,6 +226,7 @@ async def update_virtual_folder(
 async def delete_virtual_folder(
     folder_id: int,
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> None:
     """Delete a virtual folder.
 

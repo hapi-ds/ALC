@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.schemas.signature import (
     SignatureRecordResponse,
     SignRequest,
@@ -41,6 +42,7 @@ async def sign_document(
     session: AsyncSession = Depends(get_db_session),
     signature_service: SignatureService = Depends(_get_signature_service),
     storage_service: StorageService = Depends(_get_storage_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> SignResponse:
     """Sign a document with re-authentication enforcement.
 
@@ -103,6 +105,7 @@ async def sign_document(
     # for now we extract from the session context
     # Using a placeholder user_id=1 for the API; in production this comes from auth
     user_id = 1  # TODO: Extract from JWT auth context
+    # TODO: Pass tenant.company_id to service layer for filtering
 
     result = await signature_service.sign_document(
         session=session,
@@ -144,6 +147,7 @@ async def get_signature_records(
     document_uuid: str,
     session: AsyncSession = Depends(get_db_session),
     signature_service: SignatureService = Depends(_get_signature_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[SignatureRecordResponse]:
     """Get all signature records for a document.
 
@@ -155,6 +159,7 @@ async def get_signature_records(
     Returns:
         List of signature records ordered by signing time.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     records = await signature_service.get_signature_records(session, document_uuid)
     return [
         SignatureRecordResponse.model_validate(record) for record in records

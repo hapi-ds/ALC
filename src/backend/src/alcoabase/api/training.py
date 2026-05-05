@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.services.training_service import TrainingService
 from alcoabase.services.training_content_generator import (
     TrainingContentGenerator,
@@ -87,6 +88,7 @@ async def get_training_tasks(
     user_id: int = Query(..., description="User ID to get tasks for"),
     session: AsyncSession = Depends(get_db_session),
     service: TrainingService = Depends(get_training_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[TrainingTaskResponse]:
     """Get all training tasks assigned to a user.
 
@@ -98,6 +100,7 @@ async def get_training_tasks(
     Returns:
         List of training tasks assigned to the user.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     tasks = await service.get_user_training_tasks(session, user_id)
     return [
         TrainingTaskResponse(
@@ -123,6 +126,7 @@ async def complete_training_task(
     user_id: int = Query(..., description="User ID completing the task"),
     session: AsyncSession = Depends(get_db_session),
     service: TrainingService = Depends(get_training_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TrainingTaskCompleteResponse:
     """Mark a training task as completed.
 
@@ -142,6 +146,7 @@ async def complete_training_task(
     Raises:
         HTTPException: 400 if task not found, not assigned to user, or already completed.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     task = await service.complete_training_task(session, task_id, user_id)
     return TrainingTaskCompleteResponse(
         id=task.id,
@@ -161,6 +166,7 @@ async def get_training_status(
     version: str,
     session: AsyncSession = Depends(get_db_session),
     service: TrainingService = Depends(get_training_service),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TrainingStatusResponse:
     """Get training status for an SOP version.
 
@@ -176,6 +182,7 @@ async def get_training_status(
     Returns:
         Training status summary.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     status = await service.get_training_status(session, sop_uuid, version)
     return TrainingStatusResponse(**status)
 
@@ -262,6 +269,7 @@ def get_training_content_generator() -> TrainingContentGenerator:
 async def get_training_content(
     content_id: str,
     generator: TrainingContentGenerator = Depends(get_training_content_generator),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> TrainingContentResponse:
     """Get training content by ID.
 
@@ -275,6 +283,7 @@ async def get_training_content(
     Raises:
         HTTPException: 404 if content not found.
     """
+    # TODO: Pass tenant.company_id to service layer for filtering
     content = generator.get_content(content_id)
     if content is None:
         raise HTTPException(status_code=404, detail=f"Training content not found: {content_id}")
@@ -319,6 +328,7 @@ async def approve_training_content(
     content_id: str,
     request: ContentReviewRequest,
     generator: TrainingContentGenerator = Depends(get_training_content_generator),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> ContentReviewResponse:
     """Approve training content after coordinator review.
 
@@ -362,6 +372,7 @@ async def reject_training_content(
     content_id: str,
     request: ContentReviewRequest,
     generator: TrainingContentGenerator = Depends(get_training_content_generator),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> ContentReviewResponse:
     """Reject training content after coordinator review.
 

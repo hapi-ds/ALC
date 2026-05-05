@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.services.audit_service import AuditService, RECORD_TYPE_MODEL_MAP
 
 router = APIRouter(prefix="/audit", tags=["Audit"])
@@ -75,6 +76,7 @@ async def get_audit_history(
     record_id: int,
     request: Request,
     session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[dict[str, Any]]:
     """Retrieve version history for a specific record.
 
@@ -124,6 +126,8 @@ async def get_audit_history(
         )
 
     # Retrieve version history
+    # TODO: Pass tenant.company_id to service layer for filtering
+    # NOTE: System Admin can query without tenant context (platform-level view)
     try:
         versions = await _audit_service.get_version_history(
             session, record_type, record_id
