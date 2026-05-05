@@ -85,7 +85,54 @@ AlcoaBase is designed to be deployed quickly via Docker Compose.
 
 ---
 
-## 🧪 Computer System Validation (CSV)
+## 🧪 Testing
+
+AlcoaBase has three test layers. All use `uv run pytest` from the `src/backend/` directory.
+
+### Unit & Property Tests
+
+Fast, no external dependencies. Runs against in-memory SQLite.
+
+```bash
+cd src/backend
+uv run pytest --tb=short -q
+```
+
+Property-based tests use [Hypothesis](https://hypothesis.readthedocs.io/) to validate correctness invariants (tenant isolation, membership rules, migration backfill, etc.).
+
+### Integration Tests
+
+Tests the full FastAPI request lifecycle (middleware → dependency → route → DB) using an async in-memory SQLite database. No Docker required.
+
+```bash
+cd src/backend
+uv run pytest tests/integration/ -v
+```
+
+### Smoke Tests (against Docker Compose)
+
+Hits the real backend running on PostgreSQL to validate migrations, constraint behavior, and end-to-end flows.
+
+```bash
+# 1. Start the stack
+docker compose up -d
+
+# 2. Wait for healthy backend, then run the migration
+docker compose exec backend alembic upgrade head
+
+# 3. Run smoke tests
+cd src/backend
+uv run pytest tests/smoke/ -v
+
+# Optional: point at a different host
+SMOKE_TEST_BASE_URL=http://your-host:8080 uv run pytest tests/smoke/ -v
+```
+
+Smoke tests generate unique slugs per run, so they're safe to execute repeatedly without cleanup.
+
+---
+
+## ✅ Computer System Validation (CSV)
 
 To prove to auditors that your local instance of AlcoaBase functions exactly as specified, you can trigger the automated CSV process.
 
