@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from alcoabase.api.audit import router as audit_router
 from alcoabase.api.companies import router as companies_router
+from alcoabase.api.setup import router as setup_router
 from alcoabase.api.documents import router as documents_router
 from alcoabase.api.models import router as models_router
 from alcoabase.api.reports import router as reports_router
@@ -48,3 +49,4 @@ api_router.include_router(audit_router)
 api_router.include_router(models_router)
 api_router.include_router(memberships_router)
 api_router.include_router(agent_activations_router)
+api_router.include_router(setup_router, prefix="/v1/setup")

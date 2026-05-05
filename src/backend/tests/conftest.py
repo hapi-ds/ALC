@@ -15,8 +15,28 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from alcoabase.middleware.setup_guard import SetupGuardMiddleware
 from alcoabase.models.document import Document, DocumentVersion
 from alcoabase.models.user import User
+
+
+# ---------------------------------------------------------------------------
+# Setup Guard Fixture — mark system as initialized for non-setup tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def bypass_setup_guard():
+    """Bypass the SetupGuardMiddleware for all tests by default.
+
+    Sets the cached initialization state to True so that non-setup tests
+    are not blocked by the guard. Tests that specifically test the setup
+    wizard should override this by setting _is_initialized = False or None.
+    """
+    original = SetupGuardMiddleware._is_initialized
+    SetupGuardMiddleware._is_initialized = True
+    yield
+    SetupGuardMiddleware._is_initialized = original
 
 
 # ---------------------------------------------------------------------------

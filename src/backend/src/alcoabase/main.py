@@ -19,7 +19,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from alcoabase.api.router import api_router
-from alcoabase.middleware import AuditMiddleware, CSVTaggingMiddleware
+from alcoabase.middleware import AuditMiddleware, CSVTaggingMiddleware, SetupGuardMiddleware
 
 
 # ---------------------------------------------------------------------------
@@ -39,11 +39,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         - Gracefully disconnect from external services
     """
     # --- Startup ---
-    # Database engine and session factory will be initialized here
-    # once database.py is implemented (Task 1.5).
+    from alcoabase.database import close_db, init_db
+
+    await init_db()
     yield
     # --- Shutdown ---
-    # Cleanup resources (close DB pool, disconnect clients) here.
+    await close_db()
 
 
 # ---------------------------------------------------------------------------
@@ -92,6 +93,17 @@ app.add_middleware(AuditMiddleware)
 # validation runs are marked with is_csv_validation_record = True.
 
 app.add_middleware(CSVTaggingMiddleware)
+
+
+# ---------------------------------------------------------------------------
+# Setup Guard Middleware
+# ---------------------------------------------------------------------------
+# Guards all endpoints based on system initialization state. When the system
+# is uninitialized, only setup endpoints, health check, and docs are accessible.
+# After setup completion, setup endpoints are permanently blocked (403).
+# Registered last so it executes first (LIFO middleware stack).
+
+app.add_middleware(SetupGuardMiddleware)
 
 
 # ---------------------------------------------------------------------------

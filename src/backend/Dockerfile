@@ -20,6 +20,10 @@ RUN uv sync --frozen --no-dev --no-install-project
 # Copy application source
 COPY src/ ./src/
 
+# Copy alembic configuration and migrations
+COPY alembic.ini ./alembic.ini
+COPY alembic/ ./alembic/
+
 # Install the project itself
 RUN uv sync --frozen --no-dev
 
@@ -39,6 +43,10 @@ COPY --from=builder /app/.venv /app/.venv
 
 # Copy application source
 COPY --from=builder /app/src /app/src
+
+# Copy alembic configuration and migrations
+COPY --from=builder /app/alembic.ini /app/alembic.ini
+COPY --from=builder /app/alembic /app/alembic
 
 # Ensure the venv binaries are on PATH
 ENV PATH="/app/.venv/bin:$PATH"
