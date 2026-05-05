@@ -41,6 +41,8 @@ dependencies = [
     # Agent YAML configuration
     "pyyaml>=6.0.0",
     "jsonschema>=4.23.0",
+    # Hugging Face model hub (provides huggingface-cli)
+    "huggingface-hub>=0.25.0",
     # HTTP client
     "httpx>=0.27.0",
     # File uploads

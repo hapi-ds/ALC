@@ -105,27 +105,27 @@ class Settings(BaseSettings):
     # ─────────────────────────────────────────────────────────────────────
 
     model_chat_name: str = Field(
-        default="meta-llama/Llama-3.3-70B-Instruct",
+        default="Qwen/Qwen3.6-35B-A3B",
         description="HuggingFace model identifier for the chat/generation LLM.",
         alias="MODEL_CHAT_NAME",
     )
     model_chat_path: str = Field(
-        default="/models/llama-3.3-70b-instruct",
+        default="/models/qwen3.6-35b-a3b",
         description="Local filesystem path to pre-downloaded chat model weights.",
         alias="MODEL_CHAT_PATH",
     )
     model_chat_max_gpu_memory_gb: int = Field(
-        default=60,
+        default=24,
         description="Maximum GPU memory (GB) allocated for the chat model.",
         alias="MODEL_CHAT_MAX_GPU_MEMORY_GB",
     )
     model_embedding_name: str = Field(
-        default="intfloat/multilingual-e5-large-instruct",
+        default="Qwen/Qwen3-Embedding-0.6B",
         description="HuggingFace model identifier for the multilingual embedding model.",
         alias="MODEL_EMBEDDING_NAME",
     )
     model_embedding_path: str = Field(
-        default="/models/multilingual-e5-large-instruct",
+        default="/models/qwen3-embedding-0.6b",
         description="Local filesystem path to pre-downloaded embedding model weights.",
         alias="MODEL_EMBEDDING_PATH",
     )
@@ -135,12 +135,12 @@ class Settings(BaseSettings):
         alias="MODEL_EMBEDDING_DIMENSION",
     )
     model_ocr_name: str = Field(
-        default="Qwen/Qwen2.5-VL-72B-Instruct",
+        default="google/gemma-4-E4B-it",
         description="HuggingFace model identifier for the vision/OCR model.",
         alias="MODEL_OCR_NAME",
     )
     model_ocr_path: str = Field(
-        default="/models/qwen2.5-vl-72b-instruct",
+        default="/models/gemma-4-e4b-it",
         description="Local filesystem path to pre-downloaded OCR model weights.",
         alias="MODEL_OCR_PATH",
     )

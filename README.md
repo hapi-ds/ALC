@@ -63,6 +63,7 @@ AlcoaBase is designed to be deployed quickly via Docker Compose.
 
 ### Prerequisites
 * Docker & Docker Compose
+* [uv](https://docs.astral.sh/uv/getting-started/installation/) — used for all Python dependency management and CLI tooling
 * (Optional but recommended) NVIDIA GPU with container toolkit installed for AI features. *A CPU-mock mode is available for local testing.*
 
 ### Installation
@@ -107,55 +108,119 @@ AlcoaBase is designed for fully air-gapped environments where no internet connec
 
 ### Model Download (Internet-Connected Machine)
 
-Before deploying to an air-gapped environment, download the required model weights on a machine with internet access:
+Before deploying to an air-gapped environment, download the required model weights on a machine with internet access.
+
+First, sync the project dependencies (this installs `huggingface-cli` via the `huggingface-hub` package):
 
 ```bash
-# Create the models directory
-mkdir -p /models
-
-# Download the chat/generation model (Llama 3.3 70B Instruct)
-huggingface-cli download meta-llama/Llama-3.3-70B-Instruct \
-  --local-dir /models/llama-3.3-70b-instruct
-
-# Download the multilingual embedding model
-huggingface-cli download intfloat/multilingual-e5-large-instruct \
-  --local-dir /models/multilingual-e5-large-instruct
-
-# Download the OCR/vision model (Qwen2.5-VL 72B)
-huggingface-cli download Qwen/Qwen2.5-VL-72B-Instruct \
-  --local-dir /models/qwen2.5-vl-72b-instruct
+# From the project root
+cd src/backend
+uv sync
 ```
+
+Then download models into the **project-root** `models/` directory. AlcoaBase provides two model profiles — pick the one that matches your hardware.
+
+> **Note:** Some models (e.g., Llama) require accepting a license on [huggingface.co](https://huggingface.co) and authenticating first:
+> ```bash
+> uv run --project src/backend huggingface-cli login
+> ```
+
+#### Small Profile (default — fits on a single 24 GB GPU)
+
+Best for development, testing, and smaller deployments. These are the defaults in `.env.example`.
+
+| Role | Model | Active Params | Download Size |
+|------|-------|--------------|---------------|
+| Chat / Generation | `Qwen/Qwen3.6-35B-A3B` (MoE) | ~3B | ~8 GB |
+| Embedding | `Qwen/Qwen3-Embedding-0.6B` | 0.6B | ~1.2 GB |
+| Vision / OCR | `google/gemma-4-E4B-it` | ~4B | ~8 GB |
+
+```bash
+cd ../..
+mkdir -p models
+
+# Chat: Qwen3.6 35B MoE (only ~3B active params per token)
+uv run --project src/backend hf download Qwen/Qwen3.6-35B-A3B --local-dir models/qwen3.6-35b-a3b
+
+# Embedding: Qwen3-Embedding 0.6B (1024-dim output)
+uv run --project src/backend hf download Qwen/Qwen3-Embedding-8B --local-dir models/qwen3-embedding-8b
+# or Qwen/Qwen3-Embedding-8B
+# or Qwen/Qwen3-Embedding-0.6B
+
+# Vision/OCR: Gemma 4 E4B (native vision + OCR)
+uv run --project src/backend hf download google/gemma-4-E4B-it --local-dir models/gemma-4-e4b-it
+```
+
+#### Large Profile (production — requires ≥80 GB VRAM)
+
+For production deployments on high-end hardware (e.g., NVIDIA A100/H100/Blackwell).
+
+| Role | Model | Params | Download Size |
+|------|-------|--------|---------------|
+| Chat / Generation | `meta-llama/Llama-3.3-70B-Instruct` | 70B | ~140 GB |
+| Embedding | `Qwen/Qwen3-Embedding-8B` | 8B | ~16 GB |
+| Vision / OCR | `Qwen/Qwen2.5-VL-72B-Instruct` | 72B | ~145 GB |
+
+```bash
+cd ../..
+mkdir -p models
+
+# Chat: Llama 3.3 70B Instruct (requires license acceptance on HuggingFace)
+uv run --project src/backend hf download meta-llama/Llama-3.3-70B-Instruct --local-dir models/llama-3.3-70b-instruct
+
+# Embedding: Qwen3-Embedding 8B (#1 on MTEB multilingual leaderboard, 1024-dim)
+uv run --project src/backend hf download Qwen/Qwen3-Embedding-8B --local-dir models/qwen3-embedding-8b
+
+# Vision/OCR: Qwen2.5-VL 72B
+uv run --project src/backend hf download Qwen/Qwen2.5-VL-72B-Instruct --local-dir models/qwen2.5-vl-72b-instruct
+```
+
+> **Switching profiles:** Update the `MODEL_*` variables in your `.env` to point to the downloaded weights. Both profiles use the same embedding dimension (1024), so no OpenSearch index rebuild is needed when upgrading.
 
 ### Transfer to Air-Gapped Environment
 
-Transfer the `/models/` directory to the target machine via approved media (USB drive, internal network share, etc.):
+Transfer the `models/` directory to the target machine via approved media (USB drive, internal network share, etc.):
 
 ```bash
 # Example: copy to target machine
-rsync -avP /models/ target-machine:/models/
+rsync -avP models/ target-machine:/path/to/alcoabase/models/
 ```
 
 ### Configuration
 
-Configure the model paths in your `.env` file:
+Configure the model paths in your `.env` file. The defaults match the **Small Profile**:
 
 ```env
 # Model Manager Mode: gpu (production), cpu (fallback), mock (development)
 MODEL_MANAGER_MODE=gpu
 
-# Chat/Generation Model
-MODEL_CHAT_NAME=meta-llama/Llama-3.3-70B-Instruct
-MODEL_CHAT_PATH=/models/llama-3.3-70b-instruct
-MODEL_CHAT_MAX_GPU_MEMORY_GB=60
+# ── Chat / Generation LLM ──
+# SMALL (default):
+MODEL_CHAT_NAME=Qwen/Qwen3.6-35B-A3B
+MODEL_CHAT_PATH=/models/qwen3.6-35b-a3b
+MODEL_CHAT_MAX_GPU_MEMORY_GB=24
+# LARGE (uncomment to upgrade):
+# MODEL_CHAT_NAME=meta-llama/Llama-3.3-70B-Instruct
+# MODEL_CHAT_PATH=/models/llama-3.3-70b-instruct
+# MODEL_CHAT_MAX_GPU_MEMORY_GB=60
 
-# Multilingual Embedding Model
-MODEL_EMBEDDING_NAME=intfloat/multilingual-e5-large-instruct
-MODEL_EMBEDDING_PATH=/models/multilingual-e5-large-instruct
+# ── Multilingual Embedding Model ──
+# SMALL (default):
+MODEL_EMBEDDING_NAME=Qwen/Qwen3-Embedding-0.6B
+MODEL_EMBEDDING_PATH=/models/qwen3-embedding-0.6b
 MODEL_EMBEDDING_DIMENSION=1024
+# LARGE (uncomment to upgrade):
+# MODEL_EMBEDDING_NAME=Qwen/Qwen3-Embedding-8B
+# MODEL_EMBEDDING_PATH=/models/qwen3-embedding-8b
+# MODEL_EMBEDDING_DIMENSION=1024
 
-# OCR/Vision Model
-MODEL_OCR_NAME=Qwen/Qwen2.5-VL-72B-Instruct
-MODEL_OCR_PATH=/models/qwen2.5-vl-72b-instruct
+# ── Vision / OCR Model ──
+# SMALL (default):
+MODEL_OCR_NAME=google/gemma-4-E4B-it
+MODEL_OCR_PATH=/models/gemma-4-e4b-it
+# LARGE (uncomment to upgrade):
+# MODEL_OCR_NAME=Qwen/Qwen2.5-VL-72B-Instruct
+# MODEL_OCR_PATH=/models/qwen2.5-vl-72b-instruct
 
 # GPU Configuration
 GPU_DEVICE_ID=0
@@ -163,13 +228,13 @@ GPU_DEVICE_ID=0
 
 ### Docker Compose Volume Mount
 
-The `docker-compose.yml` mounts the models directory into the vLLM container:
+The `docker-compose.yml` mounts the models directory into the vLLM container (configured via `MODEL_WEIGHTS_PATH` in `.env`, defaults to `./models`):
 
 ```yaml
 services:
   vllm:
     volumes:
-      - /models:/models:ro
+      - ${MODEL_WEIGHTS_PATH:-./models}:/models:ro
 ```
 
 ### Network Isolation

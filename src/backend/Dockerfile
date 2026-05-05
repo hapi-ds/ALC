@@ -6,7 +6,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 FROM python:3.13-slim AS builder
 
-WORKDIR /build
+WORKDIR /app
 
 # Install uv from the official standalone installer
 COPY --from=ghcr.io/astral-sh/uv:0.7.12 /uv /usr/local/bin/uv
@@ -35,10 +35,10 @@ RUN groupadd --gid 1000 appuser \
     && useradd --uid 1000 --gid 1000 --shell /bin/bash --create-home appuser
 
 # Copy the virtual environment from builder
-COPY --from=builder /build/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 
 # Copy application source
-COPY --from=builder /build/src /app/src
+COPY --from=builder /app/src /app/src
 
 # Ensure the venv binaries are on PATH
 ENV PATH="/app/.venv/bin:$PATH"

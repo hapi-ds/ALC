@@ -40,20 +40,20 @@ class TestSettingsDefaults:
 
     def test_model_chat_defaults(self) -> None:
         settings = Settings()
-        assert settings.model_chat_name == "meta-llama/Llama-3.3-70B-Instruct"
-        assert settings.model_chat_path == "/models/llama-3.3-70b-instruct"
-        assert settings.model_chat_max_gpu_memory_gb == 60
+        assert settings.model_chat_name == "Qwen/Qwen3.6-35B-A3B"
+        assert settings.model_chat_path == "/models/qwen3.6-35b-a3b"
+        assert settings.model_chat_max_gpu_memory_gb == 24
 
     def test_model_embedding_defaults(self) -> None:
         settings = Settings()
-        assert settings.model_embedding_name == "intfloat/multilingual-e5-large-instruct"
-        assert settings.model_embedding_path == "/models/multilingual-e5-large-instruct"
+        assert settings.model_embedding_name == "Qwen/Qwen3-Embedding-0.6B"
+        assert settings.model_embedding_path == "/models/qwen3-embedding-0.6b"
         assert settings.model_embedding_dimension == 1024
 
     def test_model_ocr_defaults(self) -> None:
         settings = Settings()
-        assert settings.model_ocr_name == "Qwen/Qwen2.5-VL-72B-Instruct"
-        assert settings.model_ocr_path == "/models/qwen2.5-vl-72b-instruct"
+        assert settings.model_ocr_name == "google/gemma-4-E4B-it"
+        assert settings.model_ocr_path == "/models/gemma-4-e4b-it"
 
     def test_gpu_device_id_default(self) -> None:
         settings = Settings()
