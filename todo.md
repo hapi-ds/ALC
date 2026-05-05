@@ -7,7 +7,7 @@
 
 ## Phase 1 — Foundation (must exist before anything else works)
 
-- [ ] **1.1 Multi-Tenancy / Company Separation**
+- [x] **1.1 Multi-Tenancy / Company Separation**
   Introduce a `Company` (tenant) entity. All documents, templates, workflows, training records, and agents are scoped to a company. Each company has its own regulatory context (MedTec, Supplier, Pharma, etc.), audit requirements, and user pool. Enables isolated document repositories per organization.
 
 - [ ] **1.2 Setup Wizard**
