@@ -10,3 +10,4 @@ export { ValidationPage } from "./ValidationPage";
 export { SignaturesPage } from "./SignaturesPage";
 export { ReviewPage } from "./ReviewPage";
 export { AdminPage } from "./AdminPage";
+export { LoginPage } from "./LoginPage";

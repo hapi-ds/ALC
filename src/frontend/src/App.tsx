@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout";
 import { DocumentsPage } from "@/pages/DocumentsPage";
@@ -12,8 +13,19 @@ import { ValidationPage } from "@/pages/ValidationPage";
 import { SignaturesPage } from "@/pages/SignaturesPage";
 import { ReviewPage } from "@/pages/ReviewPage";
 import { AdminPage } from "@/pages/AdminPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { RouteGuard } from "@/components/auth/RouteGuard";
+import { useAuthStore } from "@/stores/authStore";
+import { useSessionTimer } from "@/hooks/useSessionTimer";
 
-function App() {
+/**
+ * Wrapper component rendered inside RouteGuard that activates
+ * the session timer (inactivity + token expiry monitoring) and
+ * renders the protected route tree.
+ */
+function AuthenticatedApp() {
+  useSessionTimer();
+
   return (
     <Routes>
       <Route element={<MainLayout />}>
@@ -31,6 +43,31 @@ function App() {
         <Route path="review" element={<ReviewPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
+    </Routes>
+  );
+}
+
+function App() {
+  const initialize = useAuthStore((state) => state.initialize);
+
+  useEffect(() => {
+    void initialize();
+  }, [initialize]);
+
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/*"
+        element={
+          <RouteGuard>
+            <AuthenticatedApp />
+          </RouteGuard>
+        }
+      />
     </Routes>
   );
 }

@@ -10,10 +10,10 @@
 - [x] **1.1 Multi-Tenancy / Company Separation**
   Introduce a `Company` (tenant) entity. All documents, templates, workflows, training records, and agents are scoped to a company. Each company has its own regulatory context (MedTec, Supplier, Pharma, etc.), audit requirements, and user pool. Enables isolated document repositories per organization.
 
-- [ ] **1.2 Setup Wizard**
+- [x] **1.2 Setup Wizard**
   First-run flow: create root admin account, create initial company/tenant, configure AI hardware mode (GPU/CPU/mock), optionally seed demo data. Blocks access to the app until completed.
 
-- [ ] **1.3 Authentication & Session Management (Frontend)**
+- [x] **1.3 Authentication & Session Management (Frontend)**
   Login page, JWT token handling, protected routes, session expiry, logout. Connect to existing backend auth endpoints.
 
 ---

@@ -23,6 +23,7 @@ from alcoabase.api.knowledge import router as knowledge_router
 from alcoabase.api.agents import router as agents_router
 from alcoabase.api.memberships import router as memberships_router
 from alcoabase.api.agent_activations import router as agent_activations_router
+from alcoabase.api.auth import auth_router
 
 # ---------------------------------------------------------------------------
 # Main API router — all domain routers are included under /api
@@ -50,3 +51,4 @@ api_router.include_router(models_router)
 api_router.include_router(memberships_router)
 api_router.include_router(agent_activations_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
+api_router.include_router(auth_router, prefix="/v1/auth")

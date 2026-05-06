@@ -31,12 +31,14 @@ from starlette.types import ASGIApp
 _MUTATING_METHODS: frozenset[str] = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 
 # Path prefixes that are exempt from the X-Change-Reason requirement.
-# Health checks, search, and read-only endpoints don't need change reasons.
+# Health checks, search, read-only endpoints, and auth endpoints don't need change reasons.
 _EXEMPT_PATH_PREFIXES: tuple[str, ...] = (
     "/health",
     "/docs",
     "/openapi.json",
     "/redoc",
+    "/api/v1/auth",
+    "/api/v1/setup",
 )
 
 
