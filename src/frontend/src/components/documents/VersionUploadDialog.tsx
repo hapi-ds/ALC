@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useDocumentStore } from "@/stores/documentStore";
+import { validateFileSize, validateChangeReason, formatFileSize } from "@/lib/versionUtils";
 
 export interface VersionUploadDialogProps {
   open: boolean;
@@ -81,15 +82,20 @@ export function VersionUploadDialog({ open, onOpenChange, documentUuid }: Versio
 
     if (!file) {
       newErrors.file = "Please select a file to upload.";
+    } else {
+      const fileSizeResult = validateFileSize(file);
+      if (!fileSizeResult.valid) {
+        newErrors.file = fileSizeResult.error;
+      }
     }
 
     if (!versionType) {
       newErrors.version_type = "Please select a version type.";
     }
 
-    const trimmedReason = changeReason.trim();
-    if (trimmedReason.length === 0) {
-      newErrors.change_reason = "Change reason is required.";
+    const reasonResult = validateChangeReason(changeReason);
+    if (!reasonResult.valid) {
+      newErrors.change_reason = reasonResult.error;
     }
 
     return newErrors;
@@ -234,6 +240,7 @@ export function VersionUploadDialog({ open, onOpenChange, documentUuid }: Versio
                 <div className="flex items-center justify-center gap-2">
                   <Upload className="h-5 w-5 text-primary" aria-hidden="true" />
                   <span className="text-sm font-medium text-foreground">{file.name}</span>
+                  <span className="text-sm text-muted-foreground">({formatFileSize(file.size)})</span>
                 </div>
               ) : (
                 <>

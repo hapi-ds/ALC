@@ -1,8 +1,13 @@
+export { DiffMetadataView } from "./DiffMetadataView";
 export { DocumentDetail } from "./DocumentDetail";
 export { DocumentList } from "./DocumentList";
 export { DocumentUpload } from "./DocumentUpload";
 export { FilterBar } from "./FilterBar";
 export { Pagination } from "./Pagination";
 export { UploadDialog } from "./UploadDialog";
+export { VersionComparisonView } from "./VersionComparisonView";
+export { VersionDetailView } from "./VersionDetailView";
 export { VersionHistory } from "./VersionHistory";
+export { VersionHistoryPanel } from "./VersionHistoryPanel";
+export { VersionStatusBadge } from "./VersionStatusBadge";
 export { VersionUploadDialog } from "./VersionUploadDialog";

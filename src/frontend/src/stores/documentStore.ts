@@ -1,6 +1,11 @@
 import { create } from "zustand";
-import type { DocumentResponse, DocumentSearchResponse } from "../types/document";
-import { apiClient } from "../lib/apiClient";
+import type {
+  DocumentResponse,
+  DocumentSearchResponse,
+  DocumentVersion,
+} from "../types/document";
+import { apiClient, ApiError } from "../lib/apiClient";
+import { getAccessToken } from "../lib/tokenStorage";
 
 export interface DocumentState {
   // Data
@@ -20,6 +25,13 @@ export interface DocumentState {
   isLoading: boolean;
   error: string | null;
 
+  // Version state
+  selectedVersion: DocumentVersion | null;
+  isVersionLoading: boolean;
+  versionError: string | null;
+  downloadingVersionId: number | null;
+  comparisonOpen: boolean;
+
   // Actions
   fetchDocuments: () => Promise<void>;
   fetchDocument: (uuid: string) => Promise<void>;
@@ -31,6 +43,17 @@ export interface DocumentState {
   setTagFilter: (tag: string | null) => void;
   setFolderPathFilter: (path: string | null) => void;
   clearFilters: () => void;
+
+  // Version actions
+  fetchVersion: (uuid: string, major: number, minor: number) => Promise<void>;
+  selectVersionFromCache: (version: DocumentVersion) => void;
+  clearSelectedVersion: () => void;
+  downloadVersion: (
+    documentUuid: string,
+    version: DocumentVersion,
+    documentTitle: string
+  ) => Promise<void>;
+  setComparisonOpen: (open: boolean) => void;
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
@@ -50,6 +73,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   // UI state
   isLoading: false,
   error: null,
+
+  // Version state
+  selectedVersion: null,
+  isVersionLoading: false,
+  versionError: null,
+  downloadingVersionId: null,
+  comparisonOpen: false,
 
   fetchDocuments: async () => {
     const { offset, limit, tagFilter, folderPathFilter } = get();
@@ -165,5 +195,95 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   clearFilters: () => {
     set({ tagFilter: null, folderPathFilter: null, offset: 0 });
+  },
+
+  // Version actions
+
+  fetchVersion: async (uuid: string, major: number, minor: number) => {
+    set({ isVersionLoading: true, versionError: null, selectedVersion: null });
+
+    try {
+      const response = await apiClient.get<DocumentVersion>(
+        `/api/documents/${uuid}/versions/${major}/${minor}`
+      );
+      set({ selectedVersion: response, isVersionLoading: false });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) {
+        set({
+          versionError: "Version not found",
+          selectedVersion: null,
+          isVersionLoading: false,
+        });
+      } else {
+        const message =
+          error instanceof Error ? error.message : "Failed to fetch version";
+        set({
+          versionError: message,
+          selectedVersion: null,
+          isVersionLoading: false,
+        });
+      }
+    }
+  },
+
+  selectVersionFromCache: (version: DocumentVersion) => {
+    set({ selectedVersion: version, versionError: null });
+  },
+
+  clearSelectedVersion: () => {
+    set({ selectedVersion: null, versionError: null, isVersionLoading: false });
+  },
+
+  downloadVersion: async (
+    documentUuid: string,
+    version: DocumentVersion,
+    documentTitle: string
+  ) => {
+    set({ downloadingVersionId: version.id });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
+    try {
+      const token = getAccessToken();
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const response = await fetch(
+        `/api/documents/${documentUuid}/versions/${version.major_version}/${version.minor_version}/download`,
+        {
+          headers,
+          signal: controller.signal,
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Download failed with status ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${documentTitle}_v${version.major_version}.${version.minor_version}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+
+      URL.revokeObjectURL(url);
+    } catch {
+      // On error/timeout: silently clear state (don't throw)
+    } finally {
+      clearTimeout(timeoutId);
+      set({ downloadingVersionId: null });
+    }
+  },
+
+  setComparisonOpen: (open: boolean) => {
+    set({ comparisonOpen: open });
   },
 }));

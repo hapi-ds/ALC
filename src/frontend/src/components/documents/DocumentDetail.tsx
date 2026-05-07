@@ -1,6 +1,10 @@
-import { ArrowLeft, Plus, History, Tag } from "lucide-react";
+import { ArrowLeft, Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DocumentResponse } from "@/types/document";
+import { useDocumentStore } from "@/stores/documentStore";
+import { VersionHistoryPanel } from "./VersionHistoryPanel";
+import { VersionDetailView } from "./VersionDetailView";
+import { VersionComparisonView } from "./VersionComparisonView";
 
 interface DocumentDetailProps {
   document: DocumentResponse;
@@ -13,6 +17,16 @@ export function DocumentDetail({
   onNewVersion,
   onBack,
 }: DocumentDetailProps) {
+  const selectedVersion = useDocumentStore((state) => state.selectedVersion);
+  const isVersionLoading = useDocumentStore((state) => state.isVersionLoading);
+  const versionError = useDocumentStore((state) => state.versionError);
+  const comparisonOpen = useDocumentStore((state) => state.comparisonOpen);
+
+  const fetchVersion = useDocumentStore((state) => state.fetchVersion);
+  const downloadVersion = useDocumentStore((state) => state.downloadVersion);
+  const setComparisonOpen = useDocumentStore((state) => state.setComparisonOpen);
+  const clearSelectedVersion = useDocumentStore((state) => state.clearSelectedVersion);
+
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -92,41 +106,47 @@ export function DocumentDetail({
         )}
       </div>
 
-      {/* Version history */}
-      <div className="border border-border rounded-md p-4 space-y-3">
-        <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <h3 className="text-sm font-semibold">Version History</h3>
-        </div>
+      {/* Version History Panel */}
+      <VersionHistoryPanel
+        versions={document.versions}
+        documentTitle={document.title}
+        onSelectVersion={(version) =>
+          fetchVersion(document.document_uuid, version.major_version, version.minor_version)
+        }
+        onDownload={(version) =>
+          downloadVersion(document.document_uuid, version, document.title)
+        }
+        onCompare={() => setComparisonOpen(true)}
+      />
 
-        {document.versions.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No versions available</p>
-        ) : (
-          <div className="space-y-2" role="list" aria-label="Version history">
-            {document.versions.map((version) => (
-              <div
-                key={version.id}
-                role="listitem"
-                className="flex items-start gap-3 p-2 border-l-2 border-primary/30 pl-4"
-              >
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    v{version.major_version}.{version.minor_version}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(version.uploaded_at).toLocaleString()}
-                  </p>
-                  {version.change_reason && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {version.change_reason}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Version Detail View - shown when a version is selected, loading, or errored */}
+      {(selectedVersion || isVersionLoading || versionError) && (
+        <VersionDetailView
+          version={selectedVersion}
+          isLoading={isVersionLoading}
+          error={versionError}
+          onRetry={() => {
+            if (selectedVersion) {
+              fetchVersion(
+                document.document_uuid,
+                selectedVersion.major_version,
+                selectedVersion.minor_version
+              );
+            }
+          }}
+          onDownload={(version) =>
+            downloadVersion(document.document_uuid, version, document.title)
+          }
+          onClose={clearSelectedVersion}
+        />
+      )}
+
+      {/* Version Comparison View - portal dialog */}
+      <VersionComparisonView
+        open={comparisonOpen}
+        onOpenChange={setComparisonOpen}
+        versions={document.versions}
+      />
     </div>
   );
 }
