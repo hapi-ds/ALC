@@ -20,13 +20,13 @@
 
 ## Phase 2 — Core Document Lifecycle (frontend ↔ backend integration)
 
-- [~] **2.1 Document Upload & List (Frontend Integration)**
+- [x] **2.1 Document Upload & List (Frontend Integration)**
   Wire up the Documents page: fetch document list from API, implement upload flow (file picker → multipart POST → refresh list), display metadata, tags, and version info. Bulk document upload from a whole document tree (import of all documents of a company) - can also be a separate small python programm running at client side, walking trough the directory tree and upload the files via api.
 
-- [ ] **2.2 Virtual Folders (Frontend Integration)**
+- [~] **2.2 Virtual Folders (Frontend Integration)**
   Connect folder CRUD and tag-based filtering UI to backend. Allow creating, renaming, deleting folders and browsing documents within them.
 
-- [ ] **2.3 Document Versioning UI**
+- [~] **2.3 Document Versioning UI**
   Display version history per document, allow uploading new versions with change reason, show diff metadata between versions.
 
 - [ ] **2.4 Template Builder (Frontend — Drag & Drop)**
