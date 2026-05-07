@@ -134,7 +134,7 @@ def test_derive_metadata_folder_path_and_title(
     )
 
     # Property: folder_path equals relative directory portion
-    relative_dir = str(Path(*dir_segments)) if dir_segments else ""
+    relative_dir = str(Path(*dir_segments)) if dir_segments else "/"
     assert meta.folder_path == relative_dir, (
         f"Expected folder_path={relative_dir!r}, got {meta.folder_path!r} "
         f"for dir_segments={dir_segments!r}"
@@ -309,7 +309,7 @@ def test_request_construction_includes_required_fields(
     )
 
     # Property: URL targets the documents endpoint
-    assert captured_request["url"] == f"{api_url}/api/v1/documents", (
+    assert captured_request["url"] == f"{api_url}/api/documents", (
         f"URL incorrect: {captured_request['url']}"
     )
 

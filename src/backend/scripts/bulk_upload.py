@@ -1,7 +1,7 @@
 """Bulk upload documents from a directory tree to the AlcoaBase API.
 
 Recursively walks a directory and uploads each file as a document via
-the /api/v1/documents endpoint, deriving metadata from the file path.
+the /api/documents endpoint, deriving metadata from the file path.
 
 Usage:
     python scripts/bulk_upload.py --directory ./docs --api-url http://localhost:8000 \
@@ -154,7 +154,7 @@ def derive_metadata(file_path: Path, root: Path) -> FileMetadata:
     """
     relative = file_path.relative_to(root)
     title = file_path.stem
-    folder_path = str(relative.parent) if str(relative.parent) != "." else ""
+    folder_path = str(relative.parent) if str(relative.parent) != "." else "/"
 
     return FileMetadata(path=file_path, title=title, folder_path=folder_path)
 
@@ -180,7 +180,7 @@ def upload_file(
     Returns:
         True if upload succeeded, False otherwise.
     """
-    url = f"{api_url.rstrip('/')}/api/v1/documents"
+    url = f"{api_url.rstrip('/')}/api/documents"
 
     try:
         with open(file_meta.path, "rb") as f:
@@ -282,6 +282,8 @@ def main(argv: list[str] | None = None) -> None:
     headers = {
         "Authorization": f"Bearer {token}",
         "X-Company-Id": args.company_id,
+        "X-User-Id": args.user_id,
+        "X-Change-Reason": "Bulk document upload",
     }
 
     with httpx.Client(headers=headers, timeout=60.0) as client:
