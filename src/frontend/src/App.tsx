@@ -32,6 +32,7 @@ function AuthenticatedApp() {
         <Route index element={<DocumentsPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="folders" element={<VirtualFoldersPage />} />
+        <Route path="folders/:folderId" element={<VirtualFoldersPage />} />
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="training" element={<TrainingPage />} />
