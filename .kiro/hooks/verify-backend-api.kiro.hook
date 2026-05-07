@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Verify Backend Before Frontend API Code",
+  "description": "Before writing frontend code that calls backend API endpoints, reminds the agent to read the actual backend router file to confirm URL paths, required headers (especially X-Change-Reason), and request format.",
+  "version": "1",
+  "when": {
+    "type": "preToolUse",
+    "toolTypes": [
+      "write"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "If you are about to write or modify frontend code that calls a backend API endpoint (e.g., fetch, apiClient.get, apiClient.post, apiClient.upload), STOP and verify: Have you read the actual backend router file (src/backend/src/alcoabase/api/*.py) and router.py to confirm the exact URL path, required headers (X-Change-Reason is required for all POST/PUT/PATCH/DELETE), and request format? The API prefix is /api (NOT /api/v1) for most endpoints. If you haven't verified, read the backend source first before proceeding."
+  }
+}

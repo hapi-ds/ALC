@@ -56,6 +56,7 @@ class DocumentService:
         tags: list[str],
         user_id: int,
         content_type: str = "application/octet-stream",
+        company_id: int | None = None,
     ) -> Document:
         """Create a new document with UUID, store file, and persist metadata.
 
@@ -100,6 +101,7 @@ class DocumentService:
                 document_type=document_type,
                 current_status="Draft",
                 created_by=user_id,
+                company_id=company_id,
             )
             session.add(document)
             await session.flush()

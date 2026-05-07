@@ -82,7 +82,6 @@ async def create_document(
     content_type = file.content_type or "application/octet-stream"
 
     try:
-        # TODO: Set company_id=tenant.company_id on created resource
         document = await service.create_document(
             session=session,
             file_data=file_data,
@@ -92,7 +91,10 @@ async def create_document(
             tags=tag_list,
             user_id=user_id,
             content_type=content_type,
+            company_id=tenant.company_id,
         )
+        # Re-fetch with eager loading for serialization
+        document = await service.get_document(session, document.document_uuid)
         return DocumentResponse.model_validate(document)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
