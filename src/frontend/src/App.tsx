@@ -3,7 +3,8 @@ import { Routes, Route } from "react-router-dom";
 import { MainLayout } from "@/components/layout";
 import { DocumentsPage } from "@/pages/DocumentsPage";
 import { VirtualFoldersPage } from "@/pages/VirtualFoldersPage";
-import { TemplatesPage } from "@/pages/TemplatesPage";
+import { TemplateListPage } from "@/pages/TemplateListPage";
+import { TemplateBuilderPage } from "@/pages/TemplateBuilderPage";
 import { WorkflowsPage } from "@/pages/WorkflowsPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { SearchPage } from "@/pages/SearchPage";
@@ -33,7 +34,8 @@ function AuthenticatedApp() {
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="folders" element={<VirtualFoldersPage />} />
         <Route path="folders/:folderId" element={<VirtualFoldersPage />} />
-        <Route path="templates" element={<TemplatesPage />} />
+        <Route path="templates" element={<TemplateListPage />} />
+        <Route path="templates/new" element={<TemplateBuilderPage />} />
         <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="search" element={<SearchPage />} />

@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Frontend Build Check",
+  "description": "Runs the frontend TypeScript compilation and Vite build after each task completes to catch type errors early, before they surface in Docker builds.",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd src/frontend && npm run build",
+    "timeout": 120
+  }
+}
