@@ -3,6 +3,7 @@ export { VirtualFoldersPage } from "./VirtualFoldersPage";
 export { TemplatesPage } from "./TemplatesPage";
 export { TemplateListPage } from "./TemplateListPage";
 export { TemplateBuilderPage } from "./TemplateBuilderPage";
+export { TemplateDetailPage } from "./TemplateDetailPage";
 export { WorkflowsPage } from "./WorkflowsPage";
 export { TrainingPage } from "./TrainingPage";
 export { SearchPage } from "./SearchPage";

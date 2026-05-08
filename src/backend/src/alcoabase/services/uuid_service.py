@@ -68,3 +68,15 @@ class UUIDService:
             A string in the format "FLD-XXXXXXXX" (e.g., "FLD-A1B2C3D4").
         """
         return f"FLD-{uuid4().hex[:8].upper()}"
+
+    def generate_content_block_uuid(self) -> str:
+        """Generate a Content Block UUID in CB-XXXXXXXX format.
+
+        Uses the first 8 hex characters of a uuid4, uppercased,
+        prefixed with "CB-". This method is pure Python and does
+        not require a database session.
+
+        Returns:
+            A string in the format "CB-XXXXXXXX" (e.g., "CB-A1B2C3D4").
+        """
+        return f"CB-{uuid4().hex[:8].upper()}"

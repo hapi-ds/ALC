@@ -11,6 +11,7 @@ import { useTemplateBuilderStore } from "../../stores/templateBuilderStore";
 
 function resetStore() {
   useTemplateBuilderStore.setState({
+    items: [],
     fields: [],
     selectedFieldId: null,
     fieldErrors: {},
@@ -117,7 +118,9 @@ describe("ConfigurationPanel", () => {
 
     render(<ConfigurationPanel />);
 
-    expect(screen.getByText("Label is required")).toBeDefined();
+    const errorElement = document.getElementById("field-label-error-field-1");
+    expect(errorElement).not.toBeNull();
+    expect(errorElement!.textContent).toBe("Label is required");
 
     const labelInput = screen.getByLabelText("Label") as HTMLInputElement;
     expect(labelInput.getAttribute("aria-invalid")).toBe("true");
@@ -137,8 +140,9 @@ describe("ConfigurationPanel", () => {
 
     render(<ConfigurationPanel />);
 
-    expect(screen.getByRole("alert")).toBeDefined();
-    expect(screen.getByRole("alert").textContent).toBe(
+    const errorElement = document.getElementById("field-label-error-field-1");
+    expect(errorElement).not.toBeNull();
+    expect(errorElement!.textContent).toBe(
       "Label must not exceed 200 characters"
     );
   });

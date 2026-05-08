@@ -21,6 +21,7 @@ import type { CanvasFieldData } from "../../types/template";
 
 function resetStore() {
   useTemplateBuilderStore.setState({
+    items: [],
     fields: [],
     selectedFieldId: null,
     fieldErrors: {},

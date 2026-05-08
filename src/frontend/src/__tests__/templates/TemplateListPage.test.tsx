@@ -75,8 +75,11 @@ const mockTemplates: TemplateResponse[] = [
 function resetStore() {
   useTemplateListStore.setState({
     templates: [],
+    versionSummaries: {},
     isLoading: false,
     error: null,
+    downloadingUuid: null,
+    downloadError: null,
   });
 }
 
@@ -150,22 +153,34 @@ describe("TemplateListPage", () => {
     expect(screen.getByText("1")).toBeDefined();
   });
 
-  it("orders templates by document_uuid descending", () => {
+  it("orders templates by active version creation date descending", () => {
     useTemplateListStore.setState({
       templates: mockTemplates,
+      versionSummaries: {
+        "2024-00001": {
+          activeVersionNumber: 1,
+          totalVersionCount: 1,
+          activeVersionCreatedAt: "2024-01-15T10:00:00Z",
+          activeVersionFieldCount: 2,
+          hasReadOnlyVersion: true,
+        },
+        "2024-00002": {
+          activeVersionNumber: 2,
+          totalVersionCount: 2,
+          activeVersionCreatedAt: "2024-02-20T10:00:00Z",
+          activeVersionFieldCount: 1,
+          hasReadOnlyVersion: true,
+        },
+      },
       isLoading: false,
     });
 
     renderPage();
 
-    const rows = screen.getAllByRole("row");
-    // First row is the header, so data rows start at index 1
-    const firstDataRow = rows[1];
-    const secondDataRow = rows[2];
-
-    // 2024-00002 should come first (descending order)
-    expect(firstDataRow.textContent).toContain("2024-00002");
-    expect(secondDataRow.textContent).toContain("2024-00001");
+    const links = screen.getAllByRole("link");
+    // 2024-00002 has a more recent active version date, so it should come first
+    expect(links[0].textContent).toContain("2024-00002");
+    expect(links[1].textContent).toContain("2024-00001");
   });
 
   it('shows empty state message when templates array is empty', () => {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { DragDropContext, type DropResult } from "@hello-pangea/dnd";
 import { useTemplateBuilderStore } from "../../stores/templateBuilderStore";
-import type { FieldType } from "../../types/template";
+import type { FieldType, ContentBlockType } from "../../types/template";
 import { FieldPalette } from "./FieldPalette";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { ConfigurationPanel } from "./ConfigurationPanel";
@@ -9,8 +9,9 @@ import { TemplateNameInput } from "./TemplateNameInput";
 import { SaveButton } from "./SaveButton";
 
 export function TemplateBuilder() {
-  const fields = useTemplateBuilderStore((s) => s.fields);
+  const items = useTemplateBuilderStore((s) => s.items);
   const addField = useTemplateBuilderStore((s) => s.addField);
+  const addContentBlock = useTemplateBuilderStore((s) => s.addContentBlock);
   const reorderField = useTemplateBuilderStore((s) => s.reorderField);
   const saveSuccess = useTemplateBuilderStore((s) => s.saveSuccess);
   const saveError = useTemplateBuilderStore((s) => s.saveError);
@@ -55,19 +56,29 @@ export function TemplateBuilder() {
       if (!destination) return; // dropped outside
 
       if (
-        source.droppableId === "field-palette" &&
+        (source.droppableId === "field-palette" ||
+          source.droppableId === "content-palette") &&
         destination.droppableId === "builder-canvas"
       ) {
-        // Enforce 50-field max with UI message
-        if (fields.length >= 50) {
+        // Enforce 50-item max with UI message
+        if (items.length >= 50) {
           setMaxFieldsMessage(true);
           return;
         }
-        const fieldType = draggableId.replace(
-          "palette-",
-          ""
-        ) as FieldType;
-        addField(fieldType, destination.index);
+
+        if (draggableId.startsWith("palette-content-")) {
+          const contentType = draggableId.replace(
+            "palette-content-",
+            ""
+          ) as ContentBlockType;
+          addContentBlock(contentType, destination.index);
+        } else if (draggableId.startsWith("palette-field-")) {
+          const fieldType = draggableId.replace(
+            "palette-field-",
+            ""
+          ) as FieldType;
+          addField(fieldType, destination.index);
+        }
       } else if (
         source.droppableId === "builder-canvas" &&
         destination.droppableId === "builder-canvas"
@@ -75,7 +86,7 @@ export function TemplateBuilder() {
         reorderField(source.index, destination.index);
       }
     },
-    [fields.length, addField, reorderField]
+    [items.length, addField, addContentBlock, reorderField]
   );
 
   return (

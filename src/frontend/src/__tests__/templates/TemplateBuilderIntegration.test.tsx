@@ -124,10 +124,10 @@ describe("Template Builder Integration - Store-level save flow", () => {
       {
         name: "Clinical Trial Form",
         json_schema: {
-          fields: [
-            { label: "Patient Name", type: "Text" },
-            { label: "Age", type: "Float" },
-            { label: "Visit Date", type: "Date" },
+          elements: [
+            { element_type: "field", label: "Patient Name", type: "Text", required: false, help_text: null, default_value: null, config: {} },
+            { element_type: "field", label: "Age", type: "Float", required: false, help_text: null, default_value: null, config: {} },
+            { element_type: "field", label: "Visit Date", type: "Date", required: false, help_text: null, default_value: null, config: { date_format: "YYYY-MM-DD" } },
           ],
         },
         user_id: 42,
@@ -238,21 +238,20 @@ describe("Template Builder Integration - Store-level save flow", () => {
     const payload = callArgs[1];
 
     // After reorder: [Is Active, Notes, Temperature, Start Date]
-    expect(payload.json_schema.fields).toEqual([
-      { label: "Is Active", type: "Boolean" },
-      { label: "Notes", type: "Text" },
-      { label: "Temperature", type: "Float" },
-      { label: "Start Date", type: "Date" },
+    expect(payload.json_schema.elements).toEqual([
+      { element_type: "field", label: "Is Active", type: "Boolean", required: false, help_text: null, default_value: null, config: { true_label: "True", false_label: "False" } },
+      { element_type: "field", label: "Notes", type: "Text", required: false, help_text: null, default_value: null, config: {} },
+      { element_type: "field", label: "Temperature", type: "Float", required: false, help_text: null, default_value: null, config: {} },
+      { element_type: "field", label: "Start Date", type: "Date", required: false, help_text: null, default_value: null, config: { date_format: "YYYY-MM-DD" } },
     ]);
 
-    // Verify no extra properties (no id, field_uuid, fieldOrder)
-    for (const field of payload.json_schema.fields) {
-      const keys = Object.keys(field);
-      expect(keys).toEqual(["label", "type"]);
+    // Verify each element has element_type discriminator
+    for (const element of payload.json_schema.elements) {
+      expect(element.element_type).toBe("field");
     }
 
     // Verify array length matches canvas fields
-    expect(payload.json_schema.fields.length).toBe(4);
+    expect(payload.json_schema.elements.length).toBe(4);
   });
 });
 

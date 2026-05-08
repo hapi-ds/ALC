@@ -9,7 +9,7 @@ References:
     - Requirements 4: Offline PDF Generation from Templates
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,8 @@ from alcoabase.schemas.template import (
     TemplateCreate,
     TemplateResponse,
     TemplateUpdate,
+    TemplateVersionResponse,
+    VersionCreate,
 )
 from alcoabase.services.pdf_generator import PDFGenerator
 from alcoabase.services.storage_service import StorageService
@@ -83,12 +85,12 @@ async def create_template(
         HTTPException: 400 for invalid schema, 500 for internal errors.
     """
     try:
-        # TODO: Set company_id=tenant.company_id on created resource
         template = await service.create_template(
             session=session,
             name=payload.name,
             json_schema=payload.json_schema.model_dump(),
             user_id=payload.user_id,
+            company_id=tenant.company_id,
         )
         return TemplateResponse.model_validate(template)
     except ValueError as e:
@@ -181,6 +183,11 @@ async def list_templates(
 @router.post("/{document_uuid}/download-pdf")
 async def download_pdf(
     document_uuid: str,
+    version: int | None = Query(
+        default=None,
+        description="Specific version number to download. "
+        "If omitted, downloads the active version.",
+    ),
     session: AsyncSession = Depends(get_db_session),
     service: TemplateService = Depends(get_template_service),
     pdf_gen: PDFGenerator = Depends(get_pdf_generator),
@@ -189,11 +196,15 @@ async def download_pdf(
 ) -> Response:
     """Generate and download a fillable AcroForm PDF from a template.
 
-    Validates that the template has ReadOnly status before generating.
-    Stores the generated PDF in MinIO and returns it as a file download.
+    Version-aware: uses the active version when available. If a specific
+    version number is provided via query parameter, downloads that version
+    with a watermark annotation if it is not the active version.
+
+    The filename includes the version number: {name}_{uuid}_v{version}.pdf
 
     Args:
         document_uuid: The Document-UUID of the template.
+        version: Optional specific version number to download.
         session: Database session dependency.
         service: TemplateService dependency.
         pdf_gen: PDFGenerator dependency.
@@ -203,7 +214,8 @@ async def download_pdf(
         PDF file as a downloadable response.
 
     Raises:
-        HTTPException: 404 if template not found, 400 if not ReadOnly.
+        HTTPException: 404 if template not found or version not found,
+            400 if not ReadOnly.
     """
     # TODO: Pass tenant.company_id to service layer for filtering
     template = await service.get_template(session, document_uuid)
@@ -219,11 +231,50 @@ async def download_pdf(
             "Only approved templates can be downloaded as PDF.",
         )
 
-    # Generate the PDF
-    pdf_bytes = pdf_gen.generate_offline_pdf(template)
+    # Determine which version to use for PDF generation
+    is_historical = False
+    version_number: int | None = None
+
+    if version is not None:
+        # Specific version requested (Requirement 13.5)
+        template_version = await service.get_version(
+            session, document_uuid, version
+        )
+        if template_version is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Version {version} not found for template: {document_uuid}",
+            )
+        version_number = template_version.version_number
+        is_historical = not template_version.is_active
+    else:
+        # Use active version when available (Requirements 13.1, 13.2)
+        template_version = await service.get_active_version(
+            session, document_uuid
+        )
+        if template_version is not None:
+            version_number = template_version.version_number
+            is_historical = False
+
+    # Generate the PDF — pass version info for version-aware rendering
+    pdf_bytes = pdf_gen.generate_offline_pdf(
+        template,
+        version_number=version_number,
+        is_historical=is_historical,
+    )
+
+    # Build version-aware filename (Requirement 12.3)
+    sanitized_name = template.name.replace(" ", "_")
+    if version_number is not None:
+        filename = f"{sanitized_name}_{document_uuid}_v{version_number}.pdf"
+        storage_key = (
+            f"templates/{document_uuid}/offline-template-v{version_number}.pdf"
+        )
+    else:
+        filename = f"{sanitized_name}_{document_uuid}.pdf"
+        storage_key = f"templates/{document_uuid}/offline-template.pdf"
 
     # Store in MinIO for audit trail
-    storage_key = f"templates/{document_uuid}/offline-template.pdf"
     await storage.upload_file(
         key=storage_key,
         data=pdf_bytes,
@@ -231,7 +282,6 @@ async def download_pdf(
     )
 
     # Return as file download
-    filename = f"{template.name.replace(' ', '_')}_{document_uuid}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -239,3 +289,112 @@ async def download_pdf(
             "Content-Disposition": f'attachment; filename="{filename}"'
         },
     )
+
+
+@router.post(
+    "/{document_uuid}/versions",
+    response_model=TemplateVersionResponse,
+    status_code=201,
+)
+async def create_version(
+    document_uuid: str,
+    payload: VersionCreate,
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+    service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> TemplateVersionResponse:
+    """Create a new version for an existing template.
+
+    Requires X-Change-Reason header for ALCOA+ audit compliance.
+    Uses SELECT FOR UPDATE to prevent race conditions on concurrent
+    version creation attempts (returns 409 on conflict).
+
+    Args:
+        document_uuid: The Document-UUID of the parent template.
+        payload: Version creation request with schema and user_id.
+        request: The incoming HTTP request (for header extraction).
+        session: Database session dependency.
+        service: TemplateService dependency.
+
+    Returns:
+        The created template version with metadata and fields.
+
+    Raises:
+        HTTPException: 404 if template not found, 400 if template is not
+            ReadOnly or schema is invalid, 409 if concurrent version
+            creation is detected.
+    """
+    change_reason = request.headers.get("X-Change-Reason", "")
+
+    version = await service.create_version(
+        session=session,
+        document_uuid=document_uuid,
+        json_schema=payload.json_schema.model_dump(),
+        user_id=payload.user_id,
+        change_reason=change_reason,
+    )
+    return TemplateVersionResponse.model_validate(version)
+
+
+@router.get(
+    "/{document_uuid}/versions",
+    response_model=list[TemplateVersionResponse],
+)
+async def list_versions(
+    document_uuid: str,
+    session: AsyncSession = Depends(get_db_session),
+    service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> list[TemplateVersionResponse]:
+    """List all versions for a template in descending order (newest first).
+
+    Provides the complete version history for audit trail purposes.
+
+    Args:
+        document_uuid: The Document-UUID of the parent template.
+        session: Database session dependency.
+        service: TemplateService dependency.
+
+    Returns:
+        List of all template versions with metadata and fields.
+
+    Raises:
+        HTTPException: 404 if template not found.
+    """
+    versions = await service.get_version_history(session, document_uuid)
+    return [TemplateVersionResponse.model_validate(v) for v in versions]
+
+
+@router.get(
+    "/{document_uuid}/versions/{version_number}",
+    response_model=TemplateVersionResponse,
+)
+async def get_version(
+    document_uuid: str,
+    version_number: int,
+    session: AsyncSession = Depends(get_db_session),
+    service: TemplateService = Depends(get_template_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> TemplateVersionResponse:
+    """Get a specific version by template UUID and version number.
+
+    Args:
+        document_uuid: The Document-UUID of the parent template.
+        version_number: The version number to retrieve.
+        session: Database session dependency.
+        service: TemplateService dependency.
+
+    Returns:
+        The template version with metadata and fields.
+
+    Raises:
+        HTTPException: 404 if template or version not found.
+    """
+    version = await service.get_version(session, document_uuid, version_number)
+    if version is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {version_number} not found for template: {document_uuid}",
+        )
+    return TemplateVersionResponse.model_validate(version)

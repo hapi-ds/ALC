@@ -5,6 +5,7 @@ import { DocumentsPage } from "@/pages/DocumentsPage";
 import { VirtualFoldersPage } from "@/pages/VirtualFoldersPage";
 import { TemplateListPage } from "@/pages/TemplateListPage";
 import { TemplateBuilderPage } from "@/pages/TemplateBuilderPage";
+import { TemplateDetailPage } from "@/pages/TemplateDetailPage";
 import { WorkflowsPage } from "@/pages/WorkflowsPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { SearchPage } from "@/pages/SearchPage";
@@ -36,6 +37,7 @@ function AuthenticatedApp() {
         <Route path="folders/:folderId" element={<VirtualFoldersPage />} />
         <Route path="templates" element={<TemplateListPage />} />
         <Route path="templates/new" element={<TemplateBuilderPage />} />
+        <Route path="templates/:uuid" element={<TemplateDetailPage />} />
         <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="search" element={<SearchPage />} />

@@ -363,4 +363,208 @@ describe("templateBuilderStore", () => {
       expect(state.saveSuccess).toBe(false);
     });
   });
+
+  describe("updateContentBlockText", () => {
+    it("updates the text of a heading content block", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, "New Header");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      expect(item.element_type).toBe("content_block");
+      if (item.element_type === "content_block") {
+        expect(item.text).toBe("New Header");
+      }
+    });
+
+    it("updates the text of a paragraph content block", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("paragraph", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, "Some instructions");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      if (item.element_type === "content_block") {
+        expect(item.text).toBe("Some instructions");
+      }
+    });
+
+    it("sets fieldError for empty header text", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h2", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore.getState().updateContentBlockText(blockId, "");
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBe("Header text is required");
+    });
+
+    it("sets fieldError for whitespace-only header text", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h3", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore.getState().updateContentBlockText(blockId, "   ");
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBe("Header text is required");
+    });
+
+    it("sets fieldError for header text exceeding 200 chars", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      const longText = "a".repeat(201);
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, longText);
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBe(
+        "Header text must not exceed 200 characters"
+      );
+    });
+
+    it("sets fieldError for empty paragraph text", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("paragraph", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore.getState().updateContentBlockText(blockId, "");
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBe("Paragraph text is required");
+    });
+
+    it("sets fieldError for paragraph text exceeding 2000 chars", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("paragraph", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      const longText = "a".repeat(2001);
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, longText);
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBe(
+        "Paragraph text must not exceed 2000 characters"
+      );
+    });
+
+    it("clears fieldError for valid header text", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore.getState().updateContentBlockText(blockId, "");
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, "Valid Header");
+
+      const { fieldErrors } = useTemplateBuilderStore.getState();
+      expect(fieldErrors[blockId]).toBeUndefined();
+    });
+
+    it("sets isDirty to true", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+      useTemplateBuilderStore.setState({ isDirty: false });
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, "Updated");
+
+      expect(useTemplateBuilderStore.getState().isDirty).toBe(true);
+    });
+  });
+
+  describe("updateContentBlockLevel", () => {
+    it("changes heading level from h1 to h2", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockLevel(blockId, "heading_h2");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      if (item.element_type === "content_block") {
+        expect(item.content_type).toBe("heading_h2");
+      }
+    });
+
+    it("changes heading level from h3 to h1", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h3", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockLevel(blockId, "heading_h1");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      if (item.element_type === "content_block") {
+        expect(item.content_type).toBe("heading_h1");
+      }
+    });
+
+    it("does not change level for non-heading content blocks", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("paragraph", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockLevel(blockId, "heading_h2");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      if (item.element_type === "content_block") {
+        expect(item.content_type).toBe("paragraph");
+      }
+    });
+
+    it("preserves existing text when changing level", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockText(blockId, "My Header");
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockLevel(blockId, "heading_h3");
+
+      const item = useTemplateBuilderStore.getState().items[0];
+      if (item.element_type === "content_block") {
+        expect(item.text).toBe("My Header");
+        expect(item.content_type).toBe("heading_h3");
+      }
+    });
+
+    it("sets isDirty to true", () => {
+      const { addContentBlock } = useTemplateBuilderStore.getState();
+      addContentBlock("heading_h1", 0);
+      useTemplateBuilderStore.setState({ isDirty: false });
+
+      const blockId = useTemplateBuilderStore.getState().items[0].id;
+      useTemplateBuilderStore
+        .getState()
+        .updateContentBlockLevel(blockId, "heading_h2");
+
+      expect(useTemplateBuilderStore.getState().isDirty).toBe(true);
+    });
+  });
 });
