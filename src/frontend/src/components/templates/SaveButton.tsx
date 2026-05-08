@@ -13,12 +13,15 @@ import { Button } from "../ui/button";
  */
 export function SaveButton() {
   const isSaving = useTemplateBuilderStore((s) => s.isSaving);
+  const isCreatingVersion = useTemplateBuilderStore((s) => s.isCreatingVersion);
   const fields = useTemplateBuilderStore((s) => s.fields);
   const templateName = useTemplateBuilderStore((s) => s.templateName);
   const saveTemplate = useTemplateBuilderStore((s) => s.saveTemplate);
   const canSave = useTemplateBuilderStore((s) => s.canSave);
+  const versionModeUuid = useTemplateBuilderStore((s) => s.versionModeUuid);
 
-  const isDisabled = !canSave() || isSaving;
+  const busy = isSaving || isCreatingVersion;
+  const isDisabled = !canSave() || busy;
 
   return (
     <div className="flex flex-col items-start gap-2">
@@ -26,10 +29,10 @@ export function SaveButton() {
         type="button"
         onClick={saveTemplate}
         disabled={isDisabled}
-        aria-busy={isSaving}
+        aria-busy={busy}
         className="min-w-[140px]"
       >
-        {isSaving ? (
+        {busy ? (
           <span className="inline-flex items-center gap-2">
             <svg
               className="h-4 w-4 animate-spin"
@@ -55,7 +58,7 @@ export function SaveButton() {
             Saving...
           </span>
         ) : (
-          "Save Template"
+          versionModeUuid ? "Save Version" : "Save Template"
         )}
       </Button>
 

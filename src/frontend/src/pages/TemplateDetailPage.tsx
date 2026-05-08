@@ -69,20 +69,62 @@ export function TemplateDetailPage() {
 
   // Load active version into canvas when versions are fetched
   useEffect(() => {
-    if (versions.length > 0 && !activeVersion) {
+    if (versions.length > 0) {
       const active = versions.find((v) => v.is_active);
       if (active) {
         loadVersionIntoCanvas(active);
       }
+    } else if (template && versions.length === 0) {
+      // No versions exist — load from template's own json_schema
+      const jsonSchema = template.json_schema as {
+        elements?: unknown[];
+        fields?: Array<{ label: string; type: string }>;
+      };
+      if (jsonSchema.elements && Array.isArray(jsonSchema.elements)) {
+        // Enhanced format — load directly
+        loadVersionIntoCanvas({
+          id: 0,
+          version_number: 0,
+          document_uuid: template.document_uuid,
+          json_schema: template.json_schema,
+          status: template.status,
+          is_active: true,
+          created_by: template.created_by,
+          change_reason: "Initial",
+          created_at: "",
+          fields: [],
+        });
+      } else if (jsonSchema.fields && Array.isArray(jsonSchema.fields)) {
+        // Legacy format — convert fields to elements format
+        const elements = jsonSchema.fields.map((f) => ({
+          element_type: "field" as const,
+          label: f.label,
+          type: f.type,
+          required: false,
+          help_text: null,
+          default_value: null,
+          config: {},
+        }));
+        loadVersionIntoCanvas({
+          id: 0,
+          version_number: 0,
+          document_uuid: template.document_uuid,
+          json_schema: { elements },
+          status: template.status,
+          is_active: true,
+          created_by: template.created_by,
+          change_reason: "Initial",
+          created_at: "",
+          fields: [],
+        });
+      }
     }
-  }, [versions, activeVersion, loadVersionIntoCanvas]);
+  }, [versions, template, loadVersionIntoCanvas]);
 
-  // Clean up store on unmount
+  // Reset store when navigating to a different template
   useEffect(() => {
-    return () => {
-      resetBuilder();
-    };
-  }, [resetBuilder]);
+    resetBuilder();
+  }, [uuid, resetBuilder]);
 
   const handleCreateNewVersion = useCallback(() => {
     setShowChangeReasonDialog(true);
@@ -101,6 +143,7 @@ export function TemplateDetailPage() {
           fromVersion: activeVersion,
           templateUuid: uuid,
           changeReason: reason,
+          templateName: template?.name,
         },
       });
     },

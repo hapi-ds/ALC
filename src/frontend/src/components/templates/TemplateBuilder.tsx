@@ -5,6 +5,7 @@ import type { FieldType, ContentBlockType } from "../../types/template";
 import { FieldPalette } from "./FieldPalette";
 import { BuilderCanvas } from "./BuilderCanvas";
 import { ConfigurationPanel } from "./ConfigurationPanel";
+import { PdfPreviewPanel } from "./PdfPreviewPanel";
 import { TemplateNameInput } from "./TemplateNameInput";
 import { SaveButton } from "./SaveButton";
 
@@ -19,6 +20,7 @@ export function TemplateBuilder() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [maxFieldsMessage, setMaxFieldsMessage] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // Auto-dismiss success notification after 5 seconds
   useEffect(() => {
@@ -130,15 +132,29 @@ export function TemplateBuilder() {
             <div className="flex-1 overflow-y-auto">
               <BuilderCanvas />
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2">
               <SaveButton />
+              <button
+                type="button"
+                onClick={() => setPreviewOpen(!previewOpen)}
+                className="rounded-md border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                aria-pressed={previewOpen}
+              >
+                {previewOpen ? "Close Preview" : "Preview"}
+              </button>
             </div>
           </div>
 
-          {/* Right panel: Configuration Panel */}
-          <div className="w-72 shrink-0 border-l border-border">
-            <ConfigurationPanel />
-          </div>
+          {/* Right panel: Configuration Panel or PDF Preview */}
+          {previewOpen ? (
+            <div className="w-80 shrink-0 border-l border-border overflow-y-auto">
+              <PdfPreviewPanel isOpen={previewOpen} onClose={() => setPreviewOpen(false)} />
+            </div>
+          ) : (
+            <div className="w-72 shrink-0 border-l border-border">
+              <ConfigurationPanel />
+            </div>
+          )}
         </div>
       </div>
     </DragDropContext>

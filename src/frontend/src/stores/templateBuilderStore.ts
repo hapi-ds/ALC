@@ -253,6 +253,8 @@ export interface TemplateBuilderState {
   activeVersion: TemplateVersionResponse | null;
   isCreatingVersion: boolean;
   versionError: string | null;
+  versionModeUuid: string | null;
+  versionModeChangeReason: string | null;
 
   // Actions — enhanced
   addField: (type: FieldType, dropIndex: number) => void;
@@ -281,6 +283,7 @@ export interface TemplateBuilderState {
   saveTemplate: () => Promise<void>;
   resetBuilder: () => void;
   markClean: () => void;
+  setVersionMode: (uuid: string, changeReason: string) => void;
 
   // Versioning actions
   createVersion: (documentUuid: string, changeReason: string) => Promise<void>;
@@ -553,6 +556,8 @@ const initialState = {
   activeVersion: null as TemplateVersionResponse | null,
   isCreatingVersion: false,
   versionError: null as string | null,
+  versionModeUuid: null as string | null,
+  versionModeChangeReason: null as string | null,
   isDownloading: false,
   downloadError: null as string | null,
 };
@@ -1019,6 +1024,21 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
         return;
       }
 
+      // If in version mode, delegate to createVersion
+      const { versionModeUuid, versionModeChangeReason } = get();
+      if (versionModeUuid && versionModeChangeReason) {
+        // Don't set isSaving here — createVersion manages its own state
+        await get().createVersion(versionModeUuid, versionModeChangeReason);
+        // Check if version creation succeeded
+        const { versionError } = get();
+        if (!versionError) {
+          set({ saveSuccess: true, isDirty: false });
+        } else {
+          set({ saveError: versionError });
+        }
+        return;
+      }
+
       set({ isSaving: true, saveError: null, saveSuccess: false });
 
       try {
@@ -1073,16 +1093,15 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
       set({ ...initialState });
     },
 
+    setVersionMode: (uuid: string, changeReason: string) => {
+      set({ versionModeUuid: uuid, versionModeChangeReason: changeReason });
+    },
+
     markClean: () => {
       set({ isDirty: false });
     },
 
     createVersion: async (documentUuid: string, changeReason: string) => {
-      const canSave = get().canSave();
-      if (!canSave) {
-        return;
-      }
-
       set({ isCreatingVersion: true, versionError: null });
 
       try {
@@ -1251,6 +1270,7 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
         isDirty: false,
         fieldErrors: {},
         versionError: null,
+        activeVersion: version,
       });
     },
 
@@ -1329,15 +1349,18 @@ export const useTemplateBuilderStore = create<TemplateBuilderState>(
     },
 
     canSave: () => {
-      const { templateName, isSaving, fieldErrors } = get();
+      const { templateName, isSaving, fieldErrors, versionModeUuid } = get();
       const items = resolveItems(get());
 
       // Name must be valid (non-empty, non-whitespace, <= 500 chars)
-      if (templateName.trim().length === 0) {
-        return false;
-      }
-      if (templateName.length > MAX_NAME_LENGTH) {
-        return false;
+      // Skip name check in version mode (name is inherited from parent template)
+      if (!versionModeUuid) {
+        if (templateName.trim().length === 0) {
+          return false;
+        }
+        if (templateName.length > MAX_NAME_LENGTH) {
+          return false;
+        }
       }
 
       // Must have at least one field element
