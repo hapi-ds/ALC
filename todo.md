@@ -29,10 +29,10 @@
 - [x] **2.3 Document Versioning UI**
   Display version history per document, allow uploading new versions with change reason, show diff metadata between versions.
 
-- [~] **2.4 Template Builder (Frontend — Drag & Drop)**
+- [x] **2.4 Template Builder (Frontend — Drag & Drop)**
   Implement the JSON-driven form builder with `@hello-pangea/dnd`. Field palette, canvas, field configuration panel. Save template schema to backend.
 
-- [ ] **2.5 Report Data Entry & PDF Extraction**
+- [~] **2.5 Report Data Entry & PDF Extraction**
   Frontend form rendered from template schema. Submit field values. Upload offline PDF and trigger Dual-UUID extraction. Display extracted vs. entered data comparison.
 
 ---
@@ -66,22 +66,71 @@
 
 ---
 
-## Phase 5 — Multi-Agent Document Review System (NEW)
+## Phase 5 — Multi-Agent Document Review System
 
-- [ ] **5.1 Agent Personality & Role Framework**
-  Define agent auditor archetypes with configurable personalities, expertise domains, and review focus areas (e.g., "Regulatory Compliance Auditor", "Data Integrity Specialist", "Process Safety Reviewer", "Statistical Methods Auditor"). Store as YAML definitions with system prompts, temperature settings, and evaluation criteria.
+- [ ] **5.1 Modular Agent Registry & Personality Framework**
 
-- [ ] **5.2 Multi-Agent Review Orchestration**
-  Implement a review pipeline: document is submitted for review → dispatched to N configured auditor agents in parallel → each agent produces an independent review report with findings, severity ratings, and recommendations. Configurable per company/document type (MedTec audits differ from supplier audits).
+  Pluggable Agent Archetypes: Define a base Agent class with configurable parameters: personality, domain expertise, and system prompts.
 
-- [ ] **5.3 Master Auditor Summarization Agent**
-  A supervisory agent that receives all individual review reports, identifies consensus findings, flags contradictions between auditors, produces a unified executive summary with prioritized action items, and assigns an overall compliance score.
+  Role-Based Profiles: Support for diverse profiles such as "Regulatory Auditor," "Data Integrity Specialist," "Technical Writer," and "Educational Specialist".
 
-- [ ] **5.4 Review Dashboard & Findings UI**
-  Frontend page showing: review status per document, individual agent reports side-by-side, master summary, finding severity heatmap, action item tracking, and approval/rejection workflow for review outcomes.
+  Extensible Config (YAML/JSON): Store agent definitions in a modular registry allowing for hot-loading of new archetypes (e.g., adding an "Environmental Impact Auditor" later) without code changes.
 
-- [ ] **5.5 Company-Specific Audit Profiles**
-  Each company/tenant gets configurable audit profiles that determine: which auditor agents are assigned, what regulatory frameworks apply (ISO 13485, GMP, GDP, ISO 9001, etc.), severity thresholds, and required review quorum before a document can be approved.
+  Contextual Tuning: Settings for LLM temperature, maximum tokens, and specific evaluation rubrics per agent role.
+
+  Define agent archetypes (e.g., "Regulatory Compliance Auditor", "Data Integrity Specialist", "Process Safety Reviewer", "Statistical Methods Auditor").
+
+- [ ] **5.2 Multi-Agent "Always-On" Auditing**
+  
+  Review Orchestration - Implement a review pipeline: document/company is submitted for review → dispatched to N configured auditor agents in parallel → each agent produces an independent review report with findings, severity ratings, and recommendations. Configurable per company/document type (MedTec audits differ from supplier audits).
+
+  Master Auditor Summarization Agent - A supervisory agent that receives all individual review reports, identifies consensus findings, flags contradictions between auditors, produces a unified executive summary with prioritized action items, and assigns an overall compliance score.
+
+  Review Dashboard & Findings UI - Frontend page showing: review status per document, individual agent reports side-by-side, master summary, finding severity heatmap, action item tracking, and approval/rejection workflow for review outcomes.
+
+  Compliance Scorecards: Each company/tenant gets a real-time "Audit Readiness" score.
+
+  Missing Link Detection: The AI proactively flags documents that are approved but missing the required training records (Phase 3.3) or electronic signatures (Phase 3.4).
+
+  Anomaly Detection in Logs: The Master Auditor (Phase 5.3) can monitor the Audit Trail (6.3) to flag suspicious patterns, such as "Back-dating" signatures or bypasses in the BPMN workflow.
+
+  Company-Specific Audit Profiles - Each company/tenant gets configurable audit profiles that determine: which auditor agents are assigned, what regulatory frameworks apply (ISO 13485, GMP, GDP, ISO 9001, etc.), severity thresholds, and required review quorum before a document can be approved.
+
+- [ ] **5.3 AI-Enhanced Training Ecosystem**
+
+  AI Training Planner: Automated career-path and compliance-based training schedules for employees. Maps document requirements to user roles and identifies skill gaps.
+
+  AI Training Material Generator: Automatically generates training presentations, summaries, and educational content based on uploaded documents (SOPs, Work Instructions).
+
+  Automated Question Generator: LLM-driven generation of comprehension quizzes and assessments derived directly from documents that require mandatory training. Includes automated grading and validation logic.
+
+  Role-Play Scenarios: Instead of a static quiz, the AI Training Generator creates a "Virtual Audit" where the employee must answer questions using the document they just read.
+
+  Dynamic Feedback: If a user fails a training question, the AI doesn't just give the answer; it points them to the exact paragraph in the DOCX (Phase 5.7) where the information resides.
+
+- [ ] **5.4 AI Document Generator (Template-Based)**
+
+  DOCX Template Intelligence: Use existing .docx files in the database as "Master Templates" to guide the structure of new documents.
+
+  Semantic Content Generation: AI builds new regulatory documents (URS, MVP, etc.) by synthesizing data from the company's knowledge base into the layout of a selected DOCX template.
+
+  Distinction from 2.4: Unlike the JSON-driven Form Builder (2.4), this engine focuses on high-volume text generation within standard word processing formats.
+
+  Cross-Document Consistency: Ensures that a generated MVP (Master Validation Plan) correctly references the specific requirements listed in the associated URS (User Requirement Specification).
+
+- [ ] **5.5 AI-Driven Change Impact Analysis**
+
+  Automated Dependency Mapping: When a Document (e.g. a SOP) is updated, the AI scans the repository to flag which other documents (URS, MVP) or Training Tasks are now out of date.
+
+  Gap Analysis: If a user updates a Document (e.g. a URS), the AI compares it against the existing MVP and highlights specific sections that no longer meet the updated requirements.
+
+- [ ] **5.6 AI-Powered Traceability & Gap Discovery**
+
+  Automated Matrix Generation: AI crawls requirements in one document and maps them to test cases in another, creating the Traceability Matrix automatically.
+
+  Orphan Requirement Alerts: Flags any requirement in a URS that doesn't have a corresponding test case or validation result in the system.
+
+
 
 ---
 
