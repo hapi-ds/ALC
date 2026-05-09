@@ -3,6 +3,8 @@
 > Each item will get its own spec (requirements → design → tasks) before implementation.
 > Priority is based on: foundational dependencies first, then core workflows, then advanced AI features.
 
+> Read and understand todo.md and generate spec for Phase x.x in a way that is good / correct for all other phases.
+
 ---
 
 ## Phase 1 — Foundation (must exist before anything else works)
@@ -32,14 +34,14 @@
 - [x] **2.4 Template Builder (Frontend — Drag & Drop)**
   Implement the JSON-driven form builder with `@hello-pangea/dnd`. Field palette, canvas, field configuration panel. Save template schema to backend.
 
-- [~] **2.5 Report Data Entry & PDF Extraction**
+- [x] **2.5 Report Data Entry & PDF Extraction**
   Frontend form rendered from template schema. Submit field values. Upload offline PDF and trigger Dual-UUID extraction. Display extracted vs. entered data comparison.
 
 ---
 
 ## Phase 3 — Workflows, Training & Signatures
 
-- [ ] **3.1 BPMN Workflow Visual Editor**
+- [~] **3.1 BPMN Workflow Visual Editor**
   Integrate a BPMN editor component (e.g., bpmn-js). Allow admins to design document lifecycles visually. Save/load BPMN XML to backend.
 
   Preprare for Auto-Assignment: AI analyzes document content to suggest appropriate reviewers and approvers based on the Agent Registry (5.1) (e.g., identifying technical content and suggesting the CTO).
