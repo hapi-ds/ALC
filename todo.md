@@ -41,14 +41,14 @@
 
 ## Phase 3 — Workflows, Training & Signatures
 
-- [~] **3.1 BPMN Workflow Visual Editor**
+- [x] **3.1 BPMN Workflow Visual Editor**
   Integrate a BPMN editor component (e.g., bpmn-js). Allow admins to design document lifecycles visually. Save/load BPMN XML to backend.
 
   Preprare for Auto-Assignment: AI analyzes document content to suggest appropriate reviewers and approvers based on the Agent Registry (5.1) (e.g., identifying technical content and suggesting the CTO).
 
   Risk-Based Pathing: High-risk documents automatically trigger stricter workflow paths with increased review cycles compared to standard instructions.
 
-- [ ] **3.2 Workflow Execution & State Transitions (Frontend)**
+- [~] **3.2 Workflow Execution & State Transitions (Frontend)**
   Show current document state, available transitions, trigger transitions with confirmation. Display workflow history timeline.
 
 - [ ] **3.3 Training Management UI**

@@ -91,13 +91,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       setAccessToken(data.access_token);
 
-      // Set active company from user's first company if available
       set({
         user: data.user,
         isAuthenticated: true,
         isLoading: false,
         sessionExpired: false,
       });
+
+      // Fetch company memberships so X-Company-Id is available immediately
+      try {
+        const me = await apiClient.get<MeResponse>("/api/v1/auth/me");
+        const firstCompany = me.companies?.[0];
+        if (firstCompany) {
+          set({
+            activeCompanyId: firstCompany.company_id,
+            activeCompanySlug: firstCompany.company_slug,
+          });
+        }
+      } catch {
+        // Non-critical — company context will be resolved on next initialize
+      }
     } catch (error) {
       set({ isLoading: false });
       throw error;

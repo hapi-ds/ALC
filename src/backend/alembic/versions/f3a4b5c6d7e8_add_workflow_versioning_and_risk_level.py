@@ -65,6 +65,52 @@ def upgrade() -> None:
         ),
     )
 
+    # --- Add new columns to workflow_definitions_version (Continuum audit table) ---
+
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column("risk_level", sa.String(length=20), nullable=True),
+    )
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column(
+            "auto_assignment_config",
+            postgresql.JSON(astext_type=sa.Text()),
+            nullable=True,
+        ),
+    )
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column("current_version", sa.Integer(), nullable=True),
+    )
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column(
+            "risk_level_mod",
+            sa.Boolean(),
+            nullable=False,
+            server_default="false",
+        ),
+    )
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column(
+            "auto_assignment_config_mod",
+            sa.Boolean(),
+            nullable=False,
+            server_default="false",
+        ),
+    )
+    op.add_column(
+        "workflow_definitions_version",
+        sa.Column(
+            "current_version_mod",
+            sa.Boolean(),
+            nullable=False,
+            server_default="false",
+        ),
+    )
+
     # --- Create workflow_versions table ---
 
     op.create_table(
@@ -173,6 +219,14 @@ def downgrade() -> None:
         table_name="workflow_versions",
     )
     op.drop_table("workflow_versions")
+
+    # --- Remove new columns from workflow_definitions_version (Continuum) ---
+    op.drop_column("workflow_definitions_version", "current_version_mod")
+    op.drop_column("workflow_definitions_version", "auto_assignment_config_mod")
+    op.drop_column("workflow_definitions_version", "risk_level_mod")
+    op.drop_column("workflow_definitions_version", "current_version")
+    op.drop_column("workflow_definitions_version", "auto_assignment_config")
+    op.drop_column("workflow_definitions_version", "risk_level")
 
     # --- Remove new columns from workflow_definitions ---
     op.drop_column("workflow_definitions", "current_version")

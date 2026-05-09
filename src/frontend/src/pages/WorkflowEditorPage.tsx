@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useState } from 'react';
-import { useParams, useNavigate, useBlocker } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Save,
   CheckCircle2,
@@ -100,9 +100,6 @@ export function WorkflowEditorPage({ mode: modeProp }: WorkflowEditorPageProps) 
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isDirty]);
-
-  // --- Unsaved changes: React Router blocker ---
-  const blocker = useBlocker(isDirty);
 
   // --- Auto-dismiss notifications ---
   useEffect(() => {
@@ -233,6 +230,7 @@ export function WorkflowEditorPage({ mode: modeProp }: WorkflowEditorPageProps) 
           <Button
             onClick={handleSave}
             disabled={isSaving || isDeleting}
+            className="bg-blue-600 text-white hover:bg-blue-700"
           >
             {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -408,33 +406,6 @@ export function WorkflowEditorPage({ mode: modeProp }: WorkflowEditorPageProps) 
         </div>
       )}
 
-      {/* Navigation blocker dialog */}
-      {blocker.state === 'blocked' && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="unsaved-dialog-title"
-        >
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 id="unsaved-dialog-title" className="text-lg font-semibold text-gray-900">
-              Unsaved Changes
-            </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              You have unsaved changes. Are you sure you want to leave this page?
-              Your changes will be lost.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => blocker.reset?.()}>
-                Stay
-              </Button>
-              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
-                Leave
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
