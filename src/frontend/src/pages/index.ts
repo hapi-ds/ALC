@@ -5,6 +5,8 @@ export { TemplateListPage } from "./TemplateListPage";
 export { TemplateBuilderPage } from "./TemplateBuilderPage";
 export { TemplateDetailPage } from "./TemplateDetailPage";
 export { WorkflowsPage } from "./WorkflowsPage";
+export { WorkflowEditorPage } from "./WorkflowEditorPage";
+export { WorkflowListPage } from "./WorkflowListPage";
 export { TrainingPage } from "./TrainingPage";
 export { SearchPage } from "./SearchPage";
 export { KnowledgePage } from "./KnowledgePage";

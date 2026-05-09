@@ -6,22 +6,22 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
 
 ## Tasks
 
-- [ ] 1. Backend model extensions and database migration
-  - [-] 1.1 Add `risk_level`, `auto_assignment_config`, and `current_version` columns to WorkflowDefinition model
+- [x] 1. Backend model extensions and database migration
+  - [x] 1.1 Add `risk_level`, `auto_assignment_config`, and `current_version` columns to WorkflowDefinition model
     - Add `risk_level: Mapped[str] = mapped_column(String(20), default="low")` with CHECK constraint for "low"|"medium"|"high"|"critical"
     - Add `auto_assignment_config: Mapped[dict | None] = mapped_column(JSON, nullable=True, default=None)`
     - Add `current_version: Mapped[int] = mapped_column(default=1)`
     - File: `src/backend/src/alcoabase/models/workflow.py`
     - _Requirements: 13.1, 13.2, 9.1_
 
-  - [-] 1.2 Create WorkflowVersion model
+  - [x] 1.2 Create WorkflowVersion model
     - Create `WorkflowVersion` class in `src/backend/src/alcoabase/models/workflow.py`
     - Include columns: id, workflow_id (FK), version_number, bpmn_xml (Text), name (String 200), document_tag (String 100), risk_level (String 20), signature_required_transitions (JSON), training_trigger_transitions (JSON), auto_assignment_config (JSON nullable), created_by (FK to users), created_at (DateTime with timezone, server_default=func.now()), change_reason (String 500), company_id (FK to companies)
     - Add UniqueConstraint on (workflow_id, version_number)
     - Register model in `src/backend/src/alcoabase/models/__init__.py`
     - _Requirements: 13.3, 13.4_
 
-  - [~] 1.3 Create Alembic migration for model changes
+  - [x] 1.3 Create Alembic migration for model changes
     - Generate migration with `uv run alembic revision --autogenerate -m "add_workflow_versioning_and_risk_level"`
     - Migration adds `risk_level` and `auto_assignment_config` columns to `workflow_definitions` table
     - Migration creates `workflow_versions` table with unique constraint
@@ -29,8 +29,8 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/alembic/versions/` (new migration file)
     - _Requirements: 13.5, 13.6_
 
-- [ ] 2. Backend API schema extensions
-  - [~] 2.1 Extend workflow Pydantic schemas
+- [x] 2. Backend API schema extensions
+  - [x] 2.1 Extend workflow Pydantic schemas
     - Add `risk_level` (str, default "low", constrained) and `auto_assignment_config` (dict | None) to `WorkflowCreateRequest`
     - Add `risk_level` (str | None) and `auto_assignment_config` (dict | None) to `WorkflowUpdateRequest`
     - Add `risk_level` (str), `auto_assignment_config` (dict | None), and `current_version_number` (int) to `WorkflowResponse`
@@ -39,15 +39,15 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/src/alcoabase/schemas/workflow.py`
     - _Requirements: 17.1, 17.2, 17.3, 17.4_
 
-- [ ] 3. Backend API endpoint additions and tenant scoping fixes
-  - [~] 3.1 Add GET /api/workflows/{workflow_id} endpoint
+- [x] 3. Backend API endpoint additions and tenant scoping fixes
+  - [x] 3.1 Add GET /api/workflows/{workflow_id} endpoint
     - Return single workflow by ID, scoped to tenant via `X-Company-Id`
     - Return 404 if not found or belongs to different tenant (indistinguishable responses)
     - Include `risk_level`, `auto_assignment_config`, `current_version_number` in response
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 8.7, 16.4_
 
-  - [~] 3.2 Add DELETE /api/workflows/{workflow_id} endpoint
+  - [x] 3.2 Add DELETE /api/workflows/{workflow_id} endpoint
     - Accept integer path parameter `workflow_id`
     - Scope to tenant via `X-Company-Id` header
     - Check for active DocumentState records referencing the workflow; return 409 if in use
@@ -57,20 +57,20 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7_
 
-  - [~] 3.3 Add GET /api/workflows/{workflow_id}/versions endpoint
+  - [x] 3.3 Add GET /api/workflows/{workflow_id}/versions endpoint
     - Return JSON array of WorkflowVersionSummary records ordered by version_number descending
     - Scope to tenant via `X-Company-Id`; return 404 if workflow not found or wrong tenant
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 11.1, 11.2, 11.6_
 
-  - [~] 3.4 Add GET /api/workflows/{workflow_id}/versions/{version_id} endpoint
+  - [x] 3.4 Add GET /api/workflows/{workflow_id}/versions/{version_id} endpoint
     - Return single WorkflowVersionDetail with all fields including bpmn_xml
     - Return 404 if version not found or does not belong to specified workflow
     - Scope to tenant
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 11.3, 11.4, 11.5_
 
-  - [~] 3.5 Add POST /api/workflows/validate endpoint
+  - [x] 3.5 Add POST /api/workflows/validate endpoint
     - Accept JSON body with `bpmn_xml` (required) and `signature_required_transitions` (optional array)
     - Return 200 with `{is_valid: true, errors: []}` or `{is_valid: false, errors: [...]}`
     - Return 422 if bpmn_xml is empty or missing
@@ -78,7 +78,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5_
 
-  - [~] 3.6 Fix tenant scoping on existing endpoints (POST, PUT, GET list)
+  - [x] 3.6 Fix tenant scoping on existing endpoints (POST, PUT, GET list)
     - POST: Set `company_id=tenant.company_id` and `created_by=tenant.user_id` on created workflow; create WorkflowVersion record (version 1)
     - PUT: Add tenant scoping filter (`company_id == tenant.company_id`); create new WorkflowVersion on structural changes (bpmn_xml, transitions); increment `current_version`
     - GET list: Add `.where(WorkflowDefinition.company_id == tenant.company_id)` filter
@@ -86,16 +86,16 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/src/alcoabase/api/workflows.py`
     - _Requirements: 8.1, 8.2, 5.1, 5.2, 9.3, 9.4_
 
-- [~] 4. Checkpoint - Backend complete
+- [x] 4. Checkpoint - Backend complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 5. Frontend: Install bpmn-js and create workflow store
-  - [~] 5.1 Install bpmn-js dependency
+- [x] 5. Frontend: Install bpmn-js and create workflow store
+  - [x] 5.1 Install bpmn-js dependency
     - Add `bpmn-js` package to `src/frontend/package.json` dependencies
     - Add `@types/bpmn-js` if available, or create local type declarations
     - _Requirements: 2.1_
 
-  - [~] 5.2 Create workflowStore (Zustand)
+  - [x] 5.2 Create workflowStore (Zustand)
     - Create `src/frontend/src/stores/workflowStore.ts`
     - Implement state: workflows array, currentWorkflow, bpmnXml, workflowName, documentTag, riskLevel, signatureRequiredTransitions, trainingTriggerTransitions, autoAssignmentConfig, isDirty, loading flags (isLoadingList, isLoadingDetail, isSaving, isValidating, isDeleting, isLoadingVersions), error states, validationResult, versions array, selectedVersion
     - Implement actions: fetchWorkflowList, fetchWorkflowDetail, createWorkflow, updateWorkflow, deleteWorkflow, validateWorkflow, fetchVersionHistory, fetchVersion, setBpmnXml, setWorkflowName, setDocumentTag, setRiskLevel, setSignatureTransitions, setTrainingTransitions, setAutoAssignmentConfig, clearValidation, resetEditor, restoreVersion
@@ -103,7 +103,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Track dirty state by comparing current values against last-saved values
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 14.9_
 
-  - [~] 5.3 Write property tests for workflowStore
+  - [x] 5.3 Write property tests for workflowStore
     - **Property 5: Store dirty flag and validation clearing**
     - **Property 11: Version restore sets editor state**
     - Use fast-check to generate arbitrary XML strings, workflow names, transitions
@@ -112,20 +112,20 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/frontend/src/stores/__tests__/workflowStore.property.test.ts`
     - **Validates: Requirements 14.8, 14.9**
 
-- [ ] 6. Frontend: BpmnEditor component
-  - [~] 6.1 Create custom palette provider module
+- [x] 6. Frontend: BpmnEditor component
+  - [x] 6.1 Create custom palette provider module
     - Create `src/frontend/src/components/workflows/customPalette.ts`
     - Restrict palette to: Start Event, End Event, Task, Sequence Flow (connect tool), Space tool, Lasso tool
     - Export as bpmn-js additional module
     - _Requirements: 2.1, 2.3_
 
-  - [~] 6.2 Create BPMN moddle extension definition
+  - [x] 6.2 Create BPMN moddle extension definition
     - Create `src/frontend/src/components/workflows/alcoaExtension.json`
     - Define `alcoa:RiskLevel` and `alcoa:AutoAssignment` extension element types
     - URI: `http://alcoa.io/bpmn/extensions`
     - _Requirements: 9.1, 4.1_
 
-  - [~] 6.3 Implement BpmnEditor component
+  - [x] 6.3 Implement BpmnEditor component
     - Create `src/frontend/src/components/workflows/BpmnEditor.tsx`
     - Props: `initialXml`, `onXmlChange`, `onTransitionsChange`, `readOnly`
     - Mount bpmn-js Modeler (or Viewer if readOnly) on a div ref
@@ -137,7 +137,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Clean up bpmn-js instance on unmount
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.10_
 
-  - [~] 6.4 Write property tests for BPMN validation utilities
+  - [x] 6.4 Write property tests for BPMN validation utilities
     - **Property 4: Client-side BPMN pre-validation**
     - Create `src/frontend/src/lib/bpmnValidation.ts` with client-side pre-validation function
     - Create `src/frontend/src/lib/__tests__/bpmnValidation.property.test.ts`
@@ -145,8 +145,8 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Verify correct error messages for each missing element type
     - **Validates: Requirements 6.1, 6.4**
 
-- [ ] 7. Frontend: Editor page panels
-  - [~] 7.1 Create MetadataForm component
+- [x] 7. Frontend: Editor page panels
+  - [x] 7.1 Create MetadataForm component
     - Create `src/frontend/src/components/workflows/MetadataForm.tsx`
     - Fields: workflow name (text, required, max 200), document tag (text, required, max 100), risk level (select: low/medium/high/critical), active status (toggle)
     - Pre-populate fields from store's currentWorkflow in edit mode
@@ -154,7 +154,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Connect to workflowStore actions (setWorkflowName, setDocumentTag, setRiskLevel)
     - _Requirements: 3.1, 3.2, 3.6, 3.7_
 
-  - [~] 7.2 Create TransitionConfigPanel component
+  - [x] 7.2 Create TransitionConfigPanel component
     - Create `src/frontend/src/components/workflows/TransitionConfigPanel.tsx`
     - Display list of transitions extracted from BPMN diagram
     - Each transition has checkboxes for "Signature Required" and "Training Trigger"
@@ -162,20 +162,20 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Auto-update when transitions change (via onTransitionsChange callback from BpmnEditor)
     - _Requirements: 3.3, 3.4, 3.5_
 
-  - [~] 7.3 Write property tests for transition toggle logic
+  - [x] 7.3 Write property tests for transition toggle logic
     - **Property 3: Transition toggle set membership**
     - Create `src/frontend/src/components/workflows/__tests__/transitionToggle.property.test.ts`
     - Use fast-check to generate arbitrary transition strings and initial arrays
     - Verify toggling on adds the transition, toggling off removes it, other elements unchanged
     - **Validates: Requirements 3.3, 3.4**
 
-  - [~] 7.4 Create RiskConfigPanel component
+  - [x] 7.4 Create RiskConfigPanel component
     - Create `src/frontend/src/components/workflows/RiskConfigPanel.tsx`
     - Display visual warning when risk_level is "high" or "critical"
     - Display recommendation for at least two sequential review states before approval
     - _Requirements: 9.2, 9.6_
 
-  - [~] 7.5 Create AutoAssignmentPanel component
+  - [x] 7.5 Create AutoAssignmentPanel component
     - Create `src/frontend/src/components/workflows/AutoAssignmentPanel.tsx`
     - JSON editor field for auto-assignment rules
     - Descriptive label about Phase 5.1 Agent Registry integration
@@ -183,7 +183,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Allow empty/null value
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
 
-  - [~] 7.6 Create VersionHistoryPanel component
+  - [x] 7.6 Create VersionHistoryPanel component
     - Create `src/frontend/src/components/workflows/VersionHistoryPanel.tsx`
     - Display list of versions: version number, timestamp, author, change reason
     - Loading indicator while fetching
@@ -192,8 +192,8 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - "Restore" button on historical versions that calls store's restoreVersion
     - _Requirements: 8.3, 8.4, 8.5, 8.8, 8.9_
 
-- [ ] 8. Frontend: Page components and routing
-  - [~] 8.1 Create WorkflowListPage component
+- [x] 8. Frontend: Page components and routing
+  - [x] 8.1 Create WorkflowListPage component
     - Create `src/frontend/src/pages/WorkflowListPage.tsx`
     - Fetch workflows from store on mount; display in table sorted by name ascending
     - Columns: name, document_tag, risk level (color-coded badge), active status (badge), version number
@@ -203,7 +203,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Risk level filter dropdown
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 9.5_
 
-  - [~] 8.2 Create WorkflowEditorPage component
+  - [x] 8.2 Create WorkflowEditorPage component
     - Create `src/frontend/src/pages/WorkflowEditorPage.tsx`
     - Accept mode prop ("create" | "edit") or derive from route params
     - Compose: MetadataForm, BpmnEditor, TransitionConfigPanel, RiskConfigPanel, AutoAssignmentPanel, VersionHistoryPanel (hidden in create mode)
@@ -215,7 +215,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Unsaved changes protection: useBlocker + beforeunload event
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
 
-  - [~] 8.3 Update App.tsx routing
+  - [x] 8.3 Update App.tsx routing
     - Replace single `/workflows` route with:
       - `/workflows` → WorkflowListPage
       - `/workflows/new` → WorkflowEditorPage (mode="create")
@@ -224,18 +224,18 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - Remove old WorkflowsPage import
     - _Requirements: 15.1, 15.2, 15.3, 15.4, 15.5, 15.6_
 
-- [~] 9. Checkpoint - Frontend integration complete
+- [x] 9. Checkpoint - Frontend integration complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 10. Backend property-based tests
-  - [~] 10.1 Write property test for BPMN XML parsing consistency
+- [x] 10. Backend property-based tests
+  - [x] 10.1 Write property test for BPMN XML parsing consistency
     - **Property 1: BPMN XML state and transition extraction consistency**
     - Use hypothesis to generate valid BPMN XML with varying numbers of tasks and sequence flows
     - Verify parse_bpmn_xml extracts same states/transitions regardless of element ordering
     - File: `src/backend/tests/properties/test_workflow_engine_property.py`
     - **Validates: Requirements 16.1**
 
-  - [~] 10.2 Write property test for backend validation rejects invalid workflows
+  - [x] 10.2 Write property test for backend validation rejects invalid workflows
     - **Property 8: Backend validation rejects invalid workflows**
     - Use hypothesis to generate BPMN XML with unreachable states
     - Verify validate_bpmn_workflow returns is_valid=False with "unreachable" error
@@ -244,7 +244,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/tests/properties/test_workflow_engine_property.py`
     - **Validates: Requirements 12.2, 12.3**
 
-  - [~] 10.3 Write property test for version increment on structural changes only
+  - [x] 10.3 Write property test for version increment on structural changes only
     - **Property 10: Version increment on structural changes only**
     - Use hypothesis to generate update payloads with/without structural changes
     - Verify version increments only when bpmn_xml or transitions change
@@ -252,7 +252,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/tests/properties/test_workflow_versioning_property.py`
     - **Validates: Requirements 8.1, 8.2**
 
-  - [~] 10.4 Write property test for tenant isolation
+  - [x] 10.4 Write property test for tenant isolation
     - **Property 9: Tenant isolation**
     - Use hypothesis to generate workflow queries with different company_ids
     - Verify queries only return workflows matching the requesting tenant's company_id
@@ -260,15 +260,15 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/backend/tests/properties/test_workflow_tenant_property.py`
     - **Validates: Requirements 10.4, 11.6**
 
-- [ ] 11. Frontend property-based tests (remaining)
-  - [~] 11.1 Write property test for BPMN XML round-trip
+- [x] 11. Frontend property-based tests (remaining)
+  - [x] 11.1 Write property test for BPMN XML round-trip
     - **Property 7: BPMN XML workflow structure round-trip**
     - Use fast-check to generate BPMN XML with tasks and sequence flows
     - Verify parsing produces consistent BPMNWorkflow (same states, transitions, initial_state, terminal_states)
     - File: `src/frontend/src/lib/__tests__/bpmnRoundTrip.property.test.ts`
     - **Validates: Requirements 16.1, 16.2, 16.3**
 
-  - [~] 11.2 Write property test for metadata field validation
+  - [x] 11.2 Write property test for metadata field validation
     - **Property 2: Metadata field validation**
     - Use fast-check to generate arbitrary strings for document_tag
     - Verify validation accepts only `^[a-zA-Z0-9_-]+$` pattern
@@ -276,7 +276,7 @@ This plan implements a visual BPMN workflow editor for AlcoaBase. The implementa
     - File: `src/frontend/src/lib/__tests__/metadataValidation.property.test.ts`
     - **Validates: Requirements 3.6, 3.7**
 
-- [~] 12. Final checkpoint - Ensure all tests pass
+- [x] 12. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

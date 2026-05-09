@@ -5,8 +5,11 @@ state transitions, and validation results.
 """
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+RiskLevel = Literal["low", "medium", "high", "critical"]
 
 
 class WorkflowCreateRequest(BaseModel):
@@ -18,6 +21,8 @@ class WorkflowCreateRequest(BaseModel):
         bpmn_xml: BPMN 2.0 XML definition.
         signature_required_transitions: Transitions requiring PAdES signature.
         training_trigger_transitions: Transitions triggering training assignment.
+        risk_level: Risk classification for the workflow (low, medium, high, critical).
+        auto_assignment_config: JSON config for AI-driven reviewer suggestions (Phase 5.1).
     """
 
     name: str = Field(..., min_length=1, max_length=200)
@@ -25,6 +30,8 @@ class WorkflowCreateRequest(BaseModel):
     bpmn_xml: str = Field(..., min_length=1)
     signature_required_transitions: list[str] = Field(default_factory=list)
     training_trigger_transitions: list[str] = Field(default_factory=list)
+    risk_level: RiskLevel = Field(default="low")
+    auto_assignment_config: dict | None = Field(default=None)
 
 
 class WorkflowUpdateRequest(BaseModel):
@@ -36,6 +43,8 @@ class WorkflowUpdateRequest(BaseModel):
         signature_required_transitions: Updated signature transitions (optional).
         training_trigger_transitions: Updated training transitions (optional).
         is_active: Updated active status (optional).
+        risk_level: Updated risk classification (optional).
+        auto_assignment_config: Updated auto-assignment rules (optional).
     """
 
     name: str | None = Field(None, min_length=1, max_length=200)
@@ -43,6 +52,8 @@ class WorkflowUpdateRequest(BaseModel):
     signature_required_transitions: list[str] | None = None
     training_trigger_transitions: list[str] | None = None
     is_active: bool | None = None
+    risk_level: RiskLevel | None = None
+    auto_assignment_config: dict | None = None
 
 
 class TransitionRequest(BaseModel):
@@ -104,6 +115,9 @@ class WorkflowResponse(BaseModel):
         signature_required_transitions: Transitions requiring signature.
         training_trigger_transitions: Transitions triggering training.
         is_active: Whether the workflow is active.
+        risk_level: Risk classification (low, medium, high, critical).
+        auto_assignment_config: JSON config for AI-driven reviewer suggestions.
+        current_version_number: Current version number of the workflow.
     """
 
     id: int
@@ -113,6 +127,55 @@ class WorkflowResponse(BaseModel):
     signature_required_transitions: list[str]
     training_trigger_transitions: list[str]
     is_active: bool
+    risk_level: str
+    auto_assignment_config: dict | None = None
+    current_version_number: int
+
+
+class WorkflowVersionSummary(BaseModel):
+    """Summary schema for a workflow version (used in version list endpoint).
+
+    Attributes:
+        version_number: Sequential version number.
+        created_by: User ID who created this version.
+        created_at: Timestamp when the version was created.
+        change_reason: Reason for the change (from X-Change-Reason header).
+    """
+
+    version_number: int
+    created_by: int
+    created_at: datetime
+    change_reason: str
+
+
+class WorkflowVersionDetail(BaseModel):
+    """Detail schema for a single workflow version (full snapshot).
+
+    Attributes:
+        version_number: Sequential version number.
+        bpmn_xml: BPMN 2.0 XML at this version.
+        name: Workflow name at this version.
+        document_tag: Document tag at this version.
+        risk_level: Risk classification at this version.
+        signature_required_transitions: Signature transitions at this version.
+        training_trigger_transitions: Training transitions at this version.
+        auto_assignment_config: Auto-assignment config at this version.
+        created_by: User ID who created this version.
+        created_at: Timestamp when the version was created.
+        change_reason: Reason for the change.
+    """
+
+    version_number: int
+    bpmn_xml: str
+    name: str
+    document_tag: str
+    risk_level: str
+    signature_required_transitions: list[str]
+    training_trigger_transitions: list[str]
+    auto_assignment_config: dict | None = None
+    created_by: int
+    created_at: datetime
+    change_reason: str
 
 
 class WorkflowValidationResponse(BaseModel):

@@ -6,3 +6,4 @@ export { useTemplateBuilderStore } from "./templateBuilderStore";
 export { useTemplateListStore } from "./templateListStore";
 export { useSearchStore } from "./searchStore";
 export { useVirtualFolderStore } from "./virtualFolderStore";
+export { useWorkflowStore } from "./workflowStore";

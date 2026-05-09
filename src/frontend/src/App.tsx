@@ -6,7 +6,8 @@ import { VirtualFoldersPage } from "@/pages/VirtualFoldersPage";
 import { TemplateListPage } from "@/pages/TemplateListPage";
 import { TemplateBuilderPage } from "@/pages/TemplateBuilderPage";
 import { TemplateDetailPage } from "@/pages/TemplateDetailPage";
-import { WorkflowsPage } from "@/pages/WorkflowsPage";
+import { WorkflowListPage } from "@/pages/WorkflowListPage";
+import { WorkflowEditorPage } from "@/pages/WorkflowEditorPage";
 import { TrainingPage } from "@/pages/TrainingPage";
 import { SearchPage } from "@/pages/SearchPage";
 import { KnowledgePage } from "@/pages/KnowledgePage";
@@ -47,7 +48,9 @@ function AuthenticatedApp() {
         <Route path="reports/new/:documentUuid" element={<ReportDataEntryPage />} />
         <Route path="reports/:reportId/compare" element={<ComparisonViewPage />} />
         <Route path="reports/:reportId" element={<ReportDetailPage />} />
-        <Route path="workflows" element={<WorkflowsPage />} />
+        <Route path="workflows" element={<WorkflowListPage />} />
+        <Route path="workflows/new" element={<WorkflowEditorPage mode="create" />} />
+        <Route path="workflows/:workflowId/edit" element={<WorkflowEditorPage mode="edit" />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />

@@ -1,0 +1,32 @@
+{
+  "name": "Alcoa",
+  "prefix": "alcoa",
+  "uri": "http://alcoa.io/bpmn/extensions",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [
+    {
+      "name": "RiskLevel",
+      "superClass": ["Element"],
+      "properties": [
+        {
+          "name": "level",
+          "type": "String",
+          "isAttr": true
+        }
+      ]
+    },
+    {
+      "name": "AutoAssignment",
+      "superClass": ["Element"],
+      "properties": [
+        {
+          "name": "config",
+          "type": "String",
+          "isAttr": true
+        }
+      ]
+    }
+  ]
+}
