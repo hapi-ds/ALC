@@ -42,6 +42,10 @@
 - [ ] **3.1 BPMN Workflow Visual Editor**
   Integrate a BPMN editor component (e.g., bpmn-js). Allow admins to design document lifecycles visually. Save/load BPMN XML to backend.
 
+  Preprare for Auto-Assignment: AI analyzes document content to suggest appropriate reviewers and approvers based on the Agent Registry (5.1) (e.g., identifying technical content and suggesting the CTO).
+
+  Risk-Based Pathing: High-risk documents automatically trigger stricter workflow paths with increased review cycles compared to standard instructions.
+
 - [ ] **3.2 Workflow Execution & State Transitions (Frontend)**
   Show current document state, available transitions, trigger transitions with confirmation. Display workflow history timeline.
 
@@ -50,6 +54,14 @@
 
 - [ ] **3.4 Electronic Signatures UI**
   Re-authentication dialog with password verification. Trigger PAdES signing. Display signature status and certificate info on documents.
+  
+  Regulatory Compliance: Integration of mandatory "Reason for Signature" fields (Author, Review, Approval) in accordance with 21 CFR Part 11.
+
+  Visual Signature Overlay: Automatically generates a signature block in the PDF (2.5) displaying name, timestamp, and certificate ID.
+
+- [ ] **3.5 Training-Gated Access Control**
+
+  Compliance Enforcement: Implements a strict access lock where users cannot open or interact with a document until the associated training task (3.3) and AI-generated quiz (5.3) are marked as "Passed".
 
 ---
 
@@ -63,6 +75,12 @@
 
 - [ ] **4.3 AI Model Integration (vLLM Service Layer)**
   Implement actual LLM inference calls in the backend service layer (replace mock responses). Embedding generation for document indexing. OCR pipeline for scanned PDFs.
+
+- [ ] **4.4 Multimodal Knowledge Base**
+
+  Diagram & Flowchart Understanding: Enhances the RAG engine (4.2) to interpret visual process flows and diagrams within documents for complex process-related queries.
+
+  Video-to-SOP Alignment: Analyzes uploaded training videos to extract core steps and automatically compares them against written SOPs to detect discrepancies.
 
 ---
 
@@ -137,6 +155,12 @@
 ## Phase 6 — Admin & System Management
 
 - [ ] **6.1 Admin Dashboard — User Management**
+  Doc-Admin Group: Introduction of a specialized "Document Administrator" role responsible for defining BPMN workflows (3.1) and managing granular read/write/approve permissions.
+
+  Role-Based Access Control (RBAC): UI to manage group assignments, ensuring IT-Admins handle system health (6.2) while Doc-Admins control document lifecycles and compliance logic.
+
+  Permission Templates: Ability to define standard access sets for different document types (e.g., "Internal SOP" vs. "External Supplier File").
+
   CRUD for users, role assignment, company assignment, activation/deactivation. Password reset flow.
 
 - [ ] **6.2 Admin Dashboard — System Configuration**
@@ -154,6 +178,42 @@
 
 - [ ] **7.2 Traceability Matrix**
   Auto-generated matrix linking requirements → test cases → results. Exportable for FDA/EMA audit submissions.
+
+- [ ] **7.3 Automated Validation Evidence Locker**
+
+  Self-Documentation: Generates a "Validation Snapshot" upon deployment or configuration changes, capturing current Playwright E2E results and system state.
+
+  AI-Generated Test Scenarios: AI analyzes new roadmap features and automatically proposes Playwright test scripts to maintain high CSV (Computerized System Validation) coverage.
+
+
+---
+
+## Phase 8 — Governance, Corporate Setup & Documentation
+
+- [ ] **8.1 AI Risk & Compliance Framework Structure**
+  **Risk-Based Tiering:** Establish a formal classification system separating High-Risk AI tasks (e.g., Document Generation 5.4, Automated Auditing 5.2) from Low-Risk AI tasks (e.g., Knowledge Base RAG 4.2) to define appropriate validation depth.
+  **Task-Specific Control Sets:** Define specific control measures and human-in-the-loop (HITL) requirements for each risk tier to ensure GxP and regulatory alignment as a base for all following documents
+
+
+- [ ] **8.2 ALC Corporate Environment Setup**
+  
+  **ALC Company Entity:** Initialize a dedicated "ALC" tenant/company within the Multi-Tenancy framework (1.1) to serve as the master reference and internal management hub and as a example/test environment. Add all following documents here
+  **Standardized Configuration:** Apply baseline regulatory settings and user pools specific to the ALC corporate structure.
+
+- [ ] **8.3 User Requirement Specifications (URS) for ALC**
+  **Requirement Elicitation:** Enhance existing URS based on current implementation within the ALC company scope, defining the functional and non-functional needs of the platform from a corporate perspective.
+  **Traceability Integration:** Ensure all ALC requirements are mapped to the Global Traceability Matrix (7.2). Enhance 7.2 if neccessary.
+
+
+- [ ] **8.4 Cross-Sector AI Regulatory Guidelines**
+  **Contextual Policy Engine:** Develop how to use AI guidelines-documents for stuff based on current global regulations (e.g., EU AI Act, FDA/EMA guidance) and the ALC-URS. Integrate risk-analysis based on 8.1
+  **Sector-Specific Modules:** Create distinct policy templates for Pharma (GMP), MedTech (ISO 13485), and IVD (IVDR) to guide stuff how to use ALC functions.
+
+
+- [ ] **8.5 Documentation Suite: User & Admin Guides**
+  **Comprehensive User Guide:** Create a manual for end-users covering document lifecycle, training workflows, and interacting with AI agents.
+  **Technical Admin Guide:** Develop a detailed administrator manual for system configuration (6.2), user management (6.1), and oversight of the AI model layer (4.3).
+
 
 ---
 
