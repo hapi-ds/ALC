@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   PenTool,
   ClipboardCheck,
+  ClipboardList,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ const navItems = [
   { to: "/documents", label: "Documents", icon: FileText },
   { to: "/folders", label: "Virtual Folders", icon: FolderOpen },
   { to: "/templates", label: "Templates", icon: Layout },
+  { to: "/reports", label: "Reports", icon: ClipboardList },
   { to: "/workflows", label: "Workflows", icon: GitBranch },
   { to: "/training", label: "Training", icon: GraduationCap },
   { to: "/search", label: "Search", icon: Search },

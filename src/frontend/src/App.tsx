@@ -15,6 +15,10 @@ import { ValidationPage } from "@/pages/ValidationPage";
 import { SignaturesPage } from "@/pages/SignaturesPage";
 import { ReviewPage } from "@/pages/ReviewPage";
 import { AdminPage } from "@/pages/AdminPage";
+import { ReportListPage } from "@/pages/ReportListPage";
+import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
+import { ReportDetailPage } from "@/pages/ReportDetailPage";
+import { ComparisonViewPage } from "@/pages/ComparisonViewPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { useAuthStore } from "@/stores/authStore";
@@ -38,6 +42,11 @@ function AuthenticatedApp() {
         <Route path="templates" element={<TemplateListPage />} />
         <Route path="templates/new" element={<TemplateBuilderPage />} />
         <Route path="templates/:uuid" element={<TemplateDetailPage />} />
+        <Route path="reports" element={<ReportListPage />} />
+        <Route path="reports/new" element={<ReportDataEntryPage />} />
+        <Route path="reports/new/:documentUuid" element={<ReportDataEntryPage />} />
+        <Route path="reports/:reportId/compare" element={<ComparisonViewPage />} />
+        <Route path="reports/:reportId" element={<ReportDetailPage />} />
         <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="training" element={<TrainingPage />} />
         <Route path="search" element={<SearchPage />} />

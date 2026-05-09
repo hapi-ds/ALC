@@ -11,11 +11,14 @@ References:
 """
 
 from dataclasses import dataclass, field
-from datetime import date
 
 import fitz  # PyMuPDF
 
 from alcoabase.models.template import Template, TemplateField
+from alcoabase.services.field_validator import (
+    FieldValidationError,
+    validate_single_value,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -23,23 +26,9 @@ from alcoabase.models.template import Template, TemplateField
 # ---------------------------------------------------------------------------
 
 
-@dataclass
-class ValidationError:
-    """A single field validation error.
-
-    Attributes:
-        field_uuid: The Field-UUID that failed validation.
-        field_label: Human-readable label for the field.
-        expected_type: The expected data type.
-        actual_value: The value that failed validation.
-        message: Descriptive error message.
-    """
-
-    field_uuid: str
-    field_label: str
-    expected_type: str
-    actual_value: str | None
-    message: str
+# Backward-compatible alias: ValidationError is now FieldValidationError
+# from the shared field_validator module.
+ValidationError = FieldValidationError
 
 
 @dataclass
@@ -217,6 +206,9 @@ class PDFExtractor:
     ) -> ValidationError | None:
         """Validate a single field value against its expected type.
 
+        Delegates to the shared validate_single_value utility with
+        PDF context for backward-compatible boolean validation.
+
         Args:
             value: The extracted string value.
             field_type: Expected type (Text, Float, Integer, Date, Boolean).
@@ -226,60 +218,10 @@ class PDFExtractor:
         Returns:
             A ValidationError if validation fails, None if valid.
         """
-        if field_type == "Text":
-            # Text fields accept any string
-            return None
-
-        elif field_type == "Float":
-            try:
-                float(value)
-                return None
-            except (ValueError, TypeError):
-                return ValidationError(
-                    field_uuid=field_uuid,
-                    field_label=field_label,
-                    expected_type="Float",
-                    actual_value=value,
-                    message=f"Value '{value}' is not a valid float number.",
-                )
-
-        elif field_type == "Integer":
-            try:
-                int(value)
-                return None
-            except (ValueError, TypeError):
-                return ValidationError(
-                    field_uuid=field_uuid,
-                    field_label=field_label,
-                    expected_type="Integer",
-                    actual_value=value,
-                    message=f"Value '{value}' is not a valid integer.",
-                )
-
-        elif field_type == "Date":
-            try:
-                date.fromisoformat(value)
-                return None
-            except (ValueError, TypeError):
-                return ValidationError(
-                    field_uuid=field_uuid,
-                    field_label=field_label,
-                    expected_type="Date",
-                    actual_value=value,
-                    message=f"Value '{value}' is not a valid date (expected YYYY-MM-DD).",
-                )
-
-        elif field_type == "Boolean":
-            valid_boolean_values = {"Yes", "Off", "True", "False", "On", "0", "1"}
-            if value in valid_boolean_values:
-                return None
-            return ValidationError(
-                field_uuid=field_uuid,
-                field_label=field_label,
-                expected_type="Boolean",
-                actual_value=value,
-                message=f"Value '{value}' is not a valid boolean (expected Yes/Off/True/False/On/0/1).",
-            )
-
-        # Unknown field type — treat as valid (defensive)
-        return None
+        return validate_single_value(
+            value=value,
+            field_type=field_type,
+            field_uuid=field_uuid,
+            field_label=field_label,
+            context="pdf",
+        )

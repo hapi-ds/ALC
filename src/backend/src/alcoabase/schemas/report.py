@@ -81,3 +81,65 @@ class UploadErrorResponse(BaseModel):
 
     detail: str
     validation_errors: list[ValidationErrorDetail] = Field(default_factory=list)
+
+
+class ReportFieldValueInput(BaseModel):
+    """Input for a single field value in manual report creation.
+
+    Attributes:
+        field_uuid: The Field-UUID identifying the template field (max 40 chars).
+        value: The entered string value (None if field left empty, max 10000 chars).
+    """
+
+    field_uuid: str = Field(max_length=40)
+    value: str | None = Field(default=None, max_length=10000)
+
+
+class ReportCreateRequest(BaseModel):
+    """Request body for POST /api/reports.
+
+    Attributes:
+        document_uuid: The Document-UUID of the template (max 12 chars).
+        field_values: List of field value inputs (at least one required).
+    """
+
+    document_uuid: str = Field(max_length=12)
+    field_values: list[ReportFieldValueInput] = Field(min_length=1)
+
+
+class ComparisonFieldRow(BaseModel):
+    """A single row in the comparison response.
+
+    Attributes:
+        field_uuid: The Field-UUID for this comparison row.
+        field_label: Human-readable label for the field.
+        extracted_value: Value from the PDF-extracted report (None if missing).
+        entered_value: Value from the manually entered report (None if missing).
+        is_match: Whether extracted and entered values are exactly equal.
+    """
+
+    field_uuid: str
+    field_label: str
+    extracted_value: str | None
+    entered_value: str | None
+    is_match: bool
+
+
+class ComparisonResponse(BaseModel):
+    """Response for GET /api/reports/{report_id}/compare.
+
+    Attributes:
+        report_id: The ID of the source (extracted) report.
+        compared_with_report_id: The ID of the matching manual entry report (None if not found).
+        total_fields: Total number of unique fields compared.
+        matches: Number of fields where values match exactly.
+        discrepancies: Number of fields where values differ or one side is missing.
+        rows: List of comparison rows, one per unique field.
+    """
+
+    report_id: int
+    compared_with_report_id: int | None
+    total_fields: int
+    matches: int
+    discrepancies: int
+    rows: list[ComparisonFieldRow]
