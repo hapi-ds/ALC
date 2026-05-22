@@ -408,6 +408,7 @@ class WorkflowEngine:
         document_uuid: str,
         target_state: str,
         user_id: int,
+        change_reason: str | None = None,
     ) -> TransitionResult:
         """Validate and execute a state transition for a document.
 
@@ -416,6 +417,7 @@ class WorkflowEngine:
             document_uuid: The document's unique identifier.
             target_state: The desired target state.
             user_id: The user requesting the transition.
+            change_reason: Optional reason for the transition (from X-Change-Reason header).
 
         Returns:
             TransitionResult with transition details and trigger flags.
@@ -473,7 +475,7 @@ class WorkflowEngine:
 
         # Record audit trail
         await self._record_transition_audit(
-            session, document.id, user_id, previous_state, target_state
+            session, document.id, user_id, previous_state, target_state, change_reason
         )
 
         # Check trigger hooks
@@ -604,11 +606,12 @@ class WorkflowEngine:
         user_id: int,
         previous_state: str,
         new_state: str,
+        change_reason: str | None = None,
     ) -> None:
         """Record a state transition in the audit trail.
 
         Creates a WorkflowTransitionAudit record with user_id, timestamp,
-        previous_state, and new_state.
+        previous_state, new_state, and change_reason.
 
         Args:
             session: Active async database session.
@@ -616,13 +619,21 @@ class WorkflowEngine:
             user_id: The user who triggered the transition.
             previous_state: The state before the transition.
             new_state: The state after the transition.
+            change_reason: The reason for the transition (from X-Change-Reason header).
+                Truncated to 500 chars. Empty/whitespace-only values stored as None.
         """
+        # Normalize change_reason: strip whitespace, store None if empty, truncate to 500
+        normalized_reason: str | None = None
+        if change_reason and change_reason.strip():
+            normalized_reason = change_reason.strip()[:500]
+
         audit_entry = WorkflowTransitionAudit(
             document_id=document_id,
             user_id=user_id,
             previous_state=previous_state,
             new_state=new_state,
             timestamp=datetime.now(UTC),
+            change_reason=normalized_reason,
         )
         session.add(audit_entry)
 
@@ -696,6 +707,7 @@ class WorkflowTransitionAudit(Base):
         previous_state: The state before the transition.
         new_state: The state after the transition.
         timestamp: Server-side UTC timestamp of the transition.
+        change_reason: The reason provided for the transition (nullable, max 500 chars).
     """
 
     __tablename__ = "workflow_transition_audits"
@@ -706,3 +718,4 @@ class WorkflowTransitionAudit(Base):
     previous_state: Mapped[str] = mapped_column(String(50))
     new_state: Mapped[str] = mapped_column(String(50))
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    change_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)

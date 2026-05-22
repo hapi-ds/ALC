@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fc from "fast-check";
+import React from "react";
 import { render } from "@testing-library/react";
 import { DocumentDetail } from "@/components/documents/DocumentDetail";
 import type { DocumentResponse, DocumentTag, DocumentVersion } from "@/types/document";
@@ -19,6 +20,26 @@ vi.mock("@/stores/documentStore", () => ({
       clearSelectedVersion: () => {},
     };
     return selector(mockState);
+  },
+}));
+
+// Mock react-router-dom (useSearchParams used by DocumentDetail)
+vi.mock("react-router-dom", () => ({
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
+}));
+
+// Mock workflow stores used by DocumentDetail
+vi.mock("@/stores/workflowStore", () => ({
+  useWorkflowStore: (selector: (state: any) => any) => {
+    const state = { workflows: [], fetchWorkflowList: () => {} };
+    return selector(state);
+  },
+}));
+
+vi.mock("@/stores/workflowExecutionStore", () => ({
+  useWorkflowExecutionStore: (selector: (state: any) => any) => {
+    const state = { lastTransitionResult: null };
+    return selector(state);
   },
 }));
 
@@ -94,7 +115,7 @@ describe("Feature: document-upload-list, Property 7: Document detail renders all
     fc.assert(
       fc.property(documentResponseWithUniqueIdsArb, (doc) => {
         const { container } = render(
-          DocumentDetail({ document: doc, onNewVersion: () => {}, onBack: () => {} }) as any
+          React.createElement(DocumentDetail, { document: doc, onNewVersion: () => {}, onBack: () => {} })
         );
 
         const textContent = container.textContent || "";
@@ -119,7 +140,7 @@ describe("Feature: document-upload-list, Property 7: Document detail renders all
     fc.assert(
       fc.property(documentResponseWithUniqueIdsArb, (doc) => {
         const { container } = render(
-          DocumentDetail({ document: doc, onNewVersion: () => {}, onBack: () => {} }) as any
+          React.createElement(DocumentDetail, { document: doc, onNewVersion: () => {}, onBack: () => {} })
         );
 
         const tagList = container.querySelector('[aria-label="Document tags"]');
@@ -149,7 +170,7 @@ describe("Feature: document-upload-list, Property 7: Document detail renders all
     fc.assert(
       fc.property(documentResponseWithUniqueIdsArb, (doc) => {
         const { container } = render(
-          DocumentDetail({ document: doc, onNewVersion: () => {}, onBack: () => {} }) as any
+          React.createElement(DocumentDetail, { document: doc, onNewVersion: () => {}, onBack: () => {} })
         );
 
         const textContent = container.textContent || "";

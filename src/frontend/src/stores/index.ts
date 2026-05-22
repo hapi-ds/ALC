@@ -7,3 +7,5 @@ export { useTemplateListStore } from "./templateListStore";
 export { useSearchStore } from "./searchStore";
 export { useVirtualFolderStore } from "./virtualFolderStore";
 export { useWorkflowStore } from "./workflowStore";
+export { useWorkflowExecutionStore } from "./workflowExecutionStore";
+export type { WorkflowExecutionState } from "./workflowExecutionStore";

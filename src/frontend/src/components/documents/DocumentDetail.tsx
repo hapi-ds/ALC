@@ -1,10 +1,16 @@
+import { useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ArrowLeft, Plus, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DocumentResponse } from "@/types/document";
 import { useDocumentStore } from "@/stores/documentStore";
+import { useWorkflowStore } from "@/stores/workflowStore";
+import { useWorkflowExecutionStore } from "@/stores/workflowExecutionStore";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
+import { WorkflowStatePanel } from "./WorkflowStatePanel";
+import { WorkflowHistoryTimeline } from "./WorkflowHistoryTimeline";
 
 interface DocumentDetailProps {
   document: DocumentResponse;
@@ -26,6 +32,56 @@ export function DocumentDetail({
   const downloadVersion = useDocumentStore((state) => state.downloadVersion);
   const setComparisonOpen = useDocumentStore((state) => state.setComparisonOpen);
   const clearSelectedVersion = useDocumentStore((state) => state.clearSelectedVersion);
+
+  // Workflow definition store — used to check if document has a matching active workflow
+  const workflows = useWorkflowStore((state) => state.workflows);
+  const fetchWorkflowList = useWorkflowStore((state) => state.fetchWorkflowList);
+
+  // Workflow execution store — for reading the new state after transition
+  const lastTransitionResult = useWorkflowExecutionStore(
+    (s) => s.lastTransitionResult
+  );
+
+  // URL query params for ?tab=workflow
+  const [searchParams] = useSearchParams();
+  const isWorkflowTab = searchParams.get("tab") === "workflow";
+
+  // Ref for scrolling WorkflowStatePanel into view
+  const workflowPanelRef = useRef<HTMLDivElement>(null);
+
+  // Fetch workflow definitions on mount to determine if document has a matching workflow
+  useEffect(() => {
+    if (workflows.length === 0) {
+      fetchWorkflowList();
+    }
+  }, [workflows.length, fetchWorkflowList]);
+
+  // Determine if the document has a tag matching an active workflow definition's document_tag
+  const hasMatchingWorkflow = useMemo(() => {
+    if (!document.tags || document.tags.length === 0) return false;
+    const documentTagStrings = document.tags.map((t) => t.tag);
+    return workflows.some(
+      (w) => w.is_active && documentTagStrings.includes(w.document_tag)
+    );
+  }, [document.tags, workflows]);
+
+  // Handle ?tab=workflow: scroll WorkflowStatePanel into view within 500ms
+  useEffect(() => {
+    if (isWorkflowTab && hasMatchingWorkflow && workflowPanelRef.current) {
+      const timer = setTimeout(() => {
+        workflowPanelRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isWorkflowTab, hasMatchingWorkflow]);
+
+  // Derive the displayed current_status — update after successful transition
+  const displayStatus = lastTransitionResult?.success
+    ? lastTransitionResult.new_state
+    : document.current_status;
 
   return (
     <div className="space-y-6">
@@ -68,7 +124,7 @@ export function DocumentDetail({
             <dt className="text-muted-foreground">Status</dt>
             <dd>
               <span className="inline-block text-xs px-2 py-0.5 bg-muted rounded font-medium">
-                {document.current_status}
+                {displayStatus}
               </span>
             </dd>
           </div>
@@ -105,6 +161,24 @@ export function DocumentDetail({
           </div>
         )}
       </div>
+
+      {/* Workflow State Panel — rendered when document has a matching active workflow */}
+      {hasMatchingWorkflow && document.document_uuid && (
+        <div ref={workflowPanelRef}>
+          <WorkflowStatePanel
+            documentUuid={document.document_uuid}
+            defaultExpanded={isWorkflowTab ? true : undefined}
+          />
+        </div>
+      )}
+
+      {/* Workflow History Timeline — rendered when document has a matching active workflow */}
+      {hasMatchingWorkflow && document.document_uuid && (
+        <WorkflowHistoryTimeline
+          documentUuid={document.document_uuid}
+          defaultExpanded={isWorkflowTab}
+        />
+      )}
 
       {/* Version History Panel */}
       <VersionHistoryPanel

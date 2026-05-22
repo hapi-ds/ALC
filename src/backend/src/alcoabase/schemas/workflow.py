@@ -178,6 +178,28 @@ class WorkflowVersionDetail(BaseModel):
     change_reason: str
 
 
+class TransitionHistoryResponse(BaseModel):
+    """Response schema for a single transition history entry.
+
+    Attributes:
+        id: Audit record primary key.
+        document_id: The document's primary key.
+        user_id: The user who triggered the transition.
+        previous_state: State before the transition.
+        new_state: State after the transition.
+        timestamp: ISO 8601 datetime with timezone.
+        change_reason: The reason provided for the transition (nullable).
+    """
+
+    id: int
+    document_id: int
+    user_id: int
+    previous_state: str
+    new_state: str
+    timestamp: datetime
+    change_reason: str | None = None
+
+
 class WorkflowValidationResponse(BaseModel):
     """Response schema for workflow validation results.
 

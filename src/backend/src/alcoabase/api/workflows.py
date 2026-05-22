@@ -14,6 +14,7 @@ Endpoints:
     GET /api/workflows/{workflow_id}/versions/{version_id} - Get version detail
     POST /api/workflows/transition - Request a state transition
     GET /api/workflows/state/{document_uuid} - Get document workflow state
+    GET /api/workflows/state/{document_uuid}/history - Get transition history
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -28,8 +29,10 @@ from alcoabase.models.workflow import (
     WorkflowDefinition,
     WorkflowVersion,
 )
+from alcoabase.models.document import Document
 from alcoabase.schemas.workflow import (
     DocumentStateResponse,
+    TransitionHistoryResponse,
     TransitionRequest,
     TransitionResponse,
     WorkflowCreateRequest,
@@ -39,7 +42,7 @@ from alcoabase.schemas.workflow import (
     WorkflowVersionDetail,
     WorkflowVersionSummary,
 )
-from alcoabase.services.workflow_engine import WorkflowEngine
+from alcoabase.services.workflow_engine import WorkflowEngine, WorkflowTransitionAudit
 
 router = APIRouter(prefix="/workflows", tags=["Workflows"])
 
@@ -536,7 +539,8 @@ async def get_workflow_version(
 
 @router.post("/transition", response_model=TransitionResponse)
 async def request_transition(
-    request: TransitionRequest,
+    body: TransitionRequest,
+    request: Request,
     session: AsyncSession = Depends(get_db_session),
     engine: WorkflowEngine = Depends(_get_workflow_engine),
     tenant: TenantContext = Depends(get_tenant_context),
@@ -547,7 +551,8 @@ async def request_transition(
     if valid. Returns trigger flags for signature and training hooks.
 
     Args:
-        request: Transition request body.
+        body: Transition request body with document_uuid and target_state.
+        request: The incoming HTTP request (for X-Change-Reason header).
         session: Database session.
         engine: WorkflowEngine instance.
         tenant: Resolved tenant context.
@@ -558,11 +563,14 @@ async def request_transition(
     Raises:
         HTTPException: 400 if transition is invalid or no workflow defined.
     """
+    change_reason: str | None = request.headers.get("x-change-reason")
+
     result = await engine.request_transition(
         session=session,
-        document_uuid=request.document_uuid,
-        target_state=request.target_state,
+        document_uuid=body.document_uuid,
+        target_state=body.target_state,
         user_id=tenant.user_id,
+        change_reason=change_reason,
     )
 
     return TransitionResponse(
@@ -626,3 +634,67 @@ async def get_document_state(
         valid_transitions=valid_transitions,
         updated_at=doc_state.updated_at,
     )
+
+
+@router.get(
+    "/state/{document_uuid}/history",
+    response_model=list[TransitionHistoryResponse],
+)
+async def get_transition_history(
+    document_uuid: str,
+    session: AsyncSession = Depends(get_db_session),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> list[TransitionHistoryResponse]:
+    """Get the transition history for a document.
+
+    Returns all WorkflowTransitionAudit records for the document,
+    ordered by timestamp descending, limited to 1000 records.
+    Scoped to the tenant via X-Company-Id header.
+
+    Args:
+        document_uuid: The document's unique identifier.
+        session: Database session.
+        tenant: Resolved tenant context.
+
+    Returns:
+        List of TransitionHistoryResponse records.
+
+    Raises:
+        HTTPException: 404 if document not found within the tenant.
+    """
+    # Look up the document by document_uuid, scoped to tenant
+    doc_result = await session.execute(
+        select(Document).where(
+            Document.document_uuid == document_uuid,
+            Document.company_id == tenant.company_id,
+        )
+    )
+    document = doc_result.scalar_one_or_none()
+
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No workflow state found for document: {document_uuid}",
+        )
+
+    # Query audit records for this document, ordered by timestamp descending
+    audit_result = await session.execute(
+        select(WorkflowTransitionAudit)
+        .where(WorkflowTransitionAudit.document_id == document.id)
+        .order_by(WorkflowTransitionAudit.timestamp.desc())
+        .limit(1000)
+    )
+    audit_records = audit_result.scalars().all()
+
+    return [
+        TransitionHistoryResponse(
+            id=record.id,
+            document_id=record.document_id,
+            user_id=record.user_id,
+            previous_state=record.previous_state,
+            new_state=record.new_state,
+            timestamp=record.timestamp,
+            change_reason=record.change_reason,
+        )
+        for record in audit_records
+    ]

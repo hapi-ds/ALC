@@ -48,7 +48,7 @@
 
   Risk-Based Pathing: High-risk documents automatically trigger stricter workflow paths with increased review cycles compared to standard instructions.
 
-- [~] **3.2 Workflow Execution & State Transitions (Frontend)**
+- [x] **3.2 Workflow Execution & State Transitions (Frontend)**
   Show current document state, available transitions, trigger transitions with confirmation. Display workflow history timeline.
 
 - [ ] **3.3 Training Management UI**
@@ -216,6 +216,11 @@
   **Comprehensive User Guide:** Create a manual for end-users covering document lifecycle, training workflows, and interacting with AI agents.
   **Technical Admin Guide:** Develop a detailed administrator manual for system configuration (6.2), user management (6.1), and oversight of the AI model layer (4.3).
 
+
+---
+
+## Phase 9 — Extended Web and Literature Search
+- with download abstract and full text to db, and generate embeddings
 
 ---
 

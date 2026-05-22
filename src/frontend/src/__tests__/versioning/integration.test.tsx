@@ -40,6 +40,32 @@ vi.mock("@/stores/documentStore", () => ({
   }),
 }));
 
+// Mock react-router-dom (useSearchParams used by DocumentDetail)
+vi.mock("react-router-dom", () => ({
+  useSearchParams: () => [new URLSearchParams(), vi.fn()],
+}));
+
+// Mock workflow stores used by DocumentDetail
+vi.mock("@/stores/workflowStore", () => ({
+  useWorkflowStore: vi.fn((selector: unknown) => {
+    const state = { workflows: [], fetchWorkflowList: vi.fn() };
+    if (typeof selector === "function") {
+      return (selector as (s: typeof state) => unknown)(state);
+    }
+    return state;
+  }),
+}));
+
+vi.mock("@/stores/workflowExecutionStore", () => ({
+  useWorkflowExecutionStore: vi.fn((selector: unknown) => {
+    const state = { lastTransitionResult: null };
+    if (typeof selector === "function") {
+      return (selector as (s: typeof state) => unknown)(state);
+    }
+    return state;
+  }),
+}));
+
 import { DocumentDetail } from "@/components/documents/DocumentDetail";
 
 /**
