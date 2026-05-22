@@ -270,7 +270,7 @@ function arbitraryDocumentVersion(
     major_version: fc.constant(major),
     minor_version: fc.constant(minor),
     storage_key: fc.string({ minLength: 1, maxLength: 50 }),
-    file_hash: fc.stringMatching(/^[0-9a-f]{64}$/),
+    file_hash: fc.array(fc.constantFrom(...'0123456789abcdef'.split('')), { minLength: 64, maxLength: 64 }).map(arr => arr.join('')),
     uploaded_by: fc.integer({ min: 1, max: 1000 }),
     uploaded_at: fc.integer({ min: 946684800000, max: 1924905600000 }).map((ts) => new Date(ts).toISOString()),
     change_reason: fc.oneof(

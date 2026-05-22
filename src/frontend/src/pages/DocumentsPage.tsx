@@ -11,6 +11,7 @@ import {
   UploadDialog,
   VersionUploadDialog,
 } from "@/components/documents";
+import { TrainingGateGuard } from "@/components/training/TrainingGateGuard";
 
 export function DocumentsPage() {
   const {
@@ -41,13 +42,29 @@ export function DocumentsPage() {
 
   // Detail view
   if (selectedDocument) {
+    // Derive the latest version string for the training gate
+    const latestVersion = (() => {
+      if (selectedDocument.versions.length === 0) return "1";
+      const sorted = [...selectedDocument.versions].sort((a, b) => {
+        if (a.major_version !== b.major_version) return b.major_version - a.major_version;
+        return b.minor_version - a.minor_version;
+      });
+      return `${sorted[0].major_version}.${sorted[0].minor_version}`;
+    })();
+
     return (
       <div className="space-y-6">
-        <DocumentDetail
-          document={selectedDocument}
-          onBack={handleBackToList}
-          onNewVersion={() => setVersionDialogOpen(true)}
-        />
+        <TrainingGateGuard
+          sopDocumentUuid={selectedDocument.document_uuid}
+          sopVersion={latestVersion}
+          sopStatus={selectedDocument.current_status}
+        >
+          <DocumentDetail
+            document={selectedDocument}
+            onBack={handleBackToList}
+            onNewVersion={() => setVersionDialogOpen(true)}
+          />
+        </TrainingGateGuard>
         <VersionUploadDialog
           open={versionDialogOpen}
           onOpenChange={setVersionDialogOpen}

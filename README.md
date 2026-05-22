@@ -70,7 +70,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 2.5 | Report Data Entry & PDF Extraction | ✅ Complete |
 | 3.1 | BPMN Workflow Visual Editor | ✅ Complete |
 | 3.2 | Workflow Execution & State Transitions | ✅ Complete |
-| 3.3 | Training Management UI | 🔲 Planned |
+| 3.3 | Training Management UI | ✅ Complete |
 | 3.4 | Electronic Signatures UI | 🔲 Planned |
 | 4.x | Search, Knowledge & AI Integration | 🔲 Planned |
 | 5.x | Multi-Agent Document Review | 🔲 Planned |
@@ -89,6 +89,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Document Upload](docs/document-upload-guide.md) | Uploading documents via web UI and bulk CLI tool |
 | [Workflow Editor](docs/workflow-editor-guide.md) | Designing BPMN document lifecycle workflows |
 | [Workflow Execution](docs/workflow-execution-guide.md) | Executing state transitions, gate indicators, and audit history |
+| [Training Management](docs/training-management-guide.md) | Training tasks, content viewer, records, gate enforcement, admin view |
 
 ---
 

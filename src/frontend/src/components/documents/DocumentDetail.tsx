@@ -6,6 +6,7 @@ import type { DocumentResponse } from "@/types/document";
 import { useDocumentStore } from "@/stores/documentStore";
 import { useWorkflowStore } from "@/stores/workflowStore";
 import { useWorkflowExecutionStore } from "@/stores/workflowExecutionStore";
+import { TrainingStatusBanner } from "@/components/training/TrainingStatusBanner";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
@@ -82,6 +83,16 @@ export function DocumentDetail({
   const displayStatus = lastTransitionResult?.success
     ? lastTransitionResult.new_state
     : document.current_status;
+
+  // Derive the latest version string for training banner
+  const latestVersion = useMemo(() => {
+    if (document.versions.length === 0) return "1";
+    const sorted = [...document.versions].sort((a, b) => {
+      if (a.major_version !== b.major_version) return b.major_version - a.major_version;
+      return b.minor_version - a.minor_version;
+    });
+    return `${sorted[0].major_version}.${sorted[0].minor_version}`;
+  }, [document.versions]);
 
   return (
     <div className="space-y-6">
@@ -171,6 +182,14 @@ export function DocumentDetail({
           />
         </div>
       )}
+
+      {/* Training Status Banner — shown when SOP is in "InTraining" status */}
+      <TrainingStatusBanner
+        sopDocumentUuid={document.document_uuid}
+        sopVersion={latestVersion}
+        sopStatus={displayStatus}
+        sopName={document.title}
+      />
 
       {/* Workflow History Timeline — rendered when document has a matching active workflow */}
       {hasMatchingWorkflow && document.document_uuid && (
