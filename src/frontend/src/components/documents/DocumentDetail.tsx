@@ -7,6 +7,7 @@ import { useDocumentStore } from "@/stores/documentStore";
 import { useWorkflowStore } from "@/stores/workflowStore";
 import { useWorkflowExecutionStore } from "@/stores/workflowExecutionStore";
 import { TrainingStatusBanner } from "@/components/training/TrainingStatusBanner";
+import { SignatureRecordsPanel } from "@/components/signatures/SignatureRecordsPanel";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
@@ -190,6 +191,9 @@ export function DocumentDetail({
         sopStatus={displayStatus}
         sopName={document.title}
       />
+
+      {/* Signature Records Panel — displayed regardless of workflow state (Requirement 6.7) */}
+      <SignatureRecordsPanel documentUuid={document.document_uuid} />
 
       {/* Workflow History Timeline — rendered when document has a matching active workflow */}
       {hasMatchingWorkflow && document.document_uuid && (

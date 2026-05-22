@@ -33,6 +33,7 @@ dependencies = [
     "spiffworkflow>=1.3.0",
     # Electronic signatures (PAdES)
     "pyhanko>=0.25.0",
+    "pyhanko-certvalidator>=0.26.0",
     # AI / RAG
     "llama-index>=0.11.0",
     "dspy>=2.5.0",

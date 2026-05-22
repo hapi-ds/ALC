@@ -71,12 +71,18 @@ class SignResponse(BaseModel):
         signature_hash: SHA-256 hash of the signature.
         signature_record_id: Database ID of the signature record.
         stamp: The visual stamp data that was embedded.
+        certificate_subject: x.509 certificate subject DN (PAdES mode only).
+        certificate_issuer: x.509 certificate issuer DN (PAdES mode only).
+        certificate_serial: x.509 certificate serial number (PAdES mode only).
     """
 
     success: bool
     signature_hash: str
     signature_record_id: int | None = None
     stamp: SignatureStampResponse
+    certificate_subject: str | None = None
+    certificate_issuer: str | None = None
+    certificate_serial: str | None = None
 
 
 class SignatureRecordResponse(BaseModel):
@@ -90,6 +96,10 @@ class SignatureRecordResponse(BaseModel):
         reason: Reason for the signature.
         signed_at: UTC timestamp of the signing event.
         signature_hash: SHA-256 hash of the signature.
+        certificate_subject: x.509 certificate subject DN (PAdES mode only).
+        certificate_issuer: x.509 certificate issuer DN (PAdES mode only).
+        certificate_serial: x.509 certificate serial number (PAdES mode only).
+        signature_mode: Signing mode used — "hash" or "pades".
     """
 
     id: int
@@ -99,6 +109,10 @@ class SignatureRecordResponse(BaseModel):
     reason: str | None
     signed_at: datetime
     signature_hash: str
+    certificate_subject: str | None = None
+    certificate_issuer: str | None = None
+    certificate_serial: str | None = None
+    signature_mode: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -114,4 +128,31 @@ class VerifyResponse(BaseModel):
 
     is_valid: bool
     signature_count: int
+    tampered_from_index: int = -1
+
+
+class VerifySignatureEntry(BaseModel):
+    """Individual signature entry in the verify response."""
+
+    signer_name: str
+    signed_at: datetime
+    reason: str
+    is_valid: bool
+    certificate_subject: str | None = None
+    certificate_issuer: str | None = None
+
+
+class VerifyDetailedResponse(BaseModel):
+    """Detailed response schema for signature verification.
+
+    Attributes:
+        is_valid: Whether all signatures are valid.
+        signature_count: Number of signatures found.
+        signatures: List of individual signature verification entries.
+        tampered_from_index: Index of first invalid signature (-1 if all valid).
+    """
+
+    is_valid: bool
+    signature_count: int
+    signatures: list[VerifySignatureEntry] = []
     tampered_from_index: int = -1

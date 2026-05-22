@@ -161,6 +161,40 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Electronic Signatures (PAdES)
+    # ─────────────────────────────────────────────────────────────────────
+
+    signature_mode: Literal["pades", "hash"] = Field(
+        default="hash",
+        description=(
+            "Signature mode: 'pades' for production cryptographic PAdES signatures "
+            "with pyHanko + x.509 certificates, 'hash' for development/testing "
+            "with SHA-256 hash-based tamper detection only."
+        ),
+        alias="SIGNATURE_MODE",
+    )
+    signature_key_path: str | None = Field(
+        default=None,
+        description="Path to PEM-encoded private key file (RSA ≥ 2048-bit or ECDSA P-256/P-384). Required when SIGNATURE_MODE=pades.",
+        alias="SIGNATURE_KEY_PATH",
+    )
+    signature_cert_path: str | None = Field(
+        default=None,
+        description="Path to PEM-encoded certificate chain file (signer cert + intermediate CAs). Required when SIGNATURE_MODE=pades.",
+        alias="SIGNATURE_CERT_PATH",
+    )
+    signature_key_password: str | None = Field(
+        default=None,
+        description="Passphrase for encrypted private keys. Leave empty or omit for unencrypted keys.",
+        alias="SIGNATURE_KEY_PASSWORD",
+    )
+    signature_tsa_url: str | None = Field(
+        default=None,
+        description="RFC 3161 Timestamp Authority URL for long-term validation. Optional.",
+        alias="SIGNATURE_TSA_URL",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # Application
     # ─────────────────────────────────────────────────────────────────────
 

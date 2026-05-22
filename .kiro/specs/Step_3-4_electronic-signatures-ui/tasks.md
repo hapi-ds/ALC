@@ -8,13 +8,13 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
 
 ## Tasks
 
-- [ ] 1. Define TypeScript types and pure utility functions
-  - [ ] 1.1 Create signature TypeScript types
+- [x] 1. Define TypeScript types and pure utility functions
+  - [x] 1.1 Create signature TypeScript types
     - Create `src/frontend/src/types/signature.ts` with interfaces: `SignatureReasonCategory`, `SignResponse`, `SignatureStamp`, `SignatureRecordResponse`, `SignatureDialogContext`, `ReAuthResponse`
     - Match backend Pydantic schemas from `src/backend/src/alcoabase/schemas/signature.py`
     - _Requirements: 9.1, 5.1, 6.2_
 
-  - [ ] 1.2 Create signature utility functions
+  - [x] 1.2 Create signature utility functions
     - Create `src/frontend/src/lib/signatureUtils.ts` with pure functions:
       - `isSignatureRequired(currentState, targetState, transitions[])` — checks if transition matches signature-required array
       - `shouldShowWarning(remainingSeconds)` — returns true if ≤ 30
@@ -27,7 +27,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
       - `filterSignatureRecords(records[], filters)` — applies AND-combined filters
     - _Requirements: 1.1, 3.2, 3.3, 4.2, 4.4, 4.5, 4.6, 5.5, 6.3, 7.2, 8.3, 8.4, 9.9_
 
-  - [ ] 1.3 Write property tests for signature utility functions
+  - [x] 1.3 Write property tests for signature utility functions
     - Create `src/frontend/src/lib/__tests__/signatureUtils.property.test.ts`
     - **Property 1: Transition signature-required matching**
     - **Property 2: Token countdown warning threshold**
@@ -40,8 +40,8 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - **Property 9: Signature records filtering**
     - **Validates: Requirements 1.1, 3.2, 3.3, 4.2, 4.4, 4.5, 4.6, 5.5, 6.3, 7.2, 8.3, 8.4, 9.9, 10.1**
 
-- [ ] 2. Implement Signature Store
-  - [ ] 2.1 Create the signatureStore
+- [x] 2. Implement Signature Store
+  - [x] 2.1 Create the signatureStore
     - Create `src/frontend/src/stores/signatureStore.ts` using Zustand `create`
     - Implement state shape: re-auth state, signing state, records map, token countdown, dialog state, retained password
     - Implement actions: `openSignatureDialog`, `closeSignatureDialog`, `reAuthenticate`, `signDocument`, `fetchSignatureRecords`, `startTokenCountdown`, `clearToken`, `reset`
@@ -51,17 +51,17 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Include `X-Change-Reason: "Electronic signature: {transition}"` on sign requests via apiClient's changeReason option
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 9.11_
 
-  - [ ] 2.2 Write unit tests for signatureStore
+  - [x] 2.2 Write unit tests for signatureStore
     - Create `src/frontend/src/stores/__tests__/signatureStore.test.ts`
     - Test state transitions for reAuthenticate (success/failure), signDocument (success/failure), fetchSignatureRecords, clearToken, reset, openSignatureDialog, closeSignatureDialog
     - Mock apiClient calls
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 9.11_
 
-- [ ] 3. Checkpoint - Ensure all tests pass
+- [x] 3. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement Signature Dialog components
-  - [ ] 4.1 Create ReAuthForm component
+- [x] 4. Implement Signature Dialog components
+  - [x] 4.1 Create ReAuthForm component
     - Create `src/frontend/src/components/signatures/ReAuthForm.tsx`
     - Password input (type="password", maxLength 128), "Verify Identity" button
     - Button disabled when password empty or isLocked
@@ -71,14 +71,14 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Informational text about 21 CFR Part 11 compliance
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9_
 
-  - [ ] 4.2 Create TokenCountdown component
+  - [x] 4.2 Create TokenCountdown component
     - Create `src/frontend/src/components/signatures/TokenCountdown.tsx`
     - Display remaining seconds in "{N}s" format
     - Warning indicator (color/icon change) when ≤ 30 seconds
     - Uses `shouldShowWarning` from signatureUtils
     - _Requirements: 3.1, 3.2, 3.3_
 
-  - [ ] 4.3 Create ReasonSelector component
+  - [x] 4.3 Create ReasonSelector component
     - Create `src/frontend/src/components/signatures/ReasonSelector.tsx`
     - Dropdown with placeholder "Select a reason..." and options: Author, Review, Approval
     - Signature note text input with character counter (current/200)
@@ -86,7 +86,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Prevent input beyond 200 characters
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
 
-  - [ ] 4.4 Create SignatureDialog component
+  - [x] 4.4 Create SignatureDialog component
     - Create `src/frontend/src/components/signatures/SignatureDialog.tsx`
     - Modal dialog controlled by signatureStore.isDialogOpen
     - Multi-step flow: re-auth → reason/sign → success
@@ -102,7 +102,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Cancel via button or Escape key closes dialog
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 3.4, 3.5, 3.6, 4.5, 4.6, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 10.2_
 
-  - [ ] 4.5 Write unit tests for SignatureDialog components
+  - [x] 4.5 Write unit tests for SignatureDialog components
     - Create `src/frontend/src/components/signatures/__tests__/SignatureDialog.test.tsx`
     - Test step rendering (re-auth → reason → signing → success)
     - Test ReAuthForm: button disabled when empty, enabled when non-empty, error display
@@ -111,8 +111,8 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Test cancel/escape closes dialog
     - _Requirements: 1.2, 1.3, 2.1, 2.2, 2.6, 3.1, 3.3, 4.1, 4.3, 4.4, 4.6_
 
-- [ ] 5. Integrate with Workflow Execution Store
-  - [ ] 5.1 Modify workflowExecutionStore to support signature interception
+- [x] 5. Integrate with Workflow Execution Store
+  - [x] 5.1 Modify workflowExecutionStore to support signature interception
     - Add `skipSignatureCheck?: boolean` as fourth parameter to `executeTransition`
     - When `skipSignatureCheck` is false (default), check if transition matches `signatureRequiredTransitions` using `isSignatureRequired` from signatureUtils
     - If match found, call `signatureStore.openSignatureDialog(context)` instead of calling transition API
@@ -120,23 +120,23 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Handle case where gate info is not loaded: block transition, show error
     - _Requirements: 10.1, 10.2, 10.3, 1.1, 1.6_
 
-  - [ ] 5.2 Add signature icon indicators to workflow transition buttons
+  - [x] 5.2 Add signature icon indicators to workflow transition buttons
     - Modify workflow execution UI components to show a pen-tool icon next to transition buttons whose target state matches a `signatureRequiredTransitions` entry
     - Hide indicators while `isLoadingGateInfo` is true
     - _Requirements: 10.4_
 
-  - [ ] 5.3 Write unit tests for workflowExecutionStore signature integration
+  - [x] 5.3 Write unit tests for workflowExecutionStore signature integration
     - Add tests to `src/frontend/src/stores/__tests__/workflowExecutionStore.test.ts`
     - Test: transition intercepted when signature required
     - Test: transition proceeds when skipSignatureCheck=true
     - Test: transition blocked when gate info unavailable
     - _Requirements: 10.1, 10.2, 10.3, 1.6_
 
-- [ ] 6. Checkpoint - Ensure all tests pass
+- [x] 6. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement Signature Records Panel and Status Badge
-  - [ ] 7.1 Create SignatureRecordsPanel component
+- [x] 7. Implement Signature Records Panel and Status Badge
+  - [x] 7.1 Create SignatureRecordsPanel component
     - Create `src/frontend/src/components/signatures/SignatureRecordsPanel.tsx`
     - Collapsible section "Electronic Signatures ({count})"
     - Default expanded when count > 0, collapsed when count = 0
@@ -148,7 +148,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Auto-refresh after successful signing on same page
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8_
 
-  - [ ] 7.2 Create SignatureStatusBadge component
+  - [x] 7.2 Create SignatureStatusBadge component
     - Create `src/frontend/src/components/signatures/SignatureStatusBadge.tsx`
     - Pen-tool icon with count using `formatBadgeCount`
     - `aria-label` for screen reader accessibility (e.g., "2 signatures applied")
@@ -156,25 +156,25 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Not rendered when count is 0
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
 
-  - [ ] 7.3 Integrate SignatureRecordsPanel into document detail page
+  - [x] 7.3 Integrate SignatureRecordsPanel into document detail page
     - Add SignatureRecordsPanel to the document detail page, passing documentUuid
     - Display regardless of workflow state
     - _Requirements: 6.1, 6.7_
 
-  - [ ] 7.4 Integrate SignatureStatusBadge into document list component
+  - [x] 7.4 Integrate SignatureStatusBadge into document list component
     - Add SignatureStatusBadge to each document list item with signature count > 0
     - Derive data from signature records fetched alongside document metadata
     - _Requirements: 7.1, 7.3, 7.5, 7.6_
 
-  - [ ] 7.5 Write unit tests for SignatureRecordsPanel and SignatureStatusBadge
+  - [x] 7.5 Write unit tests for SignatureRecordsPanel and SignatureStatusBadge
     - Create `src/frontend/src/components/signatures/__tests__/SignatureRecordsPanel.test.tsx`
     - Create `src/frontend/src/components/signatures/__tests__/SignatureStatusBadge.test.tsx`
     - Test: records render correctly, empty state, loading skeletons, error with retry
     - Test: badge count, tooltip, aria-label, hidden when count=0
     - _Requirements: 6.1, 6.2, 6.4, 6.5, 6.6, 7.1, 7.2, 7.3, 7.4_
 
-- [ ] 8. Implement Signatures Overview Page
-  - [ ] 8.1 Replace SignaturesPage placeholder with full implementation
+- [x] 8. Implement Signatures Overview Page
+  - [x] 8.1 Replace SignaturesPage placeholder with full implementation
     - Replace `src/frontend/src/pages/SignaturesPage.tsx` with paginated, filterable, sortable signature records list
     - Pagination: 25 records per page, Previous/Next controls, page number and total count display
     - Each record: document UUID (clickable link to detail), signer user ID, transition, reason, locale-formatted timestamp, truncated hash with copy button
@@ -187,18 +187,18 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Use `filterSignatureRecords` and `sortSignatureRecords` from signatureUtils
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ] 8.2 Write unit tests for SignaturesPage
+  - [x] 8.2 Write unit tests for SignaturesPage
     - Create `src/frontend/src/pages/__tests__/SignaturesPage.test.tsx`
     - Test: pagination controls, filter inputs, sort indicators, empty state, loading state, error with retry
     - _Requirements: 8.1, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 9. Backend: Upgrade Signature Service to Real Cryptographic PAdES
-  - [ ] 9.1 Add signature configuration to Settings and .env
+- [x] 9. Backend: Upgrade Signature Service to Real Cryptographic PAdES
+  - [x] 9.1 Add signature configuration to Settings and .env
     - Add to `src/backend/src/alcoabase/config.py`: `signature_mode` (Literal["pades", "hash"], default "hash"), `signature_key_path` (str | None), `signature_cert_path` (str | None), `signature_key_password` (str | None), `signature_tsa_url` (str | None)
     - Add to `.env.example`: SIGNATURE_MODE, SIGNATURE_KEY_PATH, SIGNATURE_CERT_PATH, SIGNATURE_KEY_PASSWORD, SIGNATURE_TSA_URL with documentation comments
     - _Requirements: 11.1, 11.3, 11.10_
 
-  - [ ] 9.2 Create signing strategy abstraction
+  - [x] 9.2 Create signing strategy abstraction
     - Create `src/backend/src/alcoabase/services/signing_strategies.py`
     - Define `SigningStrategy` protocol/ABC with methods: `sign_pdf(pdf_bytes, stamp) -> tuple[bytes, str]`, `verify_pdf(pdf_bytes) -> VerificationResult`, `get_certificate_info() -> CertificateInfo | None`
     - Implement `HashSigningStrategy` — move existing `_apply_signature` and `verify_signatures` logic here
@@ -206,7 +206,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Create factory function `create_signing_strategy(settings) -> SigningStrategy` that returns the correct strategy based on `SIGNATURE_MODE`
     - _Requirements: 11.1, 11.2, 11.7_
 
-  - [ ] 9.3 Implement PAdES signing with pyHanko
+  - [x] 9.3 Implement PAdES signing with pyHanko
     - Add `pyhanko` and `pyhanko-certvalidator` to backend dependencies
     - In `PAdESSigningStrategy.sign_pdf()`:
       - Load private key from `SIGNATURE_KEY_PATH` (support RSA ≥ 2048-bit and ECDSA P-256/P-384)
@@ -222,7 +222,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
       - Return `VerificationResult` with per-signature validity
     - _Requirements: 11.2, 11.4, 11.5_
 
-  - [ ] 9.4 Add startup validation for PAdES mode
+  - [x] 9.4 Add startup validation for PAdES mode
     - On application startup, if `SIGNATURE_MODE=pades`:
       - Validate `SIGNATURE_KEY_PATH` and `SIGNATURE_CERT_PATH` are set and files exist
       - Attempt to load the private key (with password if `SIGNATURE_KEY_PASSWORD` set)
@@ -231,7 +231,7 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - If `SIGNATURE_MODE` is unrecognized, default to "hash" and log a warning
     - _Requirements: 11.1, 11.3, 11.11_
 
-  - [ ] 9.5 Database migration: add certificate columns to signature_records
+  - [x] 9.5 Database migration: add certificate columns to signature_records
     - Create Alembic migration adding nullable columns to `signature_records`:
       - `certificate_subject` VARCHAR(500) NULL
       - `certificate_issuer` VARCHAR(500) NULL
@@ -239,20 +239,20 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
       - `signature_mode` VARCHAR(10) NOT NULL DEFAULT 'hash'
     - _Requirements: 11.8_
 
-  - [ ] 9.6 Update SignatureService to use strategy pattern
+  - [x] 9.6 Update SignatureService to use strategy pattern
     - Refactor `SignatureService` to accept a `SigningStrategy` (injected via dependency)
     - Replace direct `_apply_signature` calls with `strategy.sign_pdf()`
     - Store `certificate_subject`, `certificate_issuer`, `certificate_serial`, `signature_mode` in the `SignatureRecord` on each sign operation
     - Update `SignResponse` schema to include optional `certificate_subject`, `certificate_issuer`, `certificate_serial` fields
     - _Requirements: 11.2, 11.6, 11.8_
 
-  - [ ] 9.7 Implement signature verification endpoint
+  - [x] 9.7 Implement signature verification endpoint
     - Add `GET /api/signatures/verify/{document_uuid}` to the signatures router
     - Download the signed PDF from storage, call `strategy.verify_pdf()`
     - Return `VerifyResponse` with `is_valid`, `signature_count`, `signatures[]` (each with signer_name, signed_at, reason, is_valid, certificate_subject, certificate_issuer), `tampered_from_index`
     - _Requirements: 11.9, 12.2_
 
-  - [ ] 9.8 Write property tests for signing strategies
+  - [x] 9.8 Write property tests for signing strategies
     - Create `src/backend/tests/properties/test_signature_strategies.py`
     - **Property 10: Signing strategy selection** — factory returns correct strategy based on mode
     - **Property 11: PAdES signature round-trip integrity** — sign then verify returns valid; tamper then verify returns invalid
@@ -260,14 +260,14 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Test HashSigningStrategy backward compatibility with existing tests
     - _Requirements: 11.1, 11.2, 11.3, 11.7, 11.9, 11.11_
 
-- [ ] 10. Frontend: Signature Verification UI and Certificate Display
-  - [ ] 10.1 Add verification action to signatureStore
+- [x] 10. Frontend: Signature Verification UI and Certificate Display
+  - [x] 10.1 Add verification action to signatureStore
     - Add `verifySignatures(document_uuid)` action to signatureStore
     - State: `isVerifying`, `verifyError`, `verifyResult: VerifyResponse | null`
     - Calls `GET /api/signatures/verify/{document_uuid}`
     - _Requirements: 12.2, 12.5, 12.6_
 
-  - [ ] 10.2 Update SignatureRecordsPanel with verification UI and certificate display
+  - [x] 10.2 Update SignatureRecordsPanel with verification UI and certificate display
     - Add "Verify Signatures" button (visible when records exist)
     - Display verification result: green "All signatures valid" banner or red "Document integrity compromised" banner
     - Highlight failed signature records based on `tampered_from_index`
@@ -276,14 +276,14 @@ Frontend work covers: TypeScript types, a Zustand signature store, pure utility 
     - Error state with retry for verification failures
     - _Requirements: 11.12, 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
 
-  - [ ] 10.3 Write unit tests for verification UI
+  - [x] 10.3 Write unit tests for verification UI
     - Test: verify button visible when records exist, hidden when empty
     - Test: success banner renders on valid verification
     - Test: error banner renders on invalid verification with highlighted records
     - Test: certificate_subject displayed for pades-mode records
     - _Requirements: 12.1, 12.3, 12.4, 11.12_
 
-- [ ] 11. Final checkpoint - Ensure all tests pass
+- [x] 11. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

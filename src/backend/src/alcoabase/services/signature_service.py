@@ -156,9 +156,8 @@ class SignatureService:
     Provides re-authentication enforcement, PDF signing with visual stamps,
     incremental signature support, and audit trail recording.
 
-    The current implementation uses a simplified signing approach that can
-    be swapped for full pyHanko PAdES signing when x.509 certificates are
-    configured.
+    Uses the Strategy pattern to delegate actual signing to a configured
+    SigningStrategy (hash-based for dev/testing, PAdES for production).
 
     Usage:
         service = SignatureService()
@@ -173,6 +172,19 @@ class SignatureService:
             reason="Approved by QA Manager",
         )
     """
+
+    def __init__(self, strategy=None):
+        """Initialize SignatureService with a signing strategy.
+
+        Args:
+            strategy: A SigningStrategy instance. If None, one is auto-created
+                      from application settings.
+        """
+        if strategy is None:
+            from alcoabase.config import get_settings
+            from alcoabase.services.signing_strategies import create_signing_strategy
+            strategy = create_signing_strategy(get_settings())
+        self._strategy = strategy
 
     async def verify_credentials(
         self,
@@ -277,13 +289,23 @@ class SignatureService:
             transition=transition,
         )
 
-        # Step 3: Apply signature to PDF
-        signed_pdf, signature_hash = self._apply_signature(
-            pdf_bytes=pdf_bytes,
-            stamp=stamp,
+        # Step 3: Apply signature to PDF using the configured strategy
+        from alcoabase.services.signing_strategies import SignatureStamp as StrategyStamp
+
+        strategy_stamp = StrategyStamp(
+            signer_name=user.full_name,
+            signed_at=signed_at,
+            reason=reason,
+            transition=transition,
         )
+        signed_pdf, signature_hash = self._strategy.sign_pdf(pdf_bytes, strategy_stamp)
+
+        # Get certificate info if available (PAdES mode)
+        cert_info = self._strategy.get_certificate_info()
 
         # Step 4: Record in audit trail
+        from alcoabase.config import get_settings
+
         record = SignatureRecord(
             document_uuid=document_uuid,
             document_version_id=document_version_id,
@@ -292,6 +314,10 @@ class SignatureService:
             reason=reason,
             signed_at=signed_at,
             signature_hash=signature_hash,
+            certificate_subject=cert_info.subject if cert_info else None,
+            certificate_issuer=cert_info.issuer if cert_info else None,
+            certificate_serial=cert_info.serial if cert_info else None,
+            signature_mode=get_settings().signature_mode,
         )
         session.add(record)
         await session.flush()

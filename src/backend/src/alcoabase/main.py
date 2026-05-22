@@ -12,6 +12,7 @@ This module configures:
 - Main API router aggregating all domain sub-routers
 """
 
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -20,6 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from alcoabase.api.router import api_router
 from alcoabase.middleware import AuditMiddleware, CSVTaggingMiddleware, SetupGuardMiddleware
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -42,9 +45,136 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from alcoabase.database import close_db, init_db
 
     await init_db()
+
+    # Validate signature configuration
+    _validate_signature_config()
+
     yield
     # --- Shutdown ---
     await close_db()
+
+
+# ---------------------------------------------------------------------------
+# Signature configuration validation
+# ---------------------------------------------------------------------------
+
+
+def _validate_signature_config() -> None:
+    """Validate signature configuration at startup.
+
+    When SIGNATURE_MODE=pades:
+    - Validates SIGNATURE_KEY_PATH and SIGNATURE_CERT_PATH are set
+    - Validates the key and cert files exist and are readable
+    - Validates the private key can be loaded (with password if provided)
+    - Validates the certificate matches the private key
+    - If any check fails, raises RuntimeError to prevent startup
+
+    When SIGNATURE_MODE is unrecognized (not "pades" or "hash"):
+    - Logs a warning and defaults to "hash" mode behavior (no validation needed)
+
+    When SIGNATURE_MODE=hash:
+    - No validation needed, logs info message
+    """
+    from pathlib import Path
+
+    from alcoabase.config import get_settings
+
+    settings = get_settings()
+
+    if settings.signature_mode == "hash":
+        logger.info("Signature mode: hash (development/testing — no certificates required)")
+        return
+
+    if settings.signature_mode != "pades":
+        logger.warning(
+            "Unrecognized SIGNATURE_MODE='%s'. Defaulting to 'hash' mode.",
+            settings.signature_mode,
+        )
+        return
+
+    # PAdES mode — validate configuration
+    logger.info("Signature mode: pades (production — validating certificate configuration)")
+
+    # Check required paths are set
+    if not settings.signature_key_path:
+        raise RuntimeError(
+            "SIGNATURE_MODE is 'pades' but SIGNATURE_KEY_PATH is not set. "
+            "Provide the path to a PEM-encoded private key file."
+        )
+    if not settings.signature_cert_path:
+        raise RuntimeError(
+            "SIGNATURE_MODE is 'pades' but SIGNATURE_CERT_PATH is not set. "
+            "Provide the path to a PEM-encoded certificate chain file."
+        )
+
+    # Check files exist
+    key_path = Path(settings.signature_key_path)
+    cert_path = Path(settings.signature_cert_path)
+
+    if not key_path.exists():
+        raise RuntimeError(
+            f"SIGNATURE_KEY_PATH file does not exist: {key_path}"
+        )
+    if not cert_path.exists():
+        raise RuntimeError(
+            f"SIGNATURE_CERT_PATH file does not exist: {cert_path}"
+        )
+
+    # Try to load the private key and certificate
+    try:
+        from cryptography.hazmat.primitives.serialization import (
+            Encoding,
+            PublicFormat,
+            load_pem_private_key,
+        )
+        from cryptography.x509 import load_pem_x509_certificate
+
+        # Load private key
+        key_data = key_path.read_bytes()
+        password = (
+            settings.signature_key_password.encode("utf-8")
+            if settings.signature_key_password
+            else None
+        )
+        private_key = load_pem_private_key(key_data, password=password)
+
+        # Load certificate
+        cert_data = cert_path.read_bytes()
+        certificate = load_pem_x509_certificate(cert_data)
+
+        # Verify the certificate's public key matches the private key
+        cert_public_key = certificate.public_key()
+        private_public_key = private_key.public_key()
+
+        # Compare public key bytes
+        cert_pub_bytes = cert_public_key.public_bytes(
+            Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
+        )
+        priv_pub_bytes = private_public_key.public_bytes(
+            Encoding.PEM, PublicFormat.SubjectPublicKeyInfo
+        )
+
+        if cert_pub_bytes != priv_pub_bytes:
+            raise RuntimeError(
+                "Certificate public key does not match the private key. "
+                "Ensure SIGNATURE_KEY_PATH and SIGNATURE_CERT_PATH correspond to the same key pair."
+            )
+
+        logger.info(
+            "PAdES signature configuration validated successfully. "
+            "Certificate subject: %s",
+            certificate.subject.rfc4514_string(),
+        )
+
+    except RuntimeError:
+        raise
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to validate signature configuration: {e}. "
+            f"Check that SIGNATURE_KEY_PATH ({settings.signature_key_path}) contains a valid "
+            f"PEM-encoded private key and SIGNATURE_CERT_PATH ({settings.signature_cert_path}) "
+            f"contains a valid PEM-encoded certificate."
+        ) from e
 
 
 # ---------------------------------------------------------------------------

@@ -19,6 +19,8 @@ from alcoabase.schemas.signature import (
     SignRequest,
     SignResponse,
     SignatureStampResponse,
+    VerifyDetailedResponse,
+    VerifySignatureEntry,
 )
 from alcoabase.services.signature_service import SignatureService
 from alcoabase.services.storage_service import StorageService
@@ -28,7 +30,7 @@ router = APIRouter(prefix="/signatures", tags=["Signatures"])
 
 def _get_signature_service() -> SignatureService:
     """Dependency provider for SignatureService."""
-    return SignatureService()
+    return SignatureService()  # Strategy is auto-created from settings
 
 
 def _get_storage_service() -> StorageService:
@@ -126,6 +128,9 @@ async def sign_document(
         content_type="application/pdf",
     )
 
+    # Get certificate info from the strategy
+    cert_info = signature_service._strategy.get_certificate_info()
+
     return SignResponse(
         success=result.success,
         signature_hash=result.signature_hash,
@@ -136,6 +141,9 @@ async def sign_document(
             reason=result.stamp.reason,
             transition=result.stamp.transition,
         ),
+        certificate_subject=cert_info.subject if cert_info else None,
+        certificate_issuer=cert_info.issuer if cert_info else None,
+        certificate_serial=cert_info.serial if cert_info else None,
     )
 
 
@@ -164,3 +172,108 @@ async def get_signature_records(
     return [
         SignatureRecordResponse.model_validate(record) for record in records
     ]
+
+
+@router.get(
+    "/verify/{document_uuid}",
+    response_model=VerifyDetailedResponse,
+)
+async def verify_document_signatures(
+    document_uuid: str,
+    session: AsyncSession = Depends(get_db_session),
+    signature_service: SignatureService = Depends(_get_signature_service),
+    storage_service: StorageService = Depends(_get_storage_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> VerifyDetailedResponse:
+    """Verify all signatures on a document's PDF.
+
+    Downloads the signed PDF from storage and verifies all embedded
+    signatures using the configured signing strategy.
+
+    Args:
+        document_uuid: The document's unique identifier.
+        session: Database session (injected).
+        signature_service: Signature service (injected).
+        storage_service: Storage service (injected).
+        tenant: Tenant context (injected).
+
+    Returns:
+        VerifyDetailedResponse with per-signature validity.
+
+    Raises:
+        HTTPException: 400 if document not found.
+        HTTPException: 404 if no signed PDF exists in storage.
+    """
+    from botocore.exceptions import ClientError
+    from sqlalchemy import select
+
+    from alcoabase.models.document import Document, DocumentVersion
+
+    # Look up the document
+    doc_result = await session.execute(
+        select(Document).where(Document.document_uuid == document_uuid)
+    )
+    document = doc_result.scalar_one_or_none()
+    if document is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document not found: {document_uuid}",
+        )
+
+    # Get the latest version (highest major_version, then minor_version)
+    version_result = await session.execute(
+        select(DocumentVersion)
+        .where(DocumentVersion.document_id == document.id)
+        .order_by(
+            DocumentVersion.major_version.desc(),
+            DocumentVersion.minor_version.desc(),
+        )
+        .limit(1)
+    )
+    version = version_result.scalar_one_or_none()
+    if version is None:
+        # No versions exist — no signatures possible
+        return VerifyDetailedResponse(
+            is_valid=True,
+            signature_count=0,
+            signatures=[],
+            tampered_from_index=-1,
+        )
+
+    # Try to download the signed PDF from storage
+    signed_key = f"{version.storage_key}.signed"
+    try:
+        pdf_bytes = await storage_service.download_file(signed_key)
+    except (ClientError, Exception):
+        # No signed PDF exists — not an error, just means no signatures
+        return VerifyDetailedResponse(
+            is_valid=True,
+            signature_count=0,
+            signatures=[],
+            tampered_from_index=-1,
+        )
+
+    # Verify signatures using the strategy
+    verification = signature_service._strategy.verify_pdf(pdf_bytes)
+
+    # Map VerificationResult to VerifyDetailedResponse
+    signature_entries = [
+        VerifySignatureEntry(
+            signer_name=entry.signer_name,
+            signed_at=entry.signed_at,
+            reason=entry.reason,
+            is_valid=entry.is_valid,
+            certificate_subject=entry.certificate_subject,
+            certificate_issuer=entry.certificate_issuer,
+        )
+        for entry in verification.signatures
+    ]
+
+    return VerifyDetailedResponse(
+        is_valid=verification.is_valid,
+        signature_count=verification.signature_count,
+        signatures=signature_entries,
+        tampered_from_index=verification.tampered_from_index,
+    )

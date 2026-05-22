@@ -14,11 +14,13 @@
  *   GET  /api/workflows/state/{document_uuid}/history  - get transition history
  *   GET  /api/workflows                                - list workflows (for gate info)
  *
- * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 9.1, 9.2, 10.5
+ * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 9.1, 9.2, 10.1, 10.2, 10.3, 10.5
  */
 
 import { create } from "zustand";
 import { apiClient, ApiError } from "../lib/apiClient";
+import { isSignatureRequired } from "../lib/signatureUtils";
+import { useSignatureStore } from "./signatureStore";
 import type {
   DocumentStateResponse,
   TransitionResponse,
@@ -80,7 +82,8 @@ export interface WorkflowExecutionState {
   executeTransition: (
     documentUuid: string,
     targetState: string,
-    changeReason: string
+    changeReason: string,
+    skipSignatureCheck?: boolean
   ) => Promise<boolean>;
   fetchTransitionHistory: (documentUuid: string) => Promise<void>;
   fetchWorkflowGateInfo: (workflowName: string) => Promise<void>;
@@ -169,8 +172,34 @@ export const useWorkflowExecutionStore = create<WorkflowExecutionState>(
     executeTransition: async (
       documentUuid: string,
       targetState: string,
-      changeReason: string
+      changeReason: string,
+      skipSignatureCheck?: boolean
     ): Promise<boolean> => {
+      // If skipSignatureCheck is not true, check if this transition requires a signature
+      if (!skipSignatureCheck) {
+        const { currentState, signatureRequiredTransitions } = get();
+
+        if (
+          currentState &&
+          isSignatureRequired(
+            currentState,
+            targetState,
+            signatureRequiredTransitions
+          )
+        ) {
+          // Open the signature dialog instead of executing the transition directly
+          const { openSignatureDialog } = useSignatureStore.getState();
+          openSignatureDialog({
+            document_uuid: documentUuid,
+            document_version_id: 0, // Will be resolved from document state by SignatureDialog
+            transition: `${currentState}\u2192${targetState}`,
+            documentTitle: documentUuid, // Best available; UI can enhance later
+          });
+          // Return false \u2014 the transition will be completed by the SignatureDialog after signing
+          return false;
+        }
+      }
+
       set({ isTransitioning: true, transitionError: null });
 
       try {
@@ -247,7 +276,7 @@ export const useWorkflowExecutionStore = create<WorkflowExecutionState>(
           set({ isLoadingGateInfo: false });
         }
       } catch {
-        // Gate info failure is non-blocking — render buttons without indicators
+        // Gate info failure is non-blocking \u2014 render buttons without indicators
         set({ isLoadingGateInfo: false });
       }
     },
