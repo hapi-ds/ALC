@@ -51,10 +51,10 @@
 - [x] **3.2 Workflow Execution & State Transitions (Frontend)**
   Show current document state, available transitions, trigger transitions with confirmation. Display workflow history timeline.
 
-- [~] **3.3 Training Management UI**
+- [x] **3.3 Training Management UI**
   List training tasks, mark completion, view training records per user/document. Enforce training-gated access in frontend routing.
 
-- [ ] **3.4 Electronic Signatures UI**
+- [~] **3.4 Electronic Signatures UI**
   Re-authentication dialog with password verification. Trigger PAdES signing. Display signature status and certificate info on documents.
   
   Regulatory Compliance: Integration of mandatory "Reason for Signature" fields (Author, Review, Approval) in accordance with 21 CFR Part 11.
@@ -220,7 +220,30 @@
 ---
 
 ## Phase 9 — Extended Web and Literature Search
-- with download abstract and full text to db, and generate embeddings
+
+- [ ] **9.1 Literature Search Engine & External API Gateways**
+  **Multi-Source Integration:** Establish secure, multi-tenant API integrations with major scientific and medical literature databases (e.g., PubMed/MEDLINE, Crossref, arXiv, and open-access publisher APIs).
+  **Scoped Search Configurations:** Allow individual companies (1.1) to configure their own API keys, rate limits, and priority search indices based on their regulatory vertical (e.g., prioritizing PubMed for Pharma/MedTec, and IEEE/arXiv for technical suppliers).
+
+- [ ] **9.2 Automated Ingestion Pipeline (Abstracts & Full-Text)**
+  **Dual-Stage Ingestion:** Implement an asynchronous pipeline that fetches metadata and abstracts first, followed by an automated full-text retrieval worker utilizing DOI and OpenAccess resolution (e.g., Unpaywall API integration).
+  **Sanitization & PDF Conversion:** Downloaded full-text files (HTML, XML, or PDF) are automatically sanitized, standardized into a structured format, and piped into the Dual-UUID extraction layer (2.5) to maintain parity with internal document structures.
+
+- [ ] **9.3 High-Dimensional Embedding Generation & Hybrid Indexing**
+  **Vector & Keyword Indexing:** Route ingested abstracts and full-text documents through the vLLM Service Layer (4.3) to generate high-dimensional semantic embeddings alongside classic BM25 keyword indices.
+  **Isolated Corporate Vector Spaces:** Ensure literature embeddings are strictly partitioned within the multi-tenancy framework (1.1). Metadata tags are appended automatically to partition public literature from private, proprietary company knowledge while allowing unified hybrid querying.
+
+- [ ] **9.4 AI-Powered Literature Review & Synthesis Agents**
+  **Literature Screener Archetype:** Introduce a new "Literature Screener Agent" to the Modular Agent Registry (5.1). This agent scans ingested papers against user-defined inclusion/exclusion criteria to automate systematic literature reviews (SLRs).
+  **Contradiction & Novelty Flagging:** The Master Auditor Agent (5.2) is extended to cross-reference newly ingested literature against internal SOPs, URS documents, and validation plans, automatically flagging external scientific findings that contradict internal corporate data or processes.
+
+- [ ] **9.5 Regulatory Medical Device Vigilance & Post-Market Surveillance (PMS)**
+  **"Always-On" Vigilance Monitors:** Implement a continuous background worker that executes automated, scheduled literature searches for adverse events, product issues, or equivalent material updates related to the company’s product portfolio.
+  **GxP Alerting & Signal Detection:** If an agent flags a high-severity risk or adverse event trend in the literature, the system triggers Risk-Based Pathing (3.1), bypassing standard flows to immediately alert the Doc-Admin (6.1) and generate a mandatory Change Impact Analysis task (5.5).
+
+- [ ] **9.6 Literature Search, Citation UI, & Audit Trail Mapping**
+  **Faceted Search Dashboard:** A dedicated frontend interface connected to the literature index, allowing users to execute hybrid searches (4.1) across public literature and internal documents simultaneously.
+  **One-Click Internalization & Traceability:** Allow users to "internalize" a public paper into the company's document repository. This automatically binds the paper to the Global Traceability Matrix (7.2, 8.3), mapping external scientific evidence directly to internal requirements or validation tests for FDA/EMA submissions. All search criteria, dates, and retrieval actions are logged immutably in the Audit Trail Viewer (6.3).
 
 ---
 
