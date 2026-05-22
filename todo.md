@@ -51,7 +51,7 @@
 - [x] **3.2 Workflow Execution & State Transitions (Frontend)**
   Show current document state, available transitions, trigger transitions with confirmation. Display workflow history timeline.
 
-- [ ] **3.3 Training Management UI**
+- [~] **3.3 Training Management UI**
   List training tasks, mark completion, view training records per user/document. Enforce training-gated access in frontend routing.
 
 - [ ] **3.4 Electronic Signatures UI**
