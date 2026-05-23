@@ -72,10 +72,10 @@
 - [x] **4.1 Search UI Integration**
   Connect search page to hybrid search API. Display results with relevance scores, snippets, and faceted filtering by company/type/status.
 
-- [~] **4.2 RAG Knowledge Base UI**
+- [x] **4.2 RAG Knowledge Base UI**
   Chat-style interface for asking questions against documents. Show source citations with links to original documents. Conversation history.
 
-- [ ] **4.3 AI Model Integration (vLLM Service Layer)**
+- [~] **4.3 AI Model Integration (vLLM Service Layer)**
   Implement actual LLM inference calls in the backend service layer (replace mock responses). Embedding generation for document indexing. OCR pipeline for scanned PDFs.
 
 - [ ] **4.4 Multimodal Knowledge Base**
