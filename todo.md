@@ -69,10 +69,10 @@
 
 ## Phase 4 — Search, Knowledge & AI Integration
 
-- [~] **4.1 Search UI Integration**
+- [x] **4.1 Search UI Integration**
   Connect search page to hybrid search API. Display results with relevance scores, snippets, and faceted filtering by company/type/status.
 
-- [ ] **4.2 RAG Knowledge Base UI**
+- [~] **4.2 RAG Knowledge Base UI**
   Chat-style interface for asking questions against documents. Show source citations with links to original documents. Conversation history.
 
 - [ ] **4.3 AI Model Integration (vLLM Service Layer)**
