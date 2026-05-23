@@ -150,6 +150,15 @@ function resetStore() {
     reviewError: null,
     gateCache: {},
     isCheckingGate: false,
+    currentQuizAttempt: null,
+    isSubmittingQuiz: false,
+    quizSubmitError: null,
+    quizResults: null,
+    isLoadingQuizResults: false,
+    quizResultsError: null,
+    quizPassCache: {},
+    isCheckingQuizPass: false,
+    quizPassError: null,
   });
 }
 
@@ -186,6 +195,14 @@ describe("TrainingPage Integration", () => {
       }
       if (url.includes("/api/training/content/")) {
         return Promise.resolve(mockContent);
+      }
+      if (url.includes("/api/training/quiz/passed/")) {
+        return Promise.resolve({
+          content_id: "sop-abc-123_v1.0",
+          user_id: 42,
+          has_passed: true,
+          best_score: 1,
+        });
       }
       return Promise.resolve([]);
     });
@@ -448,6 +465,17 @@ describe("TrainingPage Integration", () => {
   describe("Task completion flow", () => {
     it("clicking Mark Complete opens the completion dialog", async () => {
       setStoreWithTasks([pendingTask, completedTask]);
+      // Set quiz pass cache so Mark Complete button is enabled
+      useTrainingStore.setState({
+        quizPassCache: {
+          "sop-abc-123_v1.0": {
+            content_id: "sop-abc-123_v1.0",
+            user_id: 42,
+            has_passed: true,
+            best_score: 1,
+          },
+        },
+      });
 
       await act(async () => {
         render(<TrainingPage />);
@@ -467,6 +495,16 @@ describe("TrainingPage Integration", () => {
 
     it("confirming completion calls completeTrainingTask with correct params", async () => {
       setStoreWithTasks([pendingTask, completedTask]);
+      useTrainingStore.setState({
+        quizPassCache: {
+          "sop-abc-123_v1.0": {
+            content_id: "sop-abc-123_v1.0",
+            user_id: 42,
+            has_passed: true,
+            best_score: 1,
+          },
+        },
+      });
 
       mockedPost.mockResolvedValueOnce({
         id: 1,
@@ -507,6 +545,16 @@ describe("TrainingPage Integration", () => {
 
     it("closing dialog via cancel does not trigger completion", async () => {
       setStoreWithTasks([pendingTask, completedTask]);
+      useTrainingStore.setState({
+        quizPassCache: {
+          "sop-abc-123_v1.0": {
+            content_id: "sop-abc-123_v1.0",
+            user_id: 42,
+            has_passed: true,
+            best_score: 1,
+          },
+        },
+      });
 
       await act(async () => {
         render(<TrainingPage />);
@@ -532,6 +580,16 @@ describe("TrainingPage Integration", () => {
 
     it("dialog closes after successful completion", async () => {
       setStoreWithTasks([pendingTask, completedTask]);
+      useTrainingStore.setState({
+        quizPassCache: {
+          "sop-abc-123_v1.0": {
+            content_id: "sop-abc-123_v1.0",
+            user_id: 42,
+            has_passed: true,
+            best_score: 1,
+          },
+        },
+      });
 
       mockedPost.mockResolvedValueOnce({
         id: 1,

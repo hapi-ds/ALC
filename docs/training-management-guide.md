@@ -55,6 +55,8 @@ For quiz questions, click **"Reveal Answer"** to see the correct answer and its 
 3. Enter a **change reason** (3–500 characters) explaining why you're marking this complete.
 4. Click **"Confirm"** to submit.
 
+> **Note:** The "Mark Complete" button is only enabled after you have passed the comprehension quiz for that SOP version. See the [Comprehension Quiz Guide](quiz-comprehension-guide.md) for details on taking and passing the quiz.
+
 The dialog shows a character counter and validates your input. If submission fails (e.g., network error), the error appears inline and your input is preserved so you can retry.
 
 ## Records Tab
@@ -98,10 +100,13 @@ When a document's workflow state is "InTraining", AlcoaBase enforces a training 
 
 ### How It Works
 
-- When you navigate to a document in "InTraining" status, the system checks whether you have a completed training record for that SOP version.
-- **Training complete** — you see the document normally, plus a green banner confirming your training status.
+- When you navigate to a document in "InTraining" status, the system checks whether you have a completed training record AND have passed the comprehension quiz for that SOP version.
+- **Both conditions met** — you see the document normally, plus a green banner confirming your training status.
 - **Training incomplete** — access is blocked with a full-page message: "Training Required — Action denied: Valid training record for this SOP Version X.X is missing."
+- **Training complete but quiz not passed** — access is blocked with: "Training task completed but comprehension quiz has not been passed for this SOP version."
 - A **"Go to Training"** link takes you directly to the Training page.
+
+For full details on the quiz requirement, see the [Comprehension Quiz Guide](quiz-comprehension-guide.md).
 
 ### Training Status Banner
 

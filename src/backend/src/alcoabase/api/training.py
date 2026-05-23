@@ -7,13 +7,17 @@ Provides endpoints for:
 - GET /api/training/content/{content_id}: Get training content by ID
 - POST /api/training/content/{content_id}/approve: Approve training content
 - POST /api/training/content/{content_id}/reject: Reject training content
+- POST /api/training/quiz/submit: Submit quiz answers for evaluation
 
 References:
     - Design doc Section 7: Training Service (ABAC)
     - Design doc Section 12: Training Content Generator
     - Requirements 9, 10: Training Assignment and Execution Gate
     - Task 16.7: FastAPI endpoints for training content review and approval
+    - Phase 3.5: Training-Gated Access Control (Quiz endpoints)
 """
+
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -21,6 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
 from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
+from alcoabase.services.quiz_service import QuizService
 from alcoabase.services.training_service import TrainingService
 from alcoabase.services.training_content_generator import (
     TrainingContentGenerator,
@@ -69,13 +74,89 @@ class TrainingTaskCompleteResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Quiz Submission Schemas (Phase 3.5)
+# ---------------------------------------------------------------------------
+
+
+class QuizSubmitRequest(BaseModel):
+    """Request schema for quiz answer submission."""
+
+    content_id: str = Field(..., description="Training content identifier")
+    user_id: int = Field(..., description="ID of the user submitting the quiz")
+    answers: dict[str, str] = Field(
+        ..., description="Mapping of question_id to selected answer"
+    )
+
+
+class QuizSubmitResponse(BaseModel):
+    """Response schema for quiz submission result."""
+
+    attempt_id: int
+    score: int
+    total_questions: int
+    passed: bool
+    passing_score_threshold: float
+    correct_answers: dict[str, str]
+    attempted_at: datetime
+
+
+class QuizResultItem(BaseModel):
+    """Response schema for a single quiz attempt in the results list."""
+
+    attempt_id: int
+    score: int
+    total_questions: int
+    passed: bool
+    attempted_at: datetime
+    answers: dict[str, str]
+
+    model_config = {"from_attributes": True}
+
+
+class QuizResultsResponse(BaseModel):
+    """Response schema for quiz results list endpoint."""
+
+    results: list[QuizResultItem]
+    has_passed: bool
+
+
+class QuizPassStatusResponse(BaseModel):
+    """Response schema for lightweight quiz pass status check."""
+
+    content_id: str
+    user_id: int
+    has_passed: bool
+    best_score: int | None = None
+
+
+# ---------------------------------------------------------------------------
 # Dependency
 # ---------------------------------------------------------------------------
 
 
-def get_training_service() -> TrainingService:
+_training_content_generator: TrainingContentGenerator | None = None
+
+
+def get_training_content_generator() -> TrainingContentGenerator:
+    """Provide a TrainingContentGenerator instance as a FastAPI dependency."""
+    global _training_content_generator
+    if _training_content_generator is None:
+        _training_content_generator = TrainingContentGenerator()
+    return _training_content_generator
+
+
+def get_quiz_service(
+    generator: TrainingContentGenerator = Depends(get_training_content_generator),
+) -> QuizService:
+    """Provide a QuizService instance as a FastAPI dependency."""
+    return QuizService(content_generator=generator)
+
+
+def get_training_service(
+    quiz_service: QuizService = Depends(get_quiz_service),
+) -> TrainingService:
     """Provide a TrainingService instance as a FastAPI dependency."""
-    return TrainingService()
+    return TrainingService(quiz_service=quiz_service)
 
 
 # ---------------------------------------------------------------------------
@@ -246,21 +327,6 @@ class ContentReviewResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Training Content Dependency
-# ---------------------------------------------------------------------------
-
-_training_content_generator: TrainingContentGenerator | None = None
-
-
-def get_training_content_generator() -> TrainingContentGenerator:
-    """Provide a TrainingContentGenerator instance as a FastAPI dependency."""
-    global _training_content_generator
-    if _training_content_generator is None:
-        _training_content_generator = TrainingContentGenerator()
-    return _training_content_generator
-
-
-# ---------------------------------------------------------------------------
 # Training Content Endpoints (Task 16.7)
 # ---------------------------------------------------------------------------
 
@@ -407,3 +473,228 @@ async def reject_training_content(
         raise HTTPException(status_code=404, detail=f"Training content not found: {content_id}")
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Quiz Endpoints (Phase 3.5)
+# ---------------------------------------------------------------------------
+
+
+@router.post("/quiz/submit", response_model=QuizSubmitResponse)
+async def submit_quiz(
+    request: QuizSubmitRequest,
+    session: AsyncSession = Depends(get_db_session),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> QuizSubmitResponse:
+    """Submit quiz answers for evaluation and scoring.
+
+    Evaluates the submitted answers against the correct answers for the
+    training content, computes the score, determines pass/fail status
+    using the 80% threshold, and persists a QuizAttempt record.
+
+    The X-Change-Reason header is required (enforced by audit middleware).
+
+    Args:
+        request: Quiz submission with content_id, user_id, and answers.
+        session: Database session (injected).
+        quiz_service: QuizService instance (injected).
+        tenant: Tenant context (injected).
+
+    Returns:
+        Quiz attempt result with score, pass/fail, and correct answers.
+
+    Raises:
+        HTTPException: 404 if training content or user not found.
+        HTTPException: 400 if training content is not in approved status.
+        HTTPException: 422 if request body validation fails.
+    """
+    attempt = await quiz_service.evaluate_and_persist(
+        session=session,
+        content_id=request.content_id,
+        user_id=request.user_id,
+        answers=request.answers,
+        company_id=tenant.company_id,
+    )
+
+    # Build correct_answers map from training content
+    content = quiz_service._content_generator.get_content(request.content_id)
+    correct_answers = {
+        q.question_id: q.correct_answer for q in content.quiz_questions
+    }
+
+    return QuizSubmitResponse(
+        attempt_id=attempt.id,
+        score=attempt.score,
+        total_questions=attempt.total_questions,
+        passed=attempt.passed,
+        passing_score_threshold=0.8,
+        correct_answers=correct_answers,
+        attempted_at=attempt.attempted_at,
+    )
+
+
+@router.get("/quiz/results/{content_id}", response_model=QuizResultsResponse)
+async def get_quiz_results(
+    content_id: str,
+    user_id: int = Query(..., gt=0, description="User ID to get results for"),
+    session: AsyncSession = Depends(get_db_session),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> QuizResultsResponse:
+    """Get quiz attempt history for a user and training content.
+
+    Returns the most recent quiz attempts (up to 50) ordered by
+    attempted_at descending, along with a has_passed boolean indicating
+    whether the user has ever passed the quiz for this content.
+
+    Args:
+        content_id: Training content identifier.
+        user_id: The user's primary key (must be a positive integer).
+        session: Database session (injected).
+        quiz_service: QuizService instance (injected).
+        tenant: Tenant context (injected).
+
+    Returns:
+        Quiz results with attempt history and pass status.
+
+    Raises:
+        HTTPException: 422 if user_id is missing or invalid.
+    """
+    results = await quiz_service.get_user_results(
+        session=session,
+        user_id=user_id,
+        content_id=content_id,
+        limit=50,
+    )
+    has_passed = await quiz_service.has_user_passed(
+        session=session,
+        user_id=user_id,
+        content_id=content_id,
+    )
+
+    return QuizResultsResponse(
+        results=[
+            QuizResultItem(
+                attempt_id=attempt.id,
+                score=attempt.score,
+                total_questions=attempt.total_questions,
+                passed=attempt.passed,
+                attempted_at=attempt.attempted_at,
+                answers=attempt.answers,
+            )
+            for attempt in results
+        ],
+        has_passed=has_passed,
+    )
+
+
+@router.get("/quiz/passed/{content_id}", response_model=QuizPassStatusResponse)
+async def get_quiz_pass_status(
+    content_id: str,
+    user_id: int = Query(..., gt=0, description="User ID to check pass status for"),
+    session: AsyncSession = Depends(get_db_session),
+    quiz_service: QuizService = Depends(get_quiz_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> QuizPassStatusResponse:
+    """Check if a user has passed the quiz for a specific training content.
+
+    Lightweight endpoint for the frontend gate guard and task completion
+    flow to verify quiz pass status efficiently. Returns the pass status
+    and best score without full attempt history.
+
+    Args:
+        content_id: Training content identifier.
+        user_id: The user's primary key (must be a positive integer).
+        session: Database session (injected).
+        quiz_service: QuizService instance (injected).
+        tenant: Tenant context (injected).
+
+    Returns:
+        Quiz pass status with content_id, user_id, has_passed, and best_score.
+
+    Raises:
+        HTTPException: 422 if user_id is missing or not a positive integer.
+    """
+    has_passed = await quiz_service.has_user_passed(
+        session=session,
+        user_id=user_id,
+        content_id=content_id,
+    )
+    best_score = await quiz_service.get_best_score(
+        session=session,
+        user_id=user_id,
+        content_id=content_id,
+    )
+
+    return QuizPassStatusResponse(
+        content_id=content_id,
+        user_id=user_id,
+        has_passed=has_passed,
+        best_score=best_score,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Quiz Immutability Handlers (Phase 3.5 - ALCOA+ Compliance)
+# ---------------------------------------------------------------------------
+
+_QUIZ_IMMUTABLE_DETAIL = (
+    "Quiz attempt records are immutable and cannot be modified or deleted."
+)
+
+
+@router.api_route(
+    "/quiz/submit",
+    methods=["PUT", "PATCH", "DELETE"],
+    status_code=405,
+    include_in_schema=True,
+)
+async def quiz_submit_method_not_allowed() -> None:
+    """Reject PUT/PATCH/DELETE on quiz submit endpoint.
+
+    Quiz attempt records are append-only for ALCOA+ audit compliance.
+    """
+    raise HTTPException(status_code=405, detail=_QUIZ_IMMUTABLE_DETAIL)
+
+
+@router.api_route(
+    "/quiz/results/{content_id}",
+    methods=["PUT", "PATCH", "DELETE"],
+    status_code=405,
+    include_in_schema=True,
+)
+async def quiz_results_method_not_allowed(content_id: str) -> None:
+    """Reject PUT/PATCH/DELETE on quiz results endpoint.
+
+    Quiz attempt records are append-only for ALCOA+ audit compliance.
+    """
+    raise HTTPException(status_code=405, detail=_QUIZ_IMMUTABLE_DETAIL)
+
+
+@router.api_route(
+    "/quiz/passed/{content_id}",
+    methods=["PUT", "PATCH", "DELETE"],
+    status_code=405,
+    include_in_schema=True,
+)
+async def quiz_passed_method_not_allowed(content_id: str) -> None:
+    """Reject PUT/PATCH/DELETE on quiz pass status endpoint.
+
+    Quiz attempt records are append-only for ALCOA+ audit compliance.
+    """
+    raise HTTPException(status_code=405, detail=_QUIZ_IMMUTABLE_DETAIL)
+
+
+@router.api_route(
+    "/quiz/{path:path}",
+    methods=["PUT", "PATCH", "DELETE"],
+    status_code=405,
+    include_in_schema=False,
+)
+async def quiz_catch_all_method_not_allowed(path: str) -> None:
+    """Catch-all: reject PUT/PATCH/DELETE on any quiz sub-path.
+
+    Quiz attempt records are append-only for ALCOA+ audit compliance.
+    """
+    raise HTTPException(status_code=405, detail=_QUIZ_IMMUTABLE_DETAIL)

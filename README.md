@@ -21,8 +21,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Ask questions against all your documents. Built for high-performance inference (optimized for NVIDIA Blackwell GPUs via `vLLM`) while maintaining 100% data sovereignty.
 * ⚙️ **Dynamic BPMN Workflows & Execution**
   Admins can visually design individual document lifecycles based on meta tags (Draft → Review → Approved → InTraining → Active) using a drag-and-drop BPMN editor. Users execute transitions directly from the document detail page with mandatory change reasons, gate indicators (signature/training), risk-level warnings, and a full audit history timeline.
-* 🎓 **Training-Gated Execution (RBAC/ABAC)**
-  Strict access control ensures users can only execute tasks or create reports for specific Standard Operating Procedures (SOPs) if they possess a valid, digitally signed training record for that exact document version.
+* 🎓 **Training-Gated Execution with Comprehension Quiz (RBAC/ABAC)**
+  Strict access control ensures users can only execute tasks or create reports for specific Standard Operating Procedures (SOPs) if they possess a valid training record AND have passed a comprehension quiz for that exact document version. Quiz attempts are immutable (append-only) for full ALCOA+ audit compliance.
 * ✅ **Automated Computer System Validation (CSV)**
   A built-in, isolated testing environment. On command, a dedicated Playwright container performs End-to-End (E2E) UI tests, signs documents, verifies database states, and generates a tamper-proof Validation Certificate for FDA/EMA audits.
 
@@ -71,7 +71,8 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 3.1 | BPMN Workflow Visual Editor | ✅ Complete |
 | 3.2 | Workflow Execution & State Transitions | ✅ Complete |
 | 3.3 | Training Management UI | ✅ Complete |
-| 3.4 | Electronic Signatures UI | 🔲 Planned |
+| 3.4 | Electronic Signatures UI | ✅ Complete |
+| 3.5 | Comprehension Quiz & Dual Gate | ✅ Complete |
 | 4.x | Search, Knowledge & AI Integration | 🔲 Planned |
 | 5.x | Multi-Agent Document Review | 🔲 Planned |
 
@@ -90,6 +91,8 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Workflow Editor](docs/workflow-editor-guide.md) | Designing BPMN document lifecycle workflows |
 | [Workflow Execution](docs/workflow-execution-guide.md) | Executing state transitions, gate indicators, and audit history |
 | [Training Management](docs/training-management-guide.md) | Training tasks, content viewer, records, gate enforcement, admin view |
+| [Comprehension Quiz](docs/quiz-comprehension-guide.md) | Quiz taking, scoring, pass/fail, dual gate verification, audit trail |
+| [Electronic Signatures](docs/electronic-signatures-guide.md) | PAdES signing, re-authentication, verification, certificate configuration |
 
 ---
 
@@ -134,7 +137,7 @@ cd src/backend
 uv run pytest --tb=short -q
 ```
 
-Property-based tests use [Hypothesis](https://hypothesis.readthedocs.io/) to validate correctness invariants (tenant isolation, membership rules, migration backfill, etc.).
+Property-based tests use [Hypothesis](https://hypothesis.readthedocs.io/) to validate correctness invariants (tenant isolation, membership rules, migration backfill, quiz scoring, training gate dual verification, etc.).
 
 ### Integration Tests
 

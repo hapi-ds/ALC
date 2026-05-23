@@ -14,6 +14,9 @@ import type {
   TrainingStatistics,
   TaskFilter,
   GateCache,
+  QuizAttemptResult,
+  QuizPassStatus,
+  QuizResultsResponse,
 } from "../components/training/types";
 import {
   computeStatistics,
@@ -21,6 +24,7 @@ import {
   buildGateCacheKey,
   invalidateGateCacheEntry,
   checkGateFromTasks,
+  deriveContentId,
 } from "../components/training/utils";
 
 // ---------------------------------------------------------------------------
@@ -61,6 +65,17 @@ export interface TrainingStoreState {
   gateCache: GateCache;
   isCheckingGate: boolean;
 
+  // Quiz state
+  currentQuizAttempt: QuizAttemptResult | null;
+  isSubmittingQuiz: boolean;
+  quizSubmitError: string | null;
+  quizResults: Record<string, QuizAttemptResult[]>;
+  isLoadingQuizResults: boolean;
+  quizResultsError: string | null;
+  quizPassCache: Record<string, QuizPassStatus>;
+  isCheckingQuizPass: boolean;
+  quizPassError: string | null;
+
   // Actions
   fetchTrainingTasks: (userId: number) => Promise<void>;
   completeTrainingTask: (
@@ -87,6 +102,19 @@ export interface TrainingStoreState {
     userId: number
   ) => boolean | null;
   clearGateCache: () => void;
+
+  // Quiz actions
+  submitQuiz: (
+    contentId: string,
+    userId: number,
+    answers: Record<string, string>
+  ) => Promise<QuizAttemptResult | null>;
+  fetchQuizResults: (contentId: string, userId: number) => Promise<void>;
+  checkQuizPassed: (
+    contentId: string,
+    userId: number
+  ) => Promise<boolean | null>;
+  clearQuizPassCache: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -137,6 +165,17 @@ export const useTrainingStore = create<TrainingStoreState>((set, get) => ({
   // Gate state
   gateCache: {},
   isCheckingGate: false,
+
+  // Quiz state
+  currentQuizAttempt: null,
+  isSubmittingQuiz: false,
+  quizSubmitError: null,
+  quizResults: {},
+  isLoadingQuizResults: false,
+  quizResultsError: null,
+  quizPassCache: {},
+  isCheckingQuizPass: false,
+  quizPassError: null,
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -210,14 +249,30 @@ export const useTrainingStore = create<TrainingStoreState>((set, get) => ({
           completedTask.sop_document_uuid,
           completedTask.sop_version
         );
-      }
 
-      set({
-        tasks,
-        statistics,
-        gateCache,
-        isCompleting: false,
-      });
+        // Also invalidate quizPassCache for the derived content_id
+        const contentId = deriveContentId(
+          completedTask.sop_document_uuid,
+          completedTask.sop_version
+        );
+        const quizPassCache = { ...get().quizPassCache };
+        delete quizPassCache[contentId];
+
+        set({
+          tasks,
+          statistics,
+          gateCache,
+          quizPassCache,
+          isCompleting: false,
+        });
+      } else {
+        set({
+          tasks,
+          statistics,
+          gateCache,
+          isCompleting: false,
+        });
+      }
 
       return true;
     } catch (error) {
@@ -366,5 +421,133 @@ export const useTrainingStore = create<TrainingStoreState>((set, get) => ({
 
   clearGateCache: () => {
     set({ gateCache: {} });
+  },
+
+  // ---------------------------------------------------------------------------
+  // Quiz Actions
+  // ---------------------------------------------------------------------------
+
+  submitQuiz: async (
+    contentId: string,
+    userId: number,
+    answers: Record<string, string>
+  ) => {
+    // Request deduplication
+    if (get().isSubmittingQuiz) return null;
+
+    set({ isSubmittingQuiz: true, quizSubmitError: null });
+
+    try {
+      const result = await apiClient.post<QuizAttemptResult>(
+        `/api/training/quiz/submit`,
+        { content_id: contentId, user_id: userId, answers },
+        { changeReason: "Quiz attempt submitted" }
+      );
+
+      // Store the result
+      set({ currentQuizAttempt: result, isSubmittingQuiz: false });
+
+      // If the quiz was passed, update quizPassCache and invalidate gate cache
+      if (result.passed) {
+        const quizPassCache = { ...get().quizPassCache };
+        quizPassCache[contentId] = {
+          content_id: contentId,
+          user_id: userId,
+          has_passed: true,
+          best_score: result.score,
+        };
+
+        // Invalidate gate cache for the corresponding SOP
+        // content_id format: {sop_document_uuid}_v{sop_version}
+        const parts = contentId.split("_v");
+        let gateCache = get().gateCache;
+        if (parts.length >= 2) {
+          const sopDocumentUuid = parts[0];
+          const sopVersion = parts.slice(1).join("_v");
+          gateCache = invalidateGateCacheEntry(
+            gateCache,
+            sopDocumentUuid,
+            sopVersion
+          );
+        }
+
+        set({ quizPassCache, gateCache });
+      }
+
+      return result;
+    } catch (error) {
+      set({
+        quizSubmitError: extractErrorMessage(error),
+        isSubmittingQuiz: false,
+      });
+      return null;
+    }
+  },
+
+  fetchQuizResults: async (contentId: string, userId: number) => {
+    // Request deduplication
+    if (get().isLoadingQuizResults) return;
+
+    set({ isLoadingQuizResults: true, quizResultsError: null });
+
+    try {
+      const response = await apiClient.get<QuizResultsResponse>(
+        `/api/training/quiz/results/${contentId}?user_id=${userId}`
+      );
+
+      const quizResults = { ...get().quizResults };
+      quizResults[contentId] = response.results.map((entry) => ({
+        attempt_id: entry.attempt_id,
+        score: entry.score,
+        total_questions: entry.total_questions,
+        passed: entry.passed,
+        passing_score_threshold: 0.8,
+        correct_answers: {},
+        attempted_at: entry.attempted_at,
+      }));
+
+      set({ quizResults, isLoadingQuizResults: false });
+    } catch (error) {
+      set({
+        quizResultsError: extractErrorMessage(error),
+        isLoadingQuizResults: false,
+      });
+    }
+  },
+
+  checkQuizPassed: async (contentId: string, userId: number) => {
+    // Cache-first strategy: return cached value if available
+    const cached = get().quizPassCache[contentId];
+    if (cached !== undefined) {
+      return cached.has_passed;
+    }
+
+    // Request deduplication
+    if (get().isCheckingQuizPass) return null;
+
+    set({ isCheckingQuizPass: true, quizPassError: null });
+
+    try {
+      const response = await apiClient.get<QuizPassStatus>(
+        `/api/training/quiz/passed/${contentId}?user_id=${userId}`
+      );
+
+      const quizPassCache = { ...get().quizPassCache };
+      quizPassCache[contentId] = response;
+
+      set({ quizPassCache, isCheckingQuizPass: false });
+
+      return response.has_passed;
+    } catch (error) {
+      set({
+        quizPassError: extractErrorMessage(error),
+        isCheckingQuizPass: false,
+      });
+      return null;
+    }
+  },
+
+  clearQuizPassCache: () => {
+    set({ quizPassCache: {}, quizPassError: null, isCheckingQuizPass: false });
   },
 }));

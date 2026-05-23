@@ -5,14 +5,19 @@ This module implements:
 - Training completion tracking with auto-transition to Active
 - Training execution gate (ABAC) blocking untrained users
 - Training record invalidation on new major version activation
+- Quiz prerequisite enforcement for task completion
 
 References:
     - Design doc Section 7: Training Service (ABAC)
     - Requirements 9: Automatic Training Assignment on SOP Approval
     - Requirements 10: Training Execution Gate Enforcement
+    - Requirements 5: Backend Task Completion Guard (Quiz Prerequisite)
 """
 
+from __future__ import annotations
+
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
 from fastapi import HTTPException
 from sqlalchemy import select, update
@@ -21,6 +26,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from alcoabase.models.document import Document, DocumentVersion
 from alcoabase.models.training import TrainingRecord, TrainingTask
 from alcoabase.models.user import Role, User, UserRole
+
+if TYPE_CHECKING:
+    from alcoabase.services.quiz_service import QuizService
 
 
 class TrainingService:
@@ -31,11 +39,21 @@ class TrainingService:
     - Tracking training task completion
     - Enforcing the training execution gate (ABAC)
     - Invalidating training records on new major version activation
+    - Quiz prerequisite enforcement for task completion
 
     Usage:
-        service = TrainingService()
+        service = TrainingService(quiz_service=quiz_service)
         await service.assign_training(session, sop_document_uuid, major_version)
     """
+
+    def __init__(self, quiz_service: QuizService | None = None) -> None:
+        """Initialize the TrainingService.
+
+        Args:
+            quiz_service: Optional QuizService instance for quiz pass
+                verification during task completion and gate checks.
+        """
+        self._quiz_service = quiz_service
 
     async def assign_training(
         self,
@@ -199,6 +217,43 @@ class TrainingService:
                 detail="Training task is already completed",
             )
 
+        # Quiz prerequisite check: verify SOP reference and quiz pass
+        if not task.sop_document_uuid or not task.sop_version:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot complete training task: SOP reference information is missing from this task.",
+            )
+
+        content_id = f"{task.sop_document_uuid}_v{task.sop_version}"
+
+        if self._quiz_service is not None:
+            # Check if training content has been generated for this SOP version
+            content_generator = self._quiz_service._content_generator
+            if content_generator is not None:
+                content_list = content_generator.get_content_for_sop(
+                    task.sop_document_uuid, task.sop_version
+                )
+                if not content_list:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            "Cannot complete training task: training content and quiz "
+                            "are not yet available for this SOP version."
+                        ),
+                    )
+
+            has_passed = await self._quiz_service.has_user_passed(
+                session, user_id, content_id
+            )
+            if not has_passed:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Cannot complete training task: quiz has not been passed. "
+                        "Please pass the comprehension quiz before marking this task as complete."
+                    ),
+                )
+
         # Mark task as completed
         task.is_completed = True
         task.completed_at = datetime.now(UTC)
@@ -264,10 +319,15 @@ class TrainingService:
         sop_document_uuid: str,
         sop_version: str,
     ) -> None:
-        """Verify user has valid training for exact SOP version.
+        """Verify user has valid training and quiz pass for exact SOP version.
 
-        Raises HTTP 403 if the user does not hold a valid, completed
-        training record for the specified SOP version.
+        Performs dual verification:
+        1. User must hold a valid TrainingRecord (is_valid=True) for the
+           specified SOP version.
+        2. User must have at least one QuizAttempt with passed=True for
+           the derived content_id ({sop_document_uuid}_v{sop_version}).
+
+        If either condition fails, raises HTTP 403 with a specific message.
 
         Args:
             session: Active async database session.
@@ -276,8 +336,10 @@ class TrainingService:
             sop_version: Version string of the SOP.
 
         Raises:
-            HTTPException: 403 if user lacks valid training record.
+            HTTPException: 403 if user lacks valid training record or
+                has not passed the comprehension quiz.
         """
+        # Check for valid TrainingRecord
         result = await session.execute(
             select(TrainingRecord).where(
                 TrainingRecord.user_id == user_id,
@@ -289,15 +351,10 @@ class TrainingService:
         record = result.scalar_one_or_none()
 
         if record is None:
-            # Look up SOP name for the error message
-            doc_result = await session.execute(
-                select(Document.title).where(
-                    Document.document_uuid == sop_document_uuid
-                )
+            # Resolve SOP name for error message
+            sop_name = await self._resolve_sop_name(
+                session, sop_document_uuid
             )
-            sop_name_row = doc_result.scalar_one_or_none()
-            sop_name = sop_name_row if sop_name_row else sop_document_uuid
-
             raise HTTPException(
                 status_code=403,
                 detail=(
@@ -305,6 +362,50 @@ class TrainingService:
                     f"{sop_name} Version {sop_version} is missing."
                 ),
             )
+
+        # Check quiz pass status via QuizService
+        if self._quiz_service is not None:
+            content_id = f"{sop_document_uuid}_v{sop_version}"
+            has_passed = await self._quiz_service.has_user_passed(
+                session, user_id, content_id
+            )
+            if not has_passed:
+                # Resolve SOP name for error message
+                sop_name = await self._resolve_sop_name(
+                    session, sop_document_uuid
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail=(
+                        f"Action denied: Valid training record exists but quiz for "
+                        f"{sop_name} Version {sop_version} has not been passed."
+                    ),
+                )
+
+    async def _resolve_sop_name(
+        self,
+        session: AsyncSession,
+        sop_document_uuid: str,
+    ) -> str:
+        """Resolve the SOP document title, falling back to the UUID.
+
+        Looks up the document title by sop_document_uuid. If no document
+        is found, returns the sop_document_uuid as the SOP name.
+
+        Args:
+            session: Active async database session.
+            sop_document_uuid: Document-UUID of the SOP.
+
+        Returns:
+            The document title if found, otherwise the sop_document_uuid.
+        """
+        doc_result = await session.execute(
+            select(Document.title).where(
+                Document.document_uuid == sop_document_uuid
+            )
+        )
+        sop_name_row = doc_result.scalar_one_or_none()
+        return sop_name_row if sop_name_row else sop_document_uuid
 
     async def invalidate_previous_training_records(
         self,

@@ -72,3 +72,38 @@ export interface TrainingStatistics {
 
 /** Gate cache mapping sop_document_uuid+version to completion boolean */
 export type GateCache = Record<string, boolean>;
+
+/** Quiz submission result from POST /api/training/quiz/submit */
+export interface QuizAttemptResult {
+  attempt_id: number;
+  score: number;
+  total_questions: number;
+  passed: boolean;
+  passing_score_threshold: number;
+  correct_answers: Record<string, string>;
+  attempted_at: string;
+}
+
+/** Quiz pass check from GET /api/training/quiz/passed/{content_id} */
+export interface QuizPassStatus {
+  content_id: string;
+  user_id: number;
+  has_passed: boolean;
+  best_score: number | null;
+}
+
+/** Quiz results from GET /api/training/quiz/results/{content_id} */
+export interface QuizResultsResponse {
+  results: QuizAttemptHistoryEntry[];
+  has_passed: boolean;
+}
+
+/** Single quiz attempt entry in results history */
+export interface QuizAttemptHistoryEntry {
+  attempt_id: number;
+  score: number;
+  total_questions: number;
+  passed: boolean;
+  attempted_at: string;
+  answers: Record<string, string>;
+}

@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { TrainingTaskList } from "../../../components/training/TrainingTaskList";
 import type { TrainingTask, TaskFilter } from "../../../components/training/types";
@@ -8,6 +8,26 @@ import type { TrainingTask, TaskFilter } from "../../../components/training/type
  *
  * Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 11.2
  */
+
+// Mock stores used by TrainingTaskCard (child component)
+vi.mock("../../../stores/trainingStore", () => ({
+  useTrainingStore: vi.fn(() => ({
+    quizPassCache: {
+      "abc-123_v1.0": { content_id: "abc-123_v1.0", user_id: 42, has_passed: true, best_score: 4 },
+      "def-456_v2.0": { content_id: "def-456_v2.0", user_id: 42, has_passed: true, best_score: 5 },
+    },
+    isCheckingQuizPass: false,
+    quizPassError: null,
+    checkQuizPassed: vi.fn(),
+  })),
+}));
+
+vi.mock("../../../stores/authStore", () => ({
+  useAuthStore: vi.fn((selector: (state: unknown) => unknown) => {
+    const state = { user: { id: 42, username: "testuser", email: "test@example.com", full_name: "Test User", roles: ["user"] } };
+    return selector(state);
+  }),
+}));
 
 const pendingTask1: TrainingTask = {
   id: 1,

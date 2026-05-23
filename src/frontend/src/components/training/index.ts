@@ -15,6 +15,7 @@ export { TrainingRecordsPanel } from "./TrainingRecordsPanel";
 export { AdminTrainingView } from "./AdminTrainingView";
 export { TrainingGateGuard } from "./TrainingGateGuard";
 export { TrainingStatusBanner } from "./TrainingStatusBanner";
+export { QuizTakingUI } from "./QuizTakingUI";
 
 // Types
 export type {

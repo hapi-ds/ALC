@@ -54,14 +54,14 @@
 - [x] **3.3 Training Management UI**
   List training tasks, mark completion, view training records per user/document. Enforce training-gated access in frontend routing.
 
-- [~] **3.4 Electronic Signatures UI**
+- [x] **3.4 Electronic Signatures UI**
   Re-authentication dialog with password verification. Trigger PAdES signing. Display signature status and certificate info on documents.
   
   Regulatory Compliance: Integration of mandatory "Reason for Signature" fields (Author, Review, Approval) in accordance with 21 CFR Part 11.
 
   Visual Signature Overlay: Automatically generates a signature block in the PDF (2.5) displaying name, timestamp, and certificate ID.
 
-- [ ] **3.5 Training-Gated Access Control**
+- [x] **3.5 Training-Gated Access Control**
 
   Compliance Enforcement: Implements a strict access lock where users cannot open or interact with a document until the associated training task (3.3) and AI-generated quiz (5.3) are marked as "Passed".
 
@@ -69,7 +69,7 @@
 
 ## Phase 4 — Search, Knowledge & AI Integration
 
-- [ ] **4.1 Search UI Integration**
+- [~] **4.1 Search UI Integration**
   Connect search page to hybrid search API. Display results with relevance scores, snippets, and faceted filtering by company/type/status.
 
 - [ ] **4.2 RAG Knowledge Base UI**

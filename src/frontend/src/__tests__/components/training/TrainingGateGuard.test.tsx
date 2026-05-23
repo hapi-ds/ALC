@@ -39,6 +39,10 @@ function createMockTrainingStore(overrides: Record<string, unknown> = {}) {
     checkTrainingGate: vi.fn().mockReturnValue(null),
     fetchTrainingTasks: vi.fn().mockResolvedValue(undefined),
     hasFetchedTasks: false,
+    checkQuizPassed: vi.fn().mockResolvedValue(true),
+    quizPassCache: {},
+    isCheckingQuizPass: false,
+    quizPassError: null,
     ...overrides,
   };
 }
@@ -193,11 +197,19 @@ describe("TrainingGateGuard", () => {
   // -------------------------------------------------------------------------
 
   describe("allowing for complete training", () => {
-    it("renders children when training is complete", () => {
+    it("renders children when training is complete and quiz is passed", () => {
       mockedUseTrainingStore.mockReturnValue(
         createMockTrainingStore({
           hasFetchedTasks: true,
           checkTrainingGate: vi.fn().mockReturnValue(true),
+          quizPassCache: {
+            "sop-123_v1.0": {
+              content_id: "sop-123_v1.0",
+              user_id: 42,
+              has_passed: true,
+              best_score: 5,
+            },
+          },
         })
       );
 
