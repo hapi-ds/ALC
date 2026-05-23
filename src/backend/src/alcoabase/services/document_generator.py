@@ -147,7 +147,7 @@ class DocumentGenerator:
         Returns:
             List of source document metadata and excerpts.
         """
-        results = self._knowledge_service.hybrid_search(
+        results, _total = self._knowledge_service.hybrid_search(
             query=query,
             user_id=user_id,
             limit=limit,

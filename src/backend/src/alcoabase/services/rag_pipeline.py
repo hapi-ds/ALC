@@ -151,7 +151,7 @@ class RAGPipeline:
         history = self._get_conversation_history(conversation_id)
 
         # Step 1: Retrieve relevant chunks (ABAC-filtered via KnowledgeService)
-        search_results = self._knowledge_service.hybrid_search(
+        search_results, _total = self._knowledge_service.hybrid_search(
             query=question,
             user_id=user_id,
             limit=self._top_k,

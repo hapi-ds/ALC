@@ -376,9 +376,10 @@ class TestHybridSearch:
             metadata={"title": "Safety SOP"},
         )
 
-        results = knowledge_service.hybrid_search("safety", user_id=1)
+        results, total = knowledge_service.hybrid_search("safety", user_id=1)
 
         assert len(results) == 1
+        assert total == 1
         assert results[0].document_uuid == "2025-00001"
         assert results[0].title == "Safety SOP"
 
@@ -394,9 +395,10 @@ class TestHybridSearch:
             metadata={"title": "Chemistry Doc"},
         )
 
-        results = knowledge_service.hybrid_search("physics", user_id=1)
+        results, total = knowledge_service.hybrid_search("physics", user_id=1)
 
         assert len(results) == 0
+        assert total == 0
 
     def test_search_respects_limit(
         self, knowledge_service: KnowledgeService
@@ -411,9 +413,10 @@ class TestHybridSearch:
                 metadata={"title": f"Doc {i}"},
             )
 
-        results = knowledge_service.hybrid_search("testing", user_id=1, limit=3)
+        results, total = knowledge_service.hybrid_search("testing", user_id=1, limit=3)
 
         assert len(results) <= 3
+        assert total == 10
 
     def test_search_excludes_csv_validation_records(
         self, knowledge_service: KnowledgeService
@@ -437,10 +440,11 @@ class TestHybridSearch:
             metadata={"title": "CSV Record", "is_csv_validation_record": True},
         )
 
-        results = knowledge_service.hybrid_search("testing", user_id=1)
+        results, total = knowledge_service.hybrid_search("testing", user_id=1)
 
         # Only the normal document should be returned
         assert len(results) == 1
+        assert total == 1
         assert results[0].document_uuid == "2025-00001"
 
     def test_search_abac_filtering_excludes_unauthorized(
@@ -469,12 +473,14 @@ class TestHybridSearch:
         )
 
         # User 1 should see both
-        results_user1 = knowledge_service.hybrid_search("protocols", user_id=1)
+        results_user1, total_user1 = knowledge_service.hybrid_search("protocols", user_id=1)
         assert len(results_user1) == 2
+        assert total_user1 == 2
 
         # User 2 should only see the public document
-        results_user2 = knowledge_service.hybrid_search("protocols", user_id=2)
+        results_user2, total_user2 = knowledge_service.hybrid_search("protocols", user_id=2)
         assert len(results_user2) == 1
+        assert total_user2 == 1
         assert results_user2[0].document_uuid == "2025-00002"
 
     def test_search_abac_none_permits_all_users(
@@ -490,8 +496,9 @@ class TestHybridSearch:
         )
 
         # Any user should see it
-        results = knowledge_service.hybrid_search("quality", user_id=999)
+        results, total = knowledge_service.hybrid_search("quality", user_id=999)
         assert len(results) == 1
+        assert total == 1
 
 
 # ---------------------------------------------------------------------------

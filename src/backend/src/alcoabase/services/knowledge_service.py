@@ -44,6 +44,11 @@ class SearchResult:
         excerpt: Matching text excerpt/chunk.
         relevance_score: Combined relevance score (0.0 to 1.0).
         metadata: Additional metadata (tags, language, etc.).
+        document_type: Document type category (e.g., "SOP", "Policy").
+        status: Document lifecycle status (e.g., "Draft", "Active").
+        tags: Document tags list.
+        created_at: Creation timestamp (ISO 8601 string or None).
+        updated_at: Last update timestamp (ISO 8601 string or None).
     """
 
     document_uuid: str
@@ -52,6 +57,11 @@ class SearchResult:
     excerpt: str
     relevance_score: float
     metadata: dict[str, Any] = field(default_factory=dict)
+    document_type: str | None = None
+    status: str | None = None
+    tags: list[str] = field(default_factory=list)
+    created_at: str | None = None
+    updated_at: str | None = None
 
 
 @dataclass
@@ -365,21 +375,35 @@ class KnowledgeService:
     # -----------------------------------------------------------------------
 
     def hybrid_search(
-        self, query: str, user_id: int, limit: int = 20
-    ) -> list[SearchResult]:
-        """Perform hybrid search combining BM25 lexical + kNN semantic search.
+        self,
+        query: str,
+        user_id: int,
+        limit: int = 20,
+        filters: dict[str, list[str]] | None = None,
+        offset: int = 0,
+        sort_by: str = "relevance",
+    ) -> tuple[list[SearchResult], int]:
+        """Perform hybrid search with filtering, sorting, and pagination.
 
         Placeholder implementation that performs simple keyword matching
         against the in-memory index. Will be replaced with actual OpenSearch
         hybrid query when infrastructure is ready.
 
+        Applies ABAC filtering, CSV record exclusion, metadata filters,
+        sorting, and offset/limit slicing.
+
         Args:
             query: Search query string.
             user_id: ID of the user performing the search (for ABAC filtering).
             limit: Maximum number of results to return (default 20).
+            filters: Optional dict of filter category → list of values.
+                AND logic between categories, OR logic within a category.
+            offset: Number of results to skip for pagination (default 0).
+            sort_by: Sort order — "relevance" or "date" (default "relevance").
 
         Returns:
-            List of SearchResult objects ranked by relevance score.
+            Tuple of (paginated results list, total_available count before
+            pagination).
         """
         query_lower = query.lower()
         results: list[SearchResult] = []
@@ -406,9 +430,102 @@ class KnowledgeService:
                             excerpt=chunk[:200],
                             relevance_score=min(score, 1.0),
                             metadata=doc.metadata,
+                            document_type=doc.metadata.get("document_type"),
+                            status=doc.metadata.get("status"),
+                            tags=doc.metadata.get("tags", []),
+                            created_at=doc.metadata.get("created_at"),
+                            updated_at=doc.metadata.get("updated_at"),
                         )
                     )
 
-        # Sort by relevance score descending
-        results.sort(key=lambda r: r.relevance_score, reverse=True)
-        return results[:limit]
+        # Apply metadata filters (AND between categories, OR within a category)
+        filtered_results = self._apply_filters(results, filters)
+
+        # Apply sorting
+        if sort_by == "date":
+            # Sort by updated_at descending; None values go to the end
+            filtered_results.sort(
+                key=lambda r: r.updated_at or "",
+                reverse=True,
+            )
+        else:
+            # Sort by relevance_score descending
+            filtered_results.sort(
+                key=lambda r: r.relevance_score,
+                reverse=True,
+            )
+
+        # Compute total_available before pagination
+        total_available = len(filtered_results)
+
+        # Apply pagination (offset + limit slice)
+        paginated_results = filtered_results[offset : offset + limit]
+
+        return paginated_results, total_available
+
+    def _apply_filters(
+        self,
+        results: list[SearchResult],
+        filters: dict[str, list[str]] | None,
+    ) -> list[SearchResult]:
+        """Apply metadata filters to search results.
+
+        Uses AND logic between categories and OR logic within a category.
+        A document matches if it satisfies ALL non-empty filter categories,
+        where satisfying a category means the document's value for that field
+        is in the filter list.
+
+        Args:
+            results: List of search results to filter.
+            filters: Dict of filter category → list of acceptable values.
+                If None or all lists are empty, returns all results unfiltered.
+
+        Returns:
+            Filtered list of search results.
+        """
+        if not filters:
+            return results
+
+        # Build active filters (only categories with non-empty value lists)
+        active_filters: dict[str, list[str]] = {
+            k: v for k, v in filters.items() if v
+        }
+
+        if not active_filters:
+            return results
+
+        filtered: list[SearchResult] = []
+        for result in results:
+            if self._matches_all_filters(result, active_filters):
+                filtered.append(result)
+
+        return filtered
+
+    def _matches_all_filters(
+        self,
+        result: SearchResult,
+        active_filters: dict[str, list[str]],
+    ) -> bool:
+        """Check if a result matches all active filter categories.
+
+        Args:
+            result: A single search result to check.
+            active_filters: Dict of category → list of acceptable values
+                (only non-empty categories).
+
+        Returns:
+            True if the result matches at least one value in every
+            active filter category.
+        """
+        for category, values in active_filters.items():
+            if category == "document_type":
+                if result.document_type not in values:
+                    return False
+            elif category == "status":
+                if result.status not in values:
+                    return False
+            elif category == "tags":
+                # OR within tags: result must have at least one matching tag
+                if not any(tag in values for tag in result.tags):
+                    return False
+        return True
