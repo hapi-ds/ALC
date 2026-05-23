@@ -156,21 +156,23 @@ class TestScannedPdfDetection:
         """is_scanned_pdf() returns True for PDFs without extractable text."""
         assert knowledge_service.is_scanned_pdf(scanned_pdf_bytes) is True
 
-    def test_ocr_fallback_returns_placeholder(
+    @pytest.mark.asyncio
+    async def test_ocr_fallback_returns_placeholder(
         self, knowledge_service: KnowledgeService, scanned_pdf_bytes: bytes
     ) -> None:
         """extract_text_with_ocr_fallback() returns placeholder for scanned PDFs."""
-        text = knowledge_service.extract_text_with_ocr_fallback(
+        text = await knowledge_service.extract_text_with_ocr_fallback(
             scanned_pdf_bytes, "application/pdf"
         )
 
         assert "OCR_PENDING" in text
 
-    def test_ocr_fallback_extracts_digital_pdf(
+    @pytest.mark.asyncio
+    async def test_ocr_fallback_extracts_digital_pdf(
         self, knowledge_service: KnowledgeService, sample_pdf_bytes: bytes
     ) -> None:
         """extract_text_with_ocr_fallback() extracts text from digital PDFs normally."""
-        text = knowledge_service.extract_text_with_ocr_fallback(
+        text = await knowledge_service.extract_text_with_ocr_fallback(
             sample_pdf_bytes, "application/pdf"
         )
 
@@ -260,47 +262,52 @@ class TestChunkText:
 class TestGenerateEmbeddings:
     """Tests for KnowledgeService.generate_embeddings()."""
 
-    def test_returns_correct_number_of_embeddings(
+    @pytest.mark.asyncio
+    async def test_returns_correct_number_of_embeddings(
         self, knowledge_service: KnowledgeService
     ) -> None:
         """generate_embeddings() returns one embedding per chunk."""
         chunks = ["chunk one", "chunk two", "chunk three"]
-        embeddings = knowledge_service.generate_embeddings(chunks)
+        embeddings = await knowledge_service.generate_embeddings(chunks)
 
         assert len(embeddings) == 3
 
-    def test_embedding_dimension_matches_config(
+    @pytest.mark.asyncio
+    async def test_embedding_dimension_matches_config(
         self, knowledge_service: KnowledgeService
     ) -> None:
         """generate_embeddings() returns vectors of configured dimension."""
         chunks = ["test chunk"]
-        embeddings = knowledge_service.generate_embeddings(chunks)
+        embeddings = await knowledge_service.generate_embeddings(chunks)
 
         assert len(embeddings[0]) == 1024  # model_embedding_dimension
 
-    def test_embeddings_are_normalized(
+    @pytest.mark.asyncio
+    async def test_embeddings_are_normalized(
         self, knowledge_service: KnowledgeService
     ) -> None:
         """generate_embeddings() returns approximately unit-length vectors."""
         chunks = ["test chunk for normalization"]
-        embeddings = knowledge_service.generate_embeddings(chunks)
+        embeddings = await knowledge_service.generate_embeddings(chunks)
 
         magnitude = sum(v * v for v in embeddings[0]) ** 0.5
         assert abs(magnitude - 1.0) < 0.01
 
-    def test_empty_chunks_returns_empty_list(
+    @pytest.mark.asyncio
+    async def test_empty_chunks_returns_empty_list(
         self, knowledge_service: KnowledgeService
     ) -> None:
         """generate_embeddings() returns empty list for empty input."""
-        embeddings = knowledge_service.generate_embeddings([])
+        embeddings = await knowledge_service.generate_embeddings([])
         assert embeddings == []
 
-    def test_different_chunks_produce_different_embeddings(
+    @pytest.mark.asyncio
+    async def test_different_chunks_produce_different_embeddings(
         self, knowledge_service: KnowledgeService
     ) -> None:
         """generate_embeddings() produces different vectors for different chunks."""
         chunks = ["first chunk", "second chunk"]
-        embeddings = knowledge_service.generate_embeddings(chunks)
+        embeddings = await knowledge_service.generate_embeddings(chunks)
 
         # Random vectors should be different (extremely unlikely to be equal)
         assert embeddings[0] != embeddings[1]

@@ -68,19 +68,20 @@ class ConversationHistoryResponse(BaseModel):
 # Dependency
 # ---------------------------------------------------------------------------
 
-_rag_pipeline: RAGPipeline | None = None
-
-
 def get_rag_pipeline() -> RAGPipeline:
     """Provide the RAGPipeline instance as a FastAPI dependency.
 
+    Uses the service factory to ensure the shared InferenceClient is
+    properly wired to all services.
+
     Returns:
-        The module-level RAGPipeline instance.
+        The properly wired RAGPipeline instance.
     """
-    global _rag_pipeline
-    if _rag_pipeline is None:
-        _rag_pipeline = RAGPipeline()
-    return _rag_pipeline
+    from alcoabase.services.service_factory import (
+        get_rag_pipeline as _factory_get_rag_pipeline,
+    )
+
+    return _factory_get_rag_pipeline()
 
 
 # ---------------------------------------------------------------------------

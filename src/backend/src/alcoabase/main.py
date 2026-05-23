@@ -39,6 +39,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         - Verify external service connectivity (MinIO, Redis, OpenSearch)
     Shutdown:
         - Close database connection pool
+        - Shutdown inference services (close shared InferenceClient)
         - Gracefully disconnect from external services
     """
     # --- Startup ---
@@ -51,6 +52,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     yield
     # --- Shutdown ---
+    from alcoabase.services.service_factory import shutdown_services
+
+    await shutdown_services()
     await close_db()
 
 

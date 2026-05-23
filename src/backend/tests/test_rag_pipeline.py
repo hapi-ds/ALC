@@ -31,6 +31,8 @@ def knowledge_service() -> KnowledgeService:
 @pytest.fixture
 def knowledge_service_with_data() -> KnowledgeService:
     """Create a KnowledgeService with indexed test documents."""
+    import asyncio
+
     service = KnowledgeService()
 
     # Index a test document with searchable content
@@ -42,7 +44,7 @@ def knowledge_service_with_data() -> KnowledgeService:
             "Safety protocols must be followed at all times during the cleaning process.",
             "Documentation of cleaning activities must be completed before end of shift.",
         ],
-        embeddings=service.generate_embeddings(["chunk1", "chunk2", "chunk3"]),
+        embeddings=asyncio.run(service.generate_embeddings(["chunk1", "chunk2", "chunk3"])),
         metadata={
             "title": "Cleaning SOP",
             "tags": ["SOP", "Cleaning"],
@@ -57,7 +59,7 @@ def knowledge_service_with_data() -> KnowledgeService:
         chunks=[
             "Restricted document about cleaning validation protocols.",
         ],
-        embeddings=service.generate_embeddings(["chunk1"]),
+        embeddings=asyncio.run(service.generate_embeddings(["chunk1"])),
         metadata={
             "title": "Cleaning Validation Protocol",
             "tags": ["Protocol", "Validation"],
@@ -73,7 +75,7 @@ def knowledge_service_with_data() -> KnowledgeService:
         chunks=[
             "General safety guidelines for all cleaning operations.",
         ],
-        embeddings=service.generate_embeddings(["chunk1"]),
+        embeddings=asyncio.run(service.generate_embeddings(["chunk1"])),
         metadata={
             "title": "Safety Guidelines",
             "tags": ["Safety"],

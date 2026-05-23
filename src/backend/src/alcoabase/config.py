@@ -99,6 +99,11 @@ class Settings(BaseSettings):
         description="Base URL for the vLLM inference server.",
         alias="VLLM_BASE_URL",
     )
+    vllm_embedding_url: str = Field(
+        default="http://localhost:8001",
+        description="Base URL for the dedicated embedding vLLM instance.",
+        alias="VLLM_EMBEDDING_URL",
+    )
 
     # ─────────────────────────────────────────────────────────────────────
     # Model Configuration

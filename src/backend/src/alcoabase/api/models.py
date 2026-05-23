@@ -15,20 +15,20 @@ from alcoabase.services.model_manager import ModelManager, ModelStatus
 
 router = APIRouter(prefix="/models", tags=["Models"])
 
-# Module-level Model_Manager instance (singleton pattern)
-_model_manager: ModelManager | None = None
-
-
 def get_model_manager() -> ModelManager:
-    """Get or create the singleton ModelManager instance.
+    """Get the singleton ModelManager instance via service factory.
+
+    Uses the service factory to ensure the shared InferenceClient is
+    properly wired.
 
     Returns:
-        The ModelManager instance.
+        The properly wired ModelManager instance.
     """
-    global _model_manager
-    if _model_manager is None:
-        _model_manager = ModelManager()
-    return _model_manager
+    from alcoabase.services.service_factory import (
+        get_model_manager as _factory_get_model_manager,
+    )
+
+    return _factory_get_model_manager()
 
 
 class ModelStatusResponse(BaseModel):

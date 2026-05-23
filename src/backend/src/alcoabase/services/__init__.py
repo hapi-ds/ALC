@@ -1,7 +1,5 @@
-"""Business logic services for AlcoaBase."""
+"""Service layer for AlcoaBase.
 
-from alcoabase.services.password_validator import PasswordValidator
-from alcoabase.services.setup_service import SetupService
-from alcoabase.services.slug_generator import SlugGenerator
-
-__all__ = ["PasswordValidator", "SetupService", "SlugGenerator"]
+Provides the service factory for creating properly wired service instances
+with a shared InferenceClient for vLLM communication.
+"""

@@ -4,7 +4,8 @@ This module provides:
 - Document text extraction (PDF, DOCX, plain text)
 - Scanned PDF detection with OCR delegation
 - Text chunking with configurable overlap
-- Multilingual vector embedding generation (placeholder)
+- Multilingual vector embedding generation via vLLM
+- OCR text extraction from scanned PDFs via vision model
 - OpenSearch indexing (placeholder)
 - Hybrid search combining BM25 lexical + kNN semantic (placeholder)
 - ABAC filtering and CSV record exclusion on search results
@@ -15,15 +16,22 @@ References:
     - Requirement 14: Semantic and Hybrid Search
 """
 
+from __future__ import annotations
+
+import base64
 import logging
 import random
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import fitz  # PyMuPDF
 from docx import Document as DocxDocument
 
 from alcoabase.config import get_settings
+
+if TYPE_CHECKING:
+    from alcoabase.services.inference_client import InferenceClient
+    from alcoabase.services.model_manager import ModelManager
 
 logger = logging.getLogger(__name__)
 
@@ -96,19 +104,36 @@ class KnowledgeService:
     """Service for document indexing, embedding generation, and hybrid search.
 
     Provides text extraction from multiple formats, chunking, embedding
-    generation (placeholder), OpenSearch indexing (placeholder), and
-    hybrid search with ABAC filtering.
+    generation via vLLM (or mock random vectors), OpenSearch indexing
+    (placeholder), and hybrid search with ABAC filtering.
+
+    Args:
+        model_manager: ModelManager for ensuring the embedding model is loaded.
+            If None, mock mode random vector generation is used.
+        inference_client: InferenceClient for vLLM HTTP communication.
+            If None, mock mode random vector generation is used.
 
     Attributes:
         _index: In-memory document index (placeholder for OpenSearch).
         _embedding_dimension: Dimension of embedding vectors from config.
     """
 
-    def __init__(self) -> None:
-        """Initialize KnowledgeService with settings and in-memory index."""
-        settings = get_settings()
-        self._embedding_dimension: int = settings.model_embedding_dimension
+    def __init__(
+        self,
+        model_manager: ModelManager | None = None,
+        inference_client: InferenceClient | None = None,
+    ) -> None:
+        """Initialize KnowledgeService with settings and in-memory index.
+
+        Args:
+            model_manager: Optional ModelManager for model loading.
+            inference_client: Optional InferenceClient for vLLM API calls.
+        """
+        self._settings = get_settings()
+        self._embedding_dimension: int = self._settings.model_embedding_dimension
         self._index: dict[str, IndexedDocument] = {}
+        self._model_manager = model_manager
+        self._inference_client = inference_client
 
     # -----------------------------------------------------------------------
     # Text Extraction (Task 12.1)
@@ -202,14 +227,14 @@ class KnowledgeService:
         doc.close()
         return not has_text
 
-    def extract_text_with_ocr_fallback(
+    async def extract_text_with_ocr_fallback(
         self, file_bytes: bytes, content_type: str
     ) -> str:
         """Extract text with OCR fallback for scanned PDFs.
 
-        If the PDF is scanned (no extractable text), delegates to OCR_Engine.
-        Currently returns a placeholder message for scanned PDFs until
-        the Model_Manager (Task 18) provides real OCR capability.
+        If the PDF is scanned (no extractable text), delegates to the
+        vision model for OCR text extraction. In mock mode, returns a
+        placeholder string.
 
         Args:
             file_bytes: Raw file content.
@@ -219,26 +244,155 @@ class KnowledgeService:
             Extracted text content.
         """
         if content_type == "application/pdf" and self.is_scanned_pdf(file_bytes):
-            logger.info("Scanned PDF detected, delegating to OCR_Engine (placeholder)")
-            return self._ocr_extract_text(file_bytes)
+            logger.info("Scanned PDF detected, delegating to OCR vision model")
+            return await self._ocr_extract_text(file_bytes)
         return self.extract_text(file_bytes, content_type)
 
-    def _ocr_extract_text(self, file_bytes: bytes) -> str:
-        """Placeholder for OCR text extraction via vision LLM.
+    async def _ocr_extract_text(self, file_bytes: bytes) -> str:
+        """Extract text from scanned PDF pages via vision model.
 
-        Will be implemented by Model_Manager (Task 18) with on-demand
-        vision model loading.
+        In gpu/cpu mode, converts each PDF page to a PNG image at 300 DPI,
+        sends each page image to the vLLM multimodal chat completion endpoint
+        sequentially, and concatenates successful page texts.
+
+        In mock mode, returns the existing placeholder text unchanged.
 
         Args:
             file_bytes: Raw PDF file content.
 
         Returns:
-            Placeholder text indicating OCR is pending.
+            Extracted text from all successful pages concatenated with
+            newline separators, or empty string if all pages fail or
+            the PDF has zero pages.
         """
-        logger.warning(
-            "OCR_Engine not yet implemented. Returning placeholder for scanned PDF."
+        # Mock mode: return placeholder text without HTTP calls
+        if (
+            self._model_manager is None
+            or self._inference_client is None
+            or self._model_manager.mode not in ("gpu", "cpu")
+        ):
+            logger.warning(
+                "OCR in mock mode. Returning placeholder for scanned PDF."
+            )
+            return "[OCR_PENDING: Scanned PDF text extraction requires Model_Manager]"
+
+        from alcoabase.services.inference_client import (
+            InferenceConnectionError,
+            InferenceError,
+            InferenceTimeoutError,
         )
-        return "[OCR_PENDING: Scanned PDF text extraction requires Model_Manager]"
+        from alcoabase.services.model_manager import ModelRole
+
+        # Open the PDF and check page count
+        doc = fitz.open(stream=file_bytes, filetype="pdf")
+        page_count = len(doc)
+
+        if page_count == 0:
+            logger.warning("PDF has zero pages, returning empty string")
+            doc.close()
+            return ""
+
+        # Limit to 500 pages maximum
+        max_pages = min(page_count, 500)
+        if page_count > 500:
+            logger.warning(
+                "PDF has %d pages, processing only first 500", page_count
+            )
+
+        # Ensure OCR model is loaded
+        await self._model_manager.ensure_model(ModelRole.OCR)
+
+        model_name = self._settings.model_ocr_name
+        successful_texts: list[str] = []
+        failed_count = 0
+
+        # Process pages sequentially (one at a time)
+        for page_idx in range(max_pages):
+            page = doc[page_idx]
+
+            try:
+                # Convert page to PNG at 300 DPI
+                pixmap = page.get_pixmap(dpi=300)
+                png_bytes = pixmap.tobytes("png")
+
+                # Base64 encode the PNG image
+                b64_image = base64.b64encode(png_bytes).decode("utf-8")
+
+                # Build multimodal message for OCR
+                messages: list[dict[str, Any]] = [
+                    {
+                        "role": "system",
+                        "content": (
+                            "Extract all visible text from this document page image. "
+                            "Preserve the original layout and formatting as much as "
+                            "possible. Output only the extracted text, nothing else."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{b64_image}",
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Extract all text from this page.",
+                            },
+                        ],
+                    },
+                ]
+
+                # Send to vLLM with 90s timeout, max_tokens=4096, temperature=0.1
+                page_text = await self._inference_client.chat_completion(
+                    model=model_name,
+                    messages=messages,
+                    max_tokens=4096,
+                    temperature=0.1,
+                    timeout=90.0,
+                )
+
+                if page_text and page_text.strip():
+                    successful_texts.append(page_text)
+
+            except InferenceTimeoutError:
+                failed_count += 1
+                logger.warning(
+                    "OCR timeout for page %d (90s exceeded), skipping",
+                    page_idx + 1,
+                )
+                continue
+            except (InferenceError, InferenceConnectionError) as e:
+                failed_count += 1
+                status_code = getattr(e, "status_code", None)
+                logger.warning(
+                    "OCR failed for page %d: status=%s, skipping",
+                    page_idx + 1,
+                    status_code,
+                )
+                continue
+            except Exception as e:
+                failed_count += 1
+                logger.warning(
+                    "OCR unexpected error for page %d: %s, skipping",
+                    page_idx + 1,
+                    str(e),
+                )
+                continue
+
+        doc.close()
+
+        # If all pages failed, return empty string and log error
+        if not successful_texts and max_pages > 0:
+            logger.error(
+                "Complete OCR failure: all %d pages failed for document",
+                max_pages,
+            )
+            return ""
+
+        return "\n".join(successful_texts)
 
     # -----------------------------------------------------------------------
     # Text Chunking (Task 12.3)
@@ -294,16 +448,15 @@ class KnowledgeService:
         return chunks
 
     # -----------------------------------------------------------------------
-    # Embedding Generation (Task 12.4 - Placeholder)
+    # Embedding Generation (Task 12.4)
     # -----------------------------------------------------------------------
 
-    def generate_embeddings(self, chunks: list[str]) -> list[list[float]]:
+    async def generate_embeddings(self, chunks: list[str]) -> list[list[float]]:
         """Generate multilingual vector embeddings for text chunks.
 
-        Placeholder implementation that returns random vectors of the
-        correct dimension from config. The Model_Manager (Task 18) will
-        provide real embedding generation via the multilingual-e5-large-instruct
-        model.
+        In gpu/cpu mode, calls the vLLM embedding endpoint via InferenceClient
+        with batches of up to 32 chunks per request. In mock mode, returns
+        random normalized vectors of the correct dimension.
 
         Args:
             chunks: List of text chunks to embed.
@@ -311,6 +464,96 @@ class KnowledgeService:
         Returns:
             List of embedding vectors, one per chunk. Each vector has
             dimension equal to `model_embedding_dimension` from settings.
+
+        Raises:
+            ValueError: If a returned embedding vector has incorrect dimensions.
+            InferenceError: If the vLLM server returns an HTTP error.
+            InferenceTimeoutError: If the vLLM server does not respond within 30s.
+        """
+        if not chunks:
+            return []
+
+        # Determine mode: use real inference if model_manager is available
+        # and mode is gpu/cpu
+        if (
+            self._model_manager is not None
+            and self._inference_client is not None
+            and self._model_manager.mode in ("gpu", "cpu")
+        ):
+            return await self._generate_embeddings_real(chunks)
+
+        # Mock mode: generate random normalized vectors
+        return self._generate_embeddings_mock(chunks)
+
+    async def _generate_embeddings_real(
+        self, chunks: list[str]
+    ) -> list[list[float]]:
+        """Generate embeddings via vLLM inference in gpu/cpu mode.
+
+        Batches chunks into groups of 32, processes sequentially, and
+        concatenates results in input order.
+
+        Args:
+            chunks: Non-empty list of text chunks to embed.
+
+        Returns:
+            List of embedding vectors in input order.
+
+        Raises:
+            ValueError: If a returned embedding vector has incorrect dimensions.
+            InferenceError: If the vLLM server returns an HTTP error.
+            InferenceTimeoutError: If the vLLM server does not respond within 30s.
+        """
+        from alcoabase.services.model_manager import ModelRole
+
+        # Ensure embedding model is loaded
+        await self._model_manager.ensure_model(ModelRole.EMBEDDING)  # type: ignore[union-attr]
+
+        batch_size = 32
+        model_name = self._settings.model_embedding_name
+        all_embeddings: list[list[float]] = []
+
+        for i in range(0, len(chunks), batch_size):
+            batch = chunks[i : i + batch_size]
+
+            try:
+                batch_embeddings = await self._inference_client.create_embeddings(  # type: ignore[union-attr]
+                    model=model_name,
+                    inputs=batch,
+                )
+            except Exception as e:
+                # Log and re-raise for HTTP errors and timeouts
+                logger.error(
+                    "Embedding generation failed for batch %d-%d: %s",
+                    i,
+                    i + len(batch),
+                    str(e),
+                )
+                raise
+
+            # Validate dimensions for each vector in the batch
+            for j, vector in enumerate(batch_embeddings):
+                if len(vector) != self._embedding_dimension:
+                    raise ValueError(
+                        f"Embedding dimension mismatch: expected "
+                        f"{self._embedding_dimension}, got {len(vector)} "
+                        f"(chunk index {i + j})"
+                    )
+
+            all_embeddings.extend(batch_embeddings)
+
+        return all_embeddings
+
+    def _generate_embeddings_mock(self, chunks: list[str]) -> list[list[float]]:
+        """Generate mock random normalized embedding vectors.
+
+        Used in mock mode for development/testing without GPU hardware.
+
+        Args:
+            chunks: List of text chunks to embed.
+
+        Returns:
+            List of random normalized vectors of configured dimension.
         """
         embeddings: list[list[float]] = []
         for _ in chunks:

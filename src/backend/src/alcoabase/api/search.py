@@ -17,20 +17,20 @@ from alcoabase.services.knowledge_service import KnowledgeService, SearchResult
 
 router = APIRouter(prefix="/search", tags=["Search"])
 
-# Module-level service instance
-_knowledge_service: KnowledgeService | None = None
-
-
 def _get_knowledge_service() -> KnowledgeService:
-    """Get or create the KnowledgeService singleton.
+    """Get the KnowledgeService singleton via service factory.
+
+    Uses the service factory to ensure the shared InferenceClient is
+    properly wired.
 
     Returns:
-        KnowledgeService: The service instance.
+        KnowledgeService: The properly wired service instance.
     """
-    global _knowledge_service
-    if _knowledge_service is None:
-        _knowledge_service = KnowledgeService()
-    return _knowledge_service
+    from alcoabase.services.service_factory import (
+        get_knowledge_service as _factory_get_knowledge_service,
+    )
+
+    return _factory_get_knowledge_service()
 
 
 # ---------------------------------------------------------------------------

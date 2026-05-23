@@ -2,25 +2,57 @@
 
 This module provides:
 - Retrieval-augmented generation using KnowledgeService for chunk retrieval
+- Real vLLM chat completion inference via InferenceClient
 - Source citation extraction (Document-UUID, title, version, page/section)
 - Grounded response enforcement (no hallucination without context)
+- Context truncation by relevance score within token limits
 - Conversation context management for follow-up questions
 - ABAC enforcement on retrieved chunks
 
 References:
     - Task 13: RAG Pipeline (Conversational Knowledge Queries)
     - Design doc Section 9: Knowledge Service / RAG Pipeline
+    - Step 4-3: AI Model Integration (vLLM)
 """
+
+from __future__ import annotations
 
 import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from alcoabase.config import get_settings
 from alcoabase.services.knowledge_service import KnowledgeService, SearchResult
 
+if TYPE_CHECKING:
+    from alcoabase.services.inference_client import InferenceClient
+    from alcoabase.services.model_manager import ModelManager
+
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+_SYSTEM_PROMPT = (
+    "You are a knowledgeable assistant for a GxP-regulated document management system.\n"
+    "Answer questions ONLY based on the provided context documents.\n"
+    "Rules:\n"
+    "1. Only use information from the provided [Source N] references.\n"
+    "2. Cite sources using [Source N] format when referencing information.\n"
+    "3. If the context does not contain sufficient information, state clearly: "
+    '"The available documents do not contain enough information to answer this question."\n'
+    "4. Never fabricate or infer information not present in the context.\n"
+    "5. Be precise and factual in your responses."
+)
+
+_MAX_CONTEXT_TOKENS = 8192
+_MAX_HISTORY_MESSAGES = 6
+_CHAT_TEMPERATURE = 0.3
+_CHAT_MAX_TOKENS = 2048
 
 
 # ---------------------------------------------------------------------------
@@ -86,13 +118,16 @@ class RAGPipeline:
     """Retrieval-Augmented Generation pipeline for knowledge queries.
 
     Retrieves relevant document chunks from KnowledgeService, passes them
-    as context to an LLM (placeholder), and generates grounded responses
+    as context to a vLLM chat model, and generates grounded responses
     with source citations.
 
-    Attributes:
-        _knowledge_service: Service for document retrieval and search.
-        _conversations: In-memory conversation history store.
-        _top_k: Number of chunks to retrieve per query.
+    In mock mode, uses placeholder logic without making HTTP calls.
+
+    Args:
+        knowledge_service: Service for document retrieval and search.
+        model_manager: ModelManager for ensuring the chat model is loaded.
+        inference_client: InferenceClient for vLLM HTTP communication.
+        top_k: Number of chunks to retrieve per query.
     """
 
     NO_CONTENT_MESSAGE = (
@@ -104,6 +139,8 @@ class RAGPipeline:
     def __init__(
         self,
         knowledge_service: KnowledgeService | None = None,
+        model_manager: ModelManager | None = None,
+        inference_client: InferenceClient | None = None,
         top_k: int = 5,
     ) -> None:
         """Initialize the RAG pipeline.
@@ -111,11 +148,18 @@ class RAGPipeline:
         Args:
             knowledge_service: KnowledgeService instance for retrieval.
                 Creates a new instance if not provided.
+            model_manager: ModelManager for model loading. If None, mock mode
+                placeholder logic is used.
+            inference_client: InferenceClient for vLLM API calls. If None,
+                mock mode placeholder logic is used.
             top_k: Number of top chunks to retrieve per query.
         """
         self._knowledge_service = knowledge_service or KnowledgeService()
+        self._model_manager = model_manager
+        self._inference_client = inference_client
         self._conversations: dict[str, list[ConversationMessage]] = {}
         self._top_k = top_k
+        self._settings = get_settings()
 
     # -----------------------------------------------------------------------
     # Core Query (Task 13.1)
@@ -131,7 +175,7 @@ class RAGPipeline:
 
         1. Retrieve top-k chunks from KnowledgeService (ABAC-filtered)
         2. Build prompt with retrieved context + conversation history
-        3. Generate response via LLM (placeholder)
+        3. Generate response via vLLM chat completion (or mock)
         4. Extract source citations
         5. If no relevant chunks → return grounded "no content" message
 
@@ -175,12 +219,15 @@ class RAGPipeline:
         # Step 3: Extract citations (Task 13.2)
         citations = self._extract_citations(search_results)
 
-        # Step 4: Generate response via LLM (placeholder)
-        context_text = self._build_context(search_results)
-        history_text = self._format_history(history)
-        answer = self._generate_response(question, context_text, history_text)
+        # Step 4: Truncate context to fit within token limit
+        truncated_results = self._truncate_context(search_results)
 
-        # Step 5: Record in conversation history (Task 13.4)
+        # Step 5: Generate response via LLM
+        context_text = self._build_context(truncated_results)
+        history_text = self._format_history(history)
+        answer = await self._generate_response(question, context_text, history_text)
+
+        # Step 6: Record in conversation history (Task 13.4)
         self._add_to_history(conversation_id, "user", question)
         self._add_to_history(conversation_id, "assistant", answer)
 
@@ -293,11 +340,23 @@ class RAGPipeline:
         self._conversations.pop(conversation_id, None)
 
     # -----------------------------------------------------------------------
-    # LLM Response Generation (Placeholder)
+    # LLM Response Generation
     # -----------------------------------------------------------------------
+
+    def _build_system_prompt(self) -> str:
+        """Build the grounding system prompt for the chat model.
+
+        Returns:
+            The system prompt instructing the model to answer only from
+            context, cite sources, and never fabricate information.
+        """
+        return _SYSTEM_PROMPT
 
     def _build_context(self, search_results: list[SearchResult]) -> str:
         """Build context text from search results for LLM prompt.
+
+        Formats each chunk with the source reference pattern:
+        [Source N: {title} v{version}] followed by the chunk text.
 
         Args:
             search_results: Retrieved document chunks.
@@ -308,10 +367,72 @@ class RAGPipeline:
         context_parts: list[str] = []
         for i, result in enumerate(search_results, 1):
             context_parts.append(
-                f"[Source {i}: {result.title} v{result.version} "
-                f"({result.document_uuid})]\n{result.excerpt}"
+                f"[Source {i}: {result.title} v{result.version}]\n{result.excerpt}"
             )
         return "\n\n".join(context_parts)
+
+    def _truncate_context(
+        self,
+        search_results: list[SearchResult],
+        max_tokens: int = _MAX_CONTEXT_TOKENS,
+    ) -> list[SearchResult]:
+        """Truncate search results to fit within the token limit.
+
+        Removes lowest-relevance chunks until the combined context is
+        within the max_tokens limit (approximated by whitespace splitting).
+        Always retains at least the single highest-relevance chunk.
+
+        Args:
+            search_results: List of search results sorted by relevance.
+            max_tokens: Maximum number of tokens (whitespace-split words).
+
+        Returns:
+            Filtered list of SearchResult objects within the token budget.
+        """
+        if not search_results:
+            return []
+
+        # Find the highest-relevance chunk (must always be kept)
+        highest_idx = 0
+        highest_score = search_results[0].relevance_score
+        for i, result in enumerate(search_results):
+            if result.relevance_score > highest_score:
+                highest_score = result.relevance_score
+                highest_idx = i
+
+        def _count_tokens(results: list[SearchResult]) -> int:
+            """Count approximate tokens using whitespace splitting."""
+            total = 0
+            for i, result in enumerate(results, 1):
+                # Include the source header in token count
+                header = f"[Source {i}: {result.title} v{result.version}]"
+                total += len(header.split())
+                total += len(result.excerpt.split())
+            return total
+
+        # Start with all results
+        remaining = list(search_results)
+
+        # Remove lowest-relevance chunks until within limit
+        while _count_tokens(remaining) > max_tokens and len(remaining) > 1:
+            # Find the lowest-relevance chunk that is NOT the highest-relevance one
+            lowest_idx = -1
+            lowest_score = float("inf")
+            for i, result in enumerate(remaining):
+                # Never remove the highest-relevance chunk
+                if result is search_results[highest_idx]:
+                    continue
+                if result.relevance_score < lowest_score:
+                    lowest_score = result.relevance_score
+                    lowest_idx = i
+
+            if lowest_idx == -1:
+                # Only the highest-relevance chunk remains
+                break
+
+            remaining.pop(lowest_idx)
+
+        return remaining
 
     def _format_history(
         self, history: list[ConversationMessage]
@@ -328,18 +449,70 @@ class RAGPipeline:
             return ""
 
         parts: list[str] = []
-        for msg in history[-6:]:  # Keep last 6 messages for context
+        for msg in history[-_MAX_HISTORY_MESSAGES:]:  # Keep last 6 messages
             parts.append(f"{msg.role.capitalize()}: {msg.content}")
         return "\n".join(parts)
 
-    def _generate_response(
+    def _build_messages(
+        self,
+        question: str,
+        context: str,
+        history: list[ConversationMessage],
+    ) -> list[dict[str, Any]]:
+        """Build the messages array for the chat completion request.
+
+        Structure:
+        1. System prompt with grounding instructions
+        2. Conversation history (last 6 messages as user/assistant)
+        3. Context as a user message
+        4. Current question as the final user message
+
+        Args:
+            question: The user's current question.
+            context: Formatted context string with source references.
+            history: Conversation history messages.
+
+        Returns:
+            List of message dicts with 'role' and 'content' keys.
+        """
+        messages: list[dict[str, Any]] = []
+
+        # 1. System prompt
+        messages.append({
+            "role": "system",
+            "content": self._build_system_prompt(),
+        })
+
+        # 2. Conversation history (last 6 messages)
+        for msg in history[-_MAX_HISTORY_MESSAGES:]:
+            messages.append({
+                "role": msg.role,
+                "content": msg.content,
+            })
+
+        # 3. Context as a user message
+        messages.append({
+            "role": "user",
+            "content": f"Context documents:\n\n{context}",
+        })
+
+        # 4. Current question as the final user message
+        messages.append({
+            "role": "user",
+            "content": question,
+        })
+
+        return messages
+
+    async def _generate_response(
         self, question: str, context: str, history: str
     ) -> str:
-        """Generate a response using the LLM (placeholder).
+        """Generate a response using vLLM chat completion or mock.
 
-        This is a placeholder that returns a formatted response based on
-        the retrieved context. The Model_Manager (Task 18) will provide
-        real LLM inference.
+        In gpu/cpu mode: calls ensure_model(CHAT) then sends a chat
+        completion request to vLLM via InferenceClient.
+
+        In mock mode: returns a placeholder response without HTTP calls.
 
         Args:
             question: The user's question.
@@ -348,8 +521,104 @@ class RAGPipeline:
 
         Returns:
             Generated answer text.
+
+        Raises:
+            ModelManagerError: If the chat model fails to load.
+            InferenceError: If the vLLM request fails.
+            InferenceTimeoutError: If vLLM doesn't respond within 60s.
         """
-        # Placeholder: return a structured response based on context
+        # Mock mode: use placeholder logic
+        if (
+            self._model_manager is None
+            or self._inference_client is None
+            or self._settings.model_manager_mode == "mock"
+        ):
+            return self._generate_mock_response(question, context, history)
+
+        # Real inference mode (gpu/cpu)
+        from alcoabase.services.inference_client import (
+            InferenceError,
+            InferenceTimeoutError,
+        )
+        from alcoabase.services.model_manager import ModelManagerError, ModelRole
+
+        # Ensure chat model is loaded
+        try:
+            await self._model_manager.ensure_model(ModelRole.CHAT)
+        except ModelManagerError:
+            # Propagate ModelManagerError to caller
+            raise
+
+        # Build messages array from conversation history
+        history_messages = self._get_conversation_history_from_text(history)
+        messages = self._build_messages(question, context, history_messages)
+
+        # Send chat completion request
+        try:
+            response = await self._inference_client.chat_completion(
+                model=self._settings.model_chat_name,
+                messages=messages,
+                temperature=_CHAT_TEMPERATURE,
+                max_tokens=_CHAT_MAX_TOKENS,
+            )
+            return response
+        except InferenceTimeoutError:
+            logger.error(
+                "vLLM chat completion timed out (60s) for question: %s",
+                question[:100],
+            )
+            raise
+        except InferenceError as e:
+            body = str(e)[:500]
+            logger.error(
+                "vLLM chat completion failed | status=%s | body=%s",
+                e.status_code,
+                body,
+            )
+            raise
+
+    def _get_conversation_history_from_text(
+        self, history_text: str
+    ) -> list[ConversationMessage]:
+        """Parse formatted history text back into ConversationMessage objects.
+
+        This handles the case where history is passed as a pre-formatted
+        string from the query method.
+
+        Args:
+            history_text: Formatted history string from _format_history.
+
+        Returns:
+            List of ConversationMessage objects.
+        """
+        if not history_text:
+            return []
+
+        messages: list[ConversationMessage] = []
+        for line in history_text.split("\n"):
+            if line.startswith("User: "):
+                messages.append(
+                    ConversationMessage(role="user", content=line[6:])
+                )
+            elif line.startswith("Assistant: "):
+                messages.append(
+                    ConversationMessage(role="assistant", content=line[11:])
+                )
+        return messages
+
+    def _generate_mock_response(
+        self, question: str, context: str, history: str
+    ) -> str:
+        """Generate a mock/placeholder response for development/testing.
+
+        Args:
+            question: The user's question.
+            context: Retrieved document context.
+            history: Formatted conversation history.
+
+        Returns:
+            Placeholder answer text.
+        """
         logger.info(
             "Generating RAG response (placeholder) for question: %s",
             question[:100],

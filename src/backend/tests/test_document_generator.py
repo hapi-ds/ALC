@@ -29,6 +29,8 @@ from alcoabase.services.knowledge_service import KnowledgeService
 @pytest.fixture
 def knowledge_service() -> KnowledgeService:
     """Create a KnowledgeService with test data."""
+    import asyncio
+
     service = KnowledgeService()
 
     # Index source documents for generation context
@@ -40,7 +42,7 @@ def knowledge_service() -> KnowledgeService:
             "## 2. Scope\nApplies to all laboratory equipment in Building A.",
             "## 3. Procedure\n1. Gather cleaning materials\n2. Don PPE\n3. Clean surfaces",
         ],
-        embeddings=service.generate_embeddings(["c1", "c2", "c3"]),
+        embeddings=asyncio.run(service.generate_embeddings(["c1", "c2", "c3"])),
         metadata={"title": "Equipment Cleaning SOP", "tags": ["SOP"]},
     )
 

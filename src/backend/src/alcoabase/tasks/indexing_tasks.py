@@ -25,12 +25,19 @@ _knowledge_service: KnowledgeService | None = None
 def _get_knowledge_service() -> KnowledgeService:
     """Get or create the KnowledgeService singleton for task workers.
 
+    Uses the service factory to ensure the shared InferenceClient is
+    properly wired.
+
     Returns:
-        KnowledgeService: The service instance.
+        KnowledgeService: The properly wired service instance.
     """
     global _knowledge_service
     if _knowledge_service is None:
-        _knowledge_service = KnowledgeService()
+        from alcoabase.services.service_factory import (
+            get_knowledge_service as _factory_get_knowledge_service,
+        )
+
+        _knowledge_service = _factory_get_knowledge_service()
     return _knowledge_service
 
 
@@ -94,7 +101,11 @@ def index_document_task(
 
     # Step 1: Extract text (with OCR fallback for scanned PDFs)
     try:
-        text = service.extract_text_with_ocr_fallback(file_bytes, content_type)
+        import asyncio
+
+        text = asyncio.run(
+            service.extract_text_with_ocr_fallback(file_bytes, content_type)
+        )
     except Exception as exc:
         logger.error(
             "Text extraction failed for %s v%s: %s",
@@ -126,7 +137,7 @@ def index_document_task(
 
     # Step 3: Generate embeddings (placeholder - will use Model_Manager)
     try:
-        embeddings = service.generate_embeddings(chunks)
+        embeddings = asyncio.run(service.generate_embeddings(chunks))
     except Exception as exc:
         logger.error(
             "Embedding generation failed for %s v%s: %s",
