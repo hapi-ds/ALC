@@ -6,8 +6,8 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
 
 ## Tasks
 
-- [ ] 1. Knowledge store implementation
-  - [-] 1.1 Implement knowledgeStore with full state and actions
+- [x] 1. Knowledge store implementation
+  - [x] 1.1 Implement knowledgeStore with full state and actions
     - Create `src/frontend/src/stores/knowledgeStore.ts`
     - Define `ChatMessage` interface with `id` (UUID v4), `role` ("user" | "assistant"), `content` (max 10,000 chars), `citations` (SourceCitation[], 0-20 items), `grounded` (boolean), `timestamp` (ISO 8601 UTC)
     - Define `SourceCitation` interface with `document_uuid`, `title` (max 255 chars), `version` (semver-like), `page_or_section` (max 100 chars)
@@ -24,7 +24,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Implement `setInputValue(value)`: update inputValue, cap at 2000 characters
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11, 2.1, 2.2, 2.4_
 
-  - [~] 1.2 Write unit tests for knowledgeStore
+  - [x] 1.2 Write unit tests for knowledgeStore
     - Test initial state has correct defaults (messages=[], conversationId=null, isLoading=false, error=null, inputValue="")
     - Test `sendMessage()` appends user message and calls `/api/knowledge/query` when no conversationId
     - Test `sendMessage()` calls `/api/knowledge/conversation` when conversationId exists
@@ -49,8 +49,8 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStore.test.ts`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.10, 1.11_
 
-- [ ] 2. Knowledge store property tests
-  - [~] 2.1 Write property test for sendMessage state transition
+- [x] 2. Knowledge store property tests
+  - [x] 2.1 Write property test for sendMessage state transition
     - **Property 1: sendMessage state transition**
     - Generate random non-empty, non-whitespace strings
     - Verify: user ChatMessage appended with valid UUID v4 id, role="user", trimmed question as content, empty citations, grounded=true, valid ISO 8601 timestamp; isLoading set to true; error set to null; inputValue set to ""
@@ -59,7 +59,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.2**
 
-  - [~] 2.2 Write property test for endpoint routing based on conversationId
+  - [x] 2.2 Write property test for endpoint routing based on conversationId
     - **Property 2: Endpoint routing based on conversationId**
     - Generate random questions with null/non-null conversationId states
     - Verify: when conversationId is null, POST sent to `/api/knowledge/query` with `{ question, user_id, top_k: 5 }`; when non-null, POST sent to `/api/knowledge/conversation` with `{ question, user_id, conversation_id, top_k: 5 }`
@@ -68,7 +68,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.3, 1.4**
 
-  - [~] 2.3 Write property test for successful response handling
+  - [x] 2.3 Write property test for successful response handling
     - **Property 3: Successful response appends correct assistant message**
     - Generate random API responses with answer string, citations array (0-20 items), grounded boolean, conversation_id string
     - Verify: assistant ChatMessage appended with answer as content, citations mapped correctly, grounded flag preserved, valid ISO 8601 timestamp, conversation_id stored, isLoading set to false
@@ -77,7 +77,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.5**
 
-  - [~] 2.4 Write property test for failed request rollback
+  - [x] 2.4 Write property test for failed request rollback
     - **Property 4: Failed request error handling and rollback**
     - Generate random error scenarios (network error, HTTP 500, HTTP 422)
     - Verify: error set to non-empty string, isLoading set to false, last user message removed from messages array
@@ -86,7 +86,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.6, 1.11**
 
-  - [~] 2.5 Write property test for reset actions
+  - [x] 2.5 Write property test for reset actions
     - **Property 5: Reset actions clear all state**
     - Generate random store states (various messages, conversationId, error, inputValue combinations)
     - Verify: both `startNewConversation` and `clearConversation` set messages=[], conversationId=null, error=null, inputValue=""
@@ -95,7 +95,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.7, 1.8**
 
-  - [~] 2.6 Write property test for request deduplication
+  - [x] 2.6 Write property test for request deduplication
     - **Property 6: Request deduplication when loading**
     - Generate random states with isLoading=true and any question string
     - Verify: sendMessage does not modify messages, does not change isLoading, does not change error, does not initiate network request
@@ -104,7 +104,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.9**
 
-  - [~] 2.7 Write property test for whitespace rejection
+  - [x] 2.7 Write property test for whitespace rejection
     - **Property 7: Whitespace-only input rejection**
     - Generate random strings composed entirely of whitespace (spaces, tabs, newlines, empty string)
     - Verify: sendMessage does not modify messages, does not change isLoading, does not change error, does not initiate network request
@@ -113,7 +113,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 1.10**
 
-  - [~] 2.8 Write property test for ungrounded citations invariant
+  - [x] 2.8 Write property test for ungrounded citations invariant
     - **Property 8: Ungrounded messages have empty citations**
     - Generate random assistant ChatMessages with grounded=false
     - Verify: citations array is empty (length 0)
@@ -122,7 +122,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 2.4**
 
-  - [~] 2.9 Write property test for timestamp formatting
+  - [x] 2.9 Write property test for timestamp formatting
     - **Property 9: Timestamp formatting**
     - Generate random timestamps at various offsets from now
     - Verify: < 60s → "just now"; 60s-60min → "N minutes ago"; 60min-24h → "N hours ago"; > 24h → "HH:MM" 24-hour format
@@ -131,7 +131,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 3.6**
 
-  - [~] 2.10 Write property test for citation link correctness
+  - [x] 2.10 Write property test for citation link correctness
     - **Property 10: Citation link correctness**
     - Generate random SourceCitations with document_uuid, title, version
     - Verify: rendered link href is `/documents/{document_uuid}` and aria-label is "Open document: {title} version {version}"
@@ -140,7 +140,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 4.2, 9.7**
 
-  - [~] 2.11 Write property test for error clearing on new question
+  - [x] 2.11 Write property test for error clearing on new question
     - **Property 11: New question clears previous error**
     - Generate random store states where error is not null, then call sendMessage with valid non-empty question
     - Verify: error is set to null before the API request is made
@@ -149,11 +149,11 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/stores/knowledgeStoreProperties.test.ts`
     - **Validates: Requirements 8.7**
 
-- [~] 3. Checkpoint - Ensure all store tests pass
+- [x] 3. Checkpoint - Ensure all store tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Frontend knowledge chat components
-  - [~] 4.1 Implement ChatMessage component
+- [x] 4. Frontend knowledge chat components
+  - [x] 4.1 Implement ChatMessage component
     - Create `src/frontend/src/components/knowledge/ChatMessage.tsx`
     - Accept props: `message: ChatMessage`, `onCitationClick?: (documentUuid: string) => void`
     - Render user messages: right-aligned bubble with distinct Tailwind background, plain text content, relative timestamp
@@ -163,7 +163,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Display relative timestamp: "just now" (< 60s), "N minutes ago" (< 60min), "N hours ago" (< 24h), "HH:MM" (> 24h)
     - _Requirements: 3.1, 3.2, 3.6, 3.7, 2.3, 10.2, 10.4_
 
-  - [~] 4.2 Implement CitationList component
+  - [x] 4.2 Implement CitationList component
     - Create `src/frontend/src/components/knowledge/CitationList.tsx`
     - Accept props: `citations: SourceCitation[]`, `defaultExpanded?: boolean`
     - Render summary label showing count (e.g., "3 sources") — collapsed by default
@@ -172,14 +172,14 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Maximum 50 citations displayed
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 9.7_
 
-  - [~] 4.3 Implement TypingIndicator component
+  - [x] 4.3 Implement TypingIndicator component
     - Create `src/frontend/src/components/knowledge/TypingIndicator.tsx`
     - No props — purely visual component
     - Render left-aligned assistant-style bubble with animated dots (CSS animation using Tailwind `animate-pulse` or custom keyframes)
     - Include `aria-live="polite"` region with text "Assistant is typing"
     - _Requirements: 6.1, 6.3_
 
-  - [~] 4.4 Implement ChatInput component
+  - [x] 4.4 Implement ChatInput component
     - Create `src/frontend/src/components/knowledge/ChatInput.tsx`
     - Accept props: `value: string`, `onChange: (value: string) => void`, `onSubmit: () => void`, `disabled: boolean`, `maxLength: number`
     - Render multi-line `<textarea>` with placeholder "Ask a question about your documents...", `aria-label="Chat message input"`
@@ -191,8 +191,8 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Do not submit when empty/whitespace
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 9.6, 9.9_
 
-- [ ] 5. KnowledgePage full integration
-  - [~] 5.1 Rewrite KnowledgePage with full component integration
+- [x] 5. KnowledgePage full integration
+  - [x] 5.1 Rewrite KnowledgePage with full component integration
     - Rewrite `src/frontend/src/pages/KnowledgePage.tsx` from static shell to full implementation
     - Full-height flex column layout: header → scrollable message area → input area anchored at bottom
     - Header: title "Knowledge Chat", subtitle "Ask questions about your documents with source citations", "New Conversation" button (`aria-label="Start new conversation"`), "Clear" button (`aria-label="Clear conversation"`), conversation status label ("New conversation" / "Ongoing conversation")
@@ -213,8 +213,8 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Responsive: same flex layout on narrow viewports without overflow
     - _Requirements: 3.3, 3.4, 3.5, 5.4, 6.1, 6.2, 6.3, 6.4, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 9.1, 9.2, 9.3, 9.4, 9.5, 9.8, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-- [ ] 6. Frontend component tests
-  - [~] 6.1 Write unit tests for ChatMessage component
+- [x] 6. Frontend component tests
+  - [x] 6.1 Write unit tests for ChatMessage component
     - Test renders user message right-aligned with correct background class
     - Test renders assistant message left-aligned with correct background class
     - Test renders markdown content as HTML (headings, bold, lists, code blocks)
@@ -225,7 +225,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/components/knowledge/ChatMessage.test.tsx`
     - _Requirements: 3.1, 3.2, 3.6, 3.7, 2.3_
 
-  - [~] 6.2 Write unit tests for CitationList component
+  - [x] 6.2 Write unit tests for CitationList component
     - Test renders collapsed with source count (e.g., "3 sources")
     - Test expands on click to show citation details
     - Test renders title as link to `/documents/{document_uuid}`
@@ -235,13 +235,13 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/components/knowledge/CitationList.test.tsx`
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 9.7_
 
-  - [~] 6.3 Write unit tests for TypingIndicator component
+  - [x] 6.3 Write unit tests for TypingIndicator component
     - Test renders animated dots in assistant bubble style
     - Test has aria-live="polite" with "Assistant is typing" text
     - Target file: `src/frontend/src/__tests__/components/knowledge/TypingIndicator.test.tsx`
     - _Requirements: 6.1_
 
-  - [~] 6.4 Write unit tests for ChatInput component
+  - [x] 6.4 Write unit tests for ChatInput component
     - Test renders textarea with placeholder and aria-label
     - Test renders Send button with aria-label
     - Test submits on Enter when non-empty
@@ -253,7 +253,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/components/knowledge/ChatInput.test.tsx`
     - _Requirements: 5.1, 5.2, 5.3, 5.5, 5.6, 5.7, 9.6, 9.9_
 
-  - [~] 6.5 Write unit tests for KnowledgePage integration
+  - [x] 6.5 Write unit tests for KnowledgePage integration
     - Test renders header with title "Knowledge Chat" and subtitle
     - Test renders welcome placeholder when no messages
     - Test renders New Conversation and Clear buttons with aria-labels
@@ -271,7 +271,7 @@ This plan implements the full RAG Knowledge Base chat UI by creating a new Zusta
     - Target file: `src/frontend/src/__tests__/components/knowledge/KnowledgePage.test.tsx`
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 8.1, 8.2, 8.3, 8.4, 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [~] 7. Final checkpoint - Ensure all tests pass
+- [x] 7. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
