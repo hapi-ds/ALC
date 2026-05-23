@@ -78,7 +78,7 @@
 - [x] **4.3 AI Model Integration (vLLM Service Layer)**
   Implement actual LLM inference calls in the backend service layer (replace mock responses). Embedding generation for document indexing. OCR pipeline for scanned PDFs.
 
-- [~] **4.4 Multimodal Knowledge Base**
+- [x] **4.4 Multimodal Knowledge Base**
 
   Diagram & Flowchart Understanding: Enhances the RAG engine (4.2) to interpret visual process flows and diagrams within documents for complex process-related queries.
 
@@ -88,7 +88,7 @@
 
 ## Phase 5 — Multi-Agent Document Review System
 
-- [ ] **5.1 Modular Agent Registry & Personality Framework**
+- [~] **5.1 Modular Agent Registry & Personality Framework**
 
   Pluggable Agent Archetypes: Define a base Agent class with configurable parameters: personality, domain expertise, and system prompts.
 

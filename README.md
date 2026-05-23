@@ -74,9 +74,11 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 3.3 | Training Management UI | ✅ Complete |
 | 3.4 | Electronic Signatures UI | ✅ Complete |
 | 3.5 | Comprehension Quiz & Dual Gate | ✅ Complete |
-| 4.1 | Search UI Integration | 🔲 Planned |
-| 4.2 | RAG Knowledge Base UI | 🔲 Planned |
+| 4.1 | Search UI Integration | ✅ Complete |
+| 4.2 | RAG Knowledge Base UI | ✅ Complete |
 | 4.3 | AI Model Integration (vLLM) | ✅ Complete |
+| 4.4 | Multimodal Knowledge Base | ✅ Complete |
+| 5.1 | Modular Agent Registry | 🔄 In Progress |
 | 5.x | Multi-Agent Document Review | 🔲 Planned |
 
 See the full roadmap in [`todo.md`](todo.md).
@@ -97,6 +99,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Comprehension Quiz](docs/quiz-comprehension-guide.md) | Quiz taking, scoring, pass/fail, dual gate verification, audit trail |
 | [Electronic Signatures](docs/electronic-signatures-guide.md) | PAdES signing, re-authentication, verification, certificate configuration |
 | [AI Inference](docs/ai-inference-guide.md) | vLLM integration: RAG queries, embeddings, OCR, health monitoring, mock mode |
+| [Search & Knowledge Base](docs/search-knowledge-guide.md) | Hybrid search, RAG knowledge chat, document indexing, visual content |
 
 ---
 
