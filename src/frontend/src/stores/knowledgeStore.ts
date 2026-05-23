@@ -11,6 +11,8 @@ export interface SourceCitation {
   title: string; // max 255 chars
   version: string; // semver-like, e.g. "1.0", "2.1"
   page_or_section: string; // max 100 chars
+  content_type?: "text" | "visual"; // defaults to "text" if absent
+  visual_type?: "flowchart" | "diagram" | "chart" | "mixed"; // present when content_type is "visual"
 }
 
 export interface ChatMessage {

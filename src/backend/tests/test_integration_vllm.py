@@ -62,6 +62,7 @@ class _MockSettings:
     model_manager_mode = "mock"
     vllm_base_url = "http://localhost:8000"
     vllm_embedding_url = "http://localhost:8001"
+    visual_boost_factor = 1.5
 
 
 # ---------------------------------------------------------------------------

@@ -49,7 +49,8 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 * PostgreSQL (Source of truth, GLP records, User roles)
 * MinIO (S3-compatible object storage for physical PDFs)
 * OpenSearch (Vector database for RAG and hybrid lexical/semantic search)
-* vLLM & LlamaIndex (Local LLM inference & orchestration)
+* vLLM (Local LLM inference — hybrid architecture with dedicated embedding instance + shared chat/OCR instance)
+* httpx (Async HTTP client with connection pooling for vLLM communication)
 
 **Validation:**
 * Playwright (Automated E2E testing for the CSV module)
@@ -73,7 +74,9 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 3.3 | Training Management UI | ✅ Complete |
 | 3.4 | Electronic Signatures UI | ✅ Complete |
 | 3.5 | Comprehension Quiz & Dual Gate | ✅ Complete |
-| 4.x | Search, Knowledge & AI Integration | 🔲 Planned |
+| 4.1 | Search UI Integration | 🔲 Planned |
+| 4.2 | RAG Knowledge Base UI | 🔲 Planned |
+| 4.3 | AI Model Integration (vLLM) | ✅ Complete |
 | 5.x | Multi-Agent Document Review | 🔲 Planned |
 
 See the full roadmap in [`todo.md`](todo.md).
@@ -93,6 +96,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Training Management](docs/training-management-guide.md) | Training tasks, content viewer, records, gate enforcement, admin view |
 | [Comprehension Quiz](docs/quiz-comprehension-guide.md) | Quiz taking, scoring, pass/fail, dual gate verification, audit trail |
 | [Electronic Signatures](docs/electronic-signatures-guide.md) | PAdES signing, re-authentication, verification, certificate configuration |
+| [AI Inference](docs/ai-inference-guide.md) | vLLM integration: RAG queries, embeddings, OCR, health monitoring, mock mode |
 
 ---
 

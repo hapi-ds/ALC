@@ -75,10 +75,10 @@
 - [x] **4.2 RAG Knowledge Base UI**
   Chat-style interface for asking questions against documents. Show source citations with links to original documents. Conversation history.
 
-- [~] **4.3 AI Model Integration (vLLM Service Layer)**
+- [x] **4.3 AI Model Integration (vLLM Service Layer)**
   Implement actual LLM inference calls in the backend service layer (replace mock responses). Embedding generation for document indexing. OCR pipeline for scanned PDFs.
 
-- [ ] **4.4 Multimodal Knowledge Base**
+- [~] **4.4 Multimodal Knowledge Base**
 
   Diagram & Flowchart Understanding: Enhances the RAG engine (4.2) to interpret visual process flows and diagrams within documents for complex process-related queries.
 

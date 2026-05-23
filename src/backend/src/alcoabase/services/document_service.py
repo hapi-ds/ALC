@@ -2,23 +2,40 @@
 
 Provides document lifecycle management including creation with UUID
 generation, version management (major/minor), retrieval, and search
-with pagination.
+with pagination. Supports video file uploads with ffprobe metadata
+extraction.
 
 References:
     - Design doc Section 3: Document Service
     - Requirements 1, 2: Document creation, versioning, retrieval, search
+    - Requirements 4.1-4.7: Video file upload and storage
 """
 
+import asyncio
 import hashlib
+import json
+import logging
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from alcoabase.config import get_settings
 from alcoabase.models.document import Document, DocumentTag, DocumentVersion
+from alcoabase.models.video import VideoMetadata
 from alcoabase.services.storage_service import StorageService
 from alcoabase.services.uuid_service import UUIDService
+
+logger = logging.getLogger(__name__)
+
+# Supported video content types (Requirement 4.1)
+VIDEO_CONTENT_TYPES: set[str] = {
+    "video/mp4",
+    "video/x-msvideo",
+    "video/quicktime",
+    "video/webm",
+}
 
 
 class DocumentService:
@@ -133,6 +150,252 @@ class DocumentService:
             except Exception:
                 pass  # Best-effort cleanup
             raise
+
+    def _is_video_content_type(self, content_type: str) -> bool:
+        """Check if the content type is a supported video format.
+
+        Args:
+            content_type: MIME type to check.
+
+        Returns:
+            True if the content type is a supported video format.
+        """
+        return content_type in VIDEO_CONTENT_TYPES
+
+    def _validate_video_upload(
+        self, file_data: bytes, content_type: str
+    ) -> str | None:
+        """Validate video file size and content type.
+
+        Args:
+            file_data: The uploaded file bytes.
+            content_type: MIME type of the uploaded file.
+
+        Returns:
+            Error message string if validation fails, None if valid.
+        """
+        settings = get_settings()
+
+        if content_type not in VIDEO_CONTENT_TYPES:
+            supported = ", ".join(sorted(VIDEO_CONTENT_TYPES))
+            return (
+                f"Unsupported video content type: '{content_type}'. "
+                f"Supported types: {supported}"
+            )
+
+        file_size = len(file_data)
+        if file_size == 0:
+            return "Video file size must be greater than 0 bytes."
+
+        if file_size > settings.video_max_file_size_bytes:
+            max_gb = settings.video_max_file_size_bytes / (1024 * 1024 * 1024)
+            return (
+                f"Video file size ({file_size} bytes) exceeds maximum "
+                f"allowed size ({max_gb:.1f} GB)."
+            )
+
+        return None
+
+    async def _extract_video_metadata(
+        self, file_data: bytes
+    ) -> dict[str, Any]:
+        """Extract video metadata using ffprobe with a 30-second timeout.
+
+        Writes file data to a temporary file, runs ffprobe, and parses
+        the JSON output to extract duration, resolution, frame count,
+        and codec information.
+
+        Args:
+            file_data: The video file bytes.
+
+        Returns:
+            Dictionary with keys: duration_seconds, resolution_width,
+            resolution_height, frame_count, codec. Values are None if
+            extraction fails.
+        """
+        import tempfile
+        import os
+
+        settings = get_settings()
+        null_metadata: dict[str, Any] = {
+            "duration_seconds": None,
+            "resolution_width": None,
+            "resolution_height": None,
+            "frame_count": None,
+            "codec": None,
+        }
+
+        # Write to temp file for ffprobe to read
+        tmp_path: str | None = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                delete=False, suffix=".video"
+            ) as tmp:
+                tmp.write(file_data)
+                tmp_path = tmp.name
+
+            # Run ffprobe with JSON output and 30s timeout
+            cmd = [
+                settings.ffprobe_path,
+                "-v", "quiet",
+                "-print_format", "json",
+                "-show_format",
+                "-show_streams",
+                "-select_streams", "v:0",
+                tmp_path,
+            ]
+
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    process.communicate(), timeout=30.0
+                )
+            except asyncio.TimeoutError:
+                process.kill()
+                await process.wait()
+                logger.warning(
+                    "ffprobe timed out after 30 seconds for video upload"
+                )
+                return null_metadata
+
+            if process.returncode != 0:
+                logger.warning(
+                    "ffprobe failed with return code %d: %s",
+                    process.returncode,
+                    stderr.decode(errors="replace")[:500],
+                )
+                return null_metadata
+
+            # Parse ffprobe JSON output
+            probe_data = json.loads(stdout.decode())
+            streams = probe_data.get("streams", [])
+            format_info = probe_data.get("format", {})
+
+            if not streams:
+                logger.warning("ffprobe found no video streams")
+                return null_metadata
+
+            video_stream = streams[0]
+
+            # Extract duration from format (more reliable) or stream
+            duration_str = format_info.get(
+                "duration", video_stream.get("duration")
+            )
+            duration_seconds: float | None = None
+            if duration_str is not None:
+                try:
+                    duration_seconds = float(duration_str)
+                except (ValueError, TypeError):
+                    pass
+
+            # Extract resolution
+            resolution_width: int | None = video_stream.get("width")
+            resolution_height: int | None = video_stream.get("height")
+
+            # Extract frame count
+            frame_count: int | None = None
+            nb_frames = video_stream.get("nb_frames")
+            if nb_frames is not None:
+                try:
+                    frame_count = int(nb_frames)
+                except (ValueError, TypeError):
+                    pass
+
+            # Extract codec
+            codec: str | None = video_stream.get("codec_name")
+
+            return {
+                "duration_seconds": duration_seconds,
+                "resolution_width": resolution_width,
+                "resolution_height": resolution_height,
+                "frame_count": frame_count,
+                "codec": codec,
+            }
+
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("ffprobe metadata extraction failed: %s", e)
+            return null_metadata
+        finally:
+            if tmp_path and os.path.exists(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+
+    async def create_video_document(
+        self,
+        session: AsyncSession,
+        file_data: bytes,
+        title: str,
+        folder_path: str,
+        tags: list[str],
+        user_id: int,
+        content_type: str,
+        company_id: int | None = None,
+    ) -> Document:
+        """Create a new video document with metadata extraction.
+
+        Validates the video file, uploads to MinIO, extracts metadata
+        via ffprobe, stores video metadata in the video_metadata table,
+        and sets document_type to "Training Video". Does NOT auto-trigger
+        frame extraction (Requirement 4.7).
+
+        Args:
+            session: Active async database session.
+            file_data: The video file content as bytes.
+            title: Document title.
+            folder_path: Logical folder path for organization.
+            tags: List of classification tags.
+            user_id: ID of the creating user.
+            content_type: MIME type of the video file.
+            company_id: Optional company ID for tenant scoping.
+
+        Returns:
+            The created Document instance.
+
+        Raises:
+            ValueError: If video validation fails (size or content type).
+        """
+        # Validate video file (Requirements 4.1, 4.2)
+        validation_error = self._validate_video_upload(file_data, content_type)
+        if validation_error:
+            raise ValueError(validation_error)
+
+        # Extract video metadata via ffprobe (Requirements 4.3, 4.4, 4.5)
+        metadata = await self._extract_video_metadata(file_data)
+
+        # Create the document with document_type "Training Video" (Req 4.1)
+        document = await self.create_document(
+            session=session,
+            file_data=file_data,
+            title=title,
+            folder_path=folder_path,
+            document_type="Training Video",
+            tags=tags,
+            user_id=user_id,
+            content_type=content_type,
+            company_id=company_id,
+        )
+
+        # Store video metadata in video_metadata table (Req 4.3)
+        video_meta = VideoMetadata(
+            document_id=document.id,
+            duration_seconds=metadata["duration_seconds"],
+            resolution_width=metadata["resolution_width"],
+            resolution_height=metadata["resolution_height"],
+            frame_count=metadata["frame_count"],
+            codec=metadata["codec"],
+        )
+        session.add(video_meta)
+        await session.flush()
+
+        # Do NOT auto-trigger frame extraction (Requirement 4.7)
+        return document
 
     async def create_version(
         self,

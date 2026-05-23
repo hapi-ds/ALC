@@ -200,6 +200,65 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Multimodal Knowledge Base
+    # ─────────────────────────────────────────────────────────────────────
+
+    enable_visual_indexing: bool = Field(
+        default=True,
+        description="Enable or disable visual content indexing during document processing.",
+        alias="ENABLE_VISUAL_INDEXING",
+    )
+    visual_boost_factor: float = Field(
+        default=1.5,
+        ge=1.0,
+        le=3.0,
+        description="Boost factor for visual chunks in process-related RAG queries (1.0-3.0).",
+        alias="VISUAL_BOOST_FACTOR",
+    )
+    max_visual_pages_per_document: int = Field(
+        default=100,
+        ge=1,
+        description="Maximum number of visual pages to process per document.",
+        alias="MAX_VISUAL_PAGES_PER_DOCUMENT",
+    )
+    video_max_file_size_bytes: int = Field(
+        default=2_147_483_648,
+        ge=1,
+        description="Maximum video file size in bytes (default 2 GB).",
+        alias="VIDEO_MAX_FILE_SIZE_BYTES",
+    )
+    video_max_frames: int = Field(
+        default=500,
+        ge=1,
+        description="Maximum number of frames to extract from a video.",
+        alias="VIDEO_MAX_FRAMES",
+    )
+    frame_similarity_threshold: float = Field(
+        default=0.85,
+        ge=0.0,
+        le=1.0,
+        description="Cosine similarity threshold for consolidating similar frames into steps.",
+        alias="FRAME_SIMILARITY_THRESHOLD",
+    )
+    alignment_match_threshold: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Semantic similarity threshold for matching video steps to SOP steps.",
+        alias="ALIGNMENT_MATCH_THRESHOLD",
+    )
+    ffmpeg_path: str = Field(
+        default="ffmpeg",
+        description="Path to the ffmpeg binary.",
+        alias="FFMPEG_PATH",
+    )
+    ffprobe_path: str = Field(
+        default="ffprobe",
+        description="Path to the ffprobe binary.",
+        alias="FFPROBE_PATH",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # Application
     # ─────────────────────────────────────────────────────────────────────
 

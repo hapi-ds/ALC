@@ -226,4 +226,119 @@ describe("CitationList", () => {
     expect(screen.getByText("Document 1")).not.toBeNull();
     expect(screen.getByText("Document 2")).not.toBeNull();
   });
+
+  it("renders visual citation with image icon and visual_type badge", async () => {
+    const user = userEvent.setup();
+    const citations: SourceCitation[] = [
+      {
+        document_uuid: "doc-visual-001",
+        title: "Process Flow Doc",
+        version: "1.0",
+        page_or_section: "Page 3",
+        content_type: "visual",
+        visual_type: "flowchart",
+      },
+    ];
+    renderCitationList(citations);
+
+    // Expand the list
+    await user.click(screen.getByRole("button"));
+
+    // Visual icon should be present with aria-label
+    expect(screen.getByLabelText("Visual content")).not.toBeNull();
+
+    // Visual type badge should display "flowchart"
+    expect(screen.getByText("flowchart")).not.toBeNull();
+
+    // Title link and page reference should still render
+    expect(screen.getByText("Process Flow Doc")).not.toBeNull();
+    expect(screen.getByText("Page 3")).not.toBeNull();
+  });
+
+  it("renders text citation with document icon when content_type is text", async () => {
+    const user = userEvent.setup();
+    const citations: SourceCitation[] = [
+      {
+        document_uuid: "doc-text-001",
+        title: "Standard SOP",
+        version: "2.0",
+        page_or_section: "Section 1",
+        content_type: "text",
+      },
+    ];
+    renderCitationList(citations);
+
+    // Expand the list
+    await user.click(screen.getByRole("button"));
+
+    // Text icon should be present
+    expect(screen.getByLabelText("Text content")).not.toBeNull();
+
+    // No visual_type badge should be present
+    expect(screen.queryByText("flowchart")).toBeNull();
+    expect(screen.queryByText("diagram")).toBeNull();
+  });
+
+  it("renders text icon by default when content_type is absent", async () => {
+    const user = userEvent.setup();
+    const citations: SourceCitation[] = [
+      {
+        document_uuid: "doc-default-001",
+        title: "Legacy Doc",
+        version: "1.0",
+        page_or_section: "Page 1",
+      },
+    ];
+    renderCitationList(citations);
+
+    // Expand the list
+    await user.click(screen.getByRole("button"));
+
+    // Should render text icon (default behavior for citations without content_type)
+    expect(screen.getByLabelText("Text content")).not.toBeNull();
+
+    // No visual indicator should be present
+    expect(screen.queryByLabelText("Visual content")).toBeNull();
+  });
+
+  it("renders mixed visual and text citations correctly", async () => {
+    const user = userEvent.setup();
+    const citations: SourceCitation[] = [
+      {
+        document_uuid: "doc-001",
+        title: "Text Document",
+        version: "1.0",
+        page_or_section: "Page 1",
+        content_type: "text",
+      },
+      {
+        document_uuid: "doc-002",
+        title: "Diagram Document",
+        version: "2.0",
+        page_or_section: "Page 5",
+        content_type: "visual",
+        visual_type: "diagram",
+      },
+      {
+        document_uuid: "doc-003",
+        title: "Chart Document",
+        version: "1.1",
+        page_or_section: "Page 8",
+        content_type: "visual",
+        visual_type: "chart",
+      },
+    ];
+    renderCitationList(citations);
+
+    // Expand the list
+    await user.click(screen.getByRole("button"));
+
+    // Should have 1 text icon and 2 visual icons
+    expect(screen.getAllByLabelText("Text content").length).toBe(1);
+    expect(screen.getAllByLabelText("Visual content").length).toBe(2);
+
+    // Visual type badges should be present for visual citations
+    expect(screen.getByText("diagram")).not.toBeNull();
+    expect(screen.getByText("chart")).not.toBeNull();
+  });
 });

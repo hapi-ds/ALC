@@ -59,10 +59,10 @@ def _compute_violations(password: str) -> set[str]:
     if not any(c in string.ascii_lowercase for c in password):
         violations.add(ERROR_LOWERCASE)
 
-    if not any(c in string.digits for c in password):
+    if not re.search(r"\d", password):
         violations.add(ERROR_DIGIT)
 
-    if not any(c not in string.ascii_letters + string.digits for c in password):
+    if not re.search(r"[^a-zA-Z0-9]", password):
         violations.add(ERROR_SPECIAL)
 
     return violations

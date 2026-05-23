@@ -69,12 +69,17 @@ class SourceCitation:
         title: Document title.
         version: Document version string.
         page_or_section: Page number or section identifier.
+        content_type: Type of content ("text" or "visual").
+        visual_type: Visual element type when content_type is "visual"
+            (flowchart, diagram, chart, mixed). None for text chunks.
     """
 
     document_uuid: str
     title: str
     version: str
     page_or_section: str
+    content_type: str = "text"
+    visual_type: str | None = None
 
 
 @dataclass
@@ -135,6 +140,13 @@ class RAGPipeline:
         "Please try rephrasing your question or check that relevant "
         "documents have been indexed."
     )
+
+    # Visual chunk retrieval constants
+    VISUAL_BOOST_KEYWORDS: list[str] = [
+        "process", "flow", "flowchart", "diagram", "workflow",
+        "steps", "procedure", "decision tree", "sequence",
+    ]
+    MAX_VISUAL_CHUNKS_PER_QUERY: int = 3
 
     def __init__(
         self,
@@ -219,6 +231,12 @@ class RAGPipeline:
         # Step 3: Extract citations (Task 13.2)
         citations = self._extract_citations(search_results)
 
+        # Step 3a: Apply visual boost for process-related queries
+        search_results = self._apply_visual_boost(question, search_results)
+
+        # Step 3b: Limit visual chunks and re-sort by relevance
+        search_results = self._limit_visual_chunks(search_results)
+
         # Step 4: Truncate context to fit within token limit
         truncated_results = self._truncate_context(search_results)
 
@@ -247,8 +265,9 @@ class RAGPipeline:
     ) -> list[SourceCitation]:
         """Extract source citations from search results.
 
-        Each citation includes Document-UUID, title, version, and
-        page/section information.
+        Each citation includes Document-UUID, title, version,
+        page/section information, and content_type/visual_type for
+        visual chunks.
 
         Args:
             search_results: List of search results from KnowledgeService.
@@ -273,12 +292,24 @@ class RAGPipeline:
             if isinstance(page_or_section, int):
                 page_or_section = f"Page {page_or_section}"
 
+            # Determine content_type and visual_type from metadata
+            is_visual = result.metadata.get("is_visual", False)
+            content_type_value = result.metadata.get("content_type", "text")
+            if is_visual or content_type_value == "visual":
+                content_type = "visual"
+                visual_type = result.metadata.get("visual_type")
+            else:
+                content_type = "text"
+                visual_type = None
+
             citations.append(
                 SourceCitation(
                     document_uuid=result.document_uuid,
                     title=result.title,
                     version=result.version,
                     page_or_section=str(page_or_section),
+                    content_type=content_type,
+                    visual_type=visual_type,
                 )
             )
 
@@ -340,6 +371,109 @@ class RAGPipeline:
         self._conversations.pop(conversation_id, None)
 
     # -----------------------------------------------------------------------
+    # Visual Chunk Handling (Task 5.1)
+    # -----------------------------------------------------------------------
+
+    def _apply_visual_boost(
+        self,
+        query: str,
+        results: list[SearchResult],
+    ) -> list[SearchResult]:
+        """Boost Visual_Chunk relevance for process-related queries.
+
+        If the query contains any VISUAL_BOOST_KEYWORDS, multiply the
+        relevance_score of Visual_Chunks by the configured VISUAL_BOOST_FACTOR.
+
+        Args:
+            query: The user's search query.
+            results: Search results from hybrid search.
+
+        Returns:
+            Results with boosted scores for visual chunks (if applicable).
+        """
+        query_lower = query.lower()
+        has_keyword = any(
+            keyword in query_lower for keyword in self.VISUAL_BOOST_KEYWORDS
+        )
+
+        if not has_keyword:
+            return results
+
+        boost_factor = self._settings.visual_boost_factor
+
+        boosted: list[SearchResult] = []
+        for result in results:
+            is_visual = result.metadata.get("is_visual", False)
+            content_type = result.metadata.get("content_type", "text")
+
+            if is_visual or content_type == "visual":
+                # Create a new SearchResult with boosted score
+                boosted.append(
+                    SearchResult(
+                        document_uuid=result.document_uuid,
+                        title=result.title,
+                        version=result.version,
+                        excerpt=result.excerpt,
+                        relevance_score=result.relevance_score * boost_factor,
+                        metadata=result.metadata,
+                        document_type=result.document_type,
+                        status=result.status,
+                        tags=result.tags,
+                        created_at=result.created_at,
+                        updated_at=result.updated_at,
+                    )
+                )
+            else:
+                boosted.append(result)
+
+        return boosted
+
+    def _limit_visual_chunks(
+        self,
+        results: list[SearchResult],
+    ) -> list[SearchResult]:
+        """Limit Visual_Chunks to MAX_VISUAL_CHUNKS_PER_QUERY.
+
+        Selects the top-N highest-relevance Visual_Chunks and fills
+        remaining slots (up to top_k) with text chunks. Results are
+        returned sorted by relevance score descending.
+
+        Args:
+            results: Ranked search results (possibly with boosted scores).
+
+        Returns:
+            Filtered results respecting the visual chunk limit.
+        """
+        visual_chunks: list[SearchResult] = []
+        text_chunks: list[SearchResult] = []
+
+        for result in results:
+            is_visual = result.metadata.get("is_visual", False)
+            content_type = result.metadata.get("content_type", "text")
+
+            if is_visual or content_type == "visual":
+                visual_chunks.append(result)
+            else:
+                text_chunks.append(result)
+
+        # Sort visual chunks by relevance (highest first) and cap at limit
+        visual_chunks.sort(key=lambda r: r.relevance_score, reverse=True)
+        selected_visual = visual_chunks[: self.MAX_VISUAL_CHUNKS_PER_QUERY]
+
+        # Sort text chunks by relevance (highest first)
+        text_chunks.sort(key=lambda r: r.relevance_score, reverse=True)
+
+        # Fill remaining slots with text chunks
+        remaining_slots = self._top_k - len(selected_visual)
+        selected_text = text_chunks[:max(0, remaining_slots)]
+
+        # Combine and sort by relevance score descending
+        combined = selected_visual + selected_text
+        combined.sort(key=lambda r: r.relevance_score, reverse=True)
+
+        return combined
+
+    # -----------------------------------------------------------------------
     # LLM Response Generation
     # -----------------------------------------------------------------------
 
@@ -356,7 +490,8 @@ class RAGPipeline:
         """Build context text from search results for LLM prompt.
 
         Formats each chunk with the source reference pattern:
-        [Source N: {title} v{version}] followed by the chunk text.
+        - Visual chunks: [Source N: {title} v{version} - {visual_type} on page {source_page}]
+        - Text chunks: [Source N: {title} v{version}]
 
         Args:
             search_results: Retrieved document chunks.
@@ -366,9 +501,20 @@ class RAGPipeline:
         """
         context_parts: list[str] = []
         for i, result in enumerate(search_results, 1):
-            context_parts.append(
-                f"[Source {i}: {result.title} v{result.version}]\n{result.excerpt}"
-            )
+            is_visual = result.metadata.get("is_visual", False)
+            content_type = result.metadata.get("content_type", "text")
+
+            if is_visual or content_type == "visual":
+                visual_type = result.metadata.get("visual_type", "diagram")
+                source_page = result.metadata.get("source_page", "unknown")
+                header = (
+                    f"[Source {i}: {result.title} v{result.version} "
+                    f"- {visual_type} on page {source_page}]"
+                )
+            else:
+                header = f"[Source {i}: {result.title} v{result.version}]"
+
+            context_parts.append(f"{header}\n{result.excerpt}")
         return "\n\n".join(context_parts)
 
     def _truncate_context(
