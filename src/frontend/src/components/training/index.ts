@@ -17,6 +17,18 @@ export { TrainingGateGuard } from "./TrainingGateGuard";
 export { TrainingStatusBanner } from "./TrainingStatusBanner";
 export { QuizTakingUI } from "./QuizTakingUI";
 
+// AI Training Ecosystem Components
+export { TrainingSchedulePanel } from "./TrainingSchedulePanel";
+export { SkillGapAlert } from "./SkillGapAlert";
+export { TrainingMaterialViewer } from "./TrainingMaterialViewer";
+export { VirtualAuditInterface } from "./VirtualAuditInterface";
+export { DynamicFeedbackPanel } from "./DynamicFeedbackPanel";
+export { JobMonitor } from "./JobMonitor";
+export { GenerateActions } from "./GenerateActions";
+
+// AI Training Ecosystem Types
+export type { TrainingItem } from "./TrainingSchedulePanel";
+
 // Types
 export type {
   TrainingTask,

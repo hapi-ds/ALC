@@ -450,20 +450,20 @@ function AgentReportCard({ review }: { review: AgentReview }) {
       {expanded && (
         <div id={`agent-report-${review.id}`} className="border-t border-border p-3 space-y-3">
           {/* Summary */}
-          {report?.summary && (
+          {report?.summary ? (
             <div className="space-y-1">
               <h4 className="text-xs font-medium text-muted-foreground uppercase">Summary</h4>
               <p className="text-sm">{String(report.summary)}</p>
             </div>
-          )}
+          ) : null}
 
           {/* Overall status */}
-          {report?.overall_status && (
+          {report?.overall_status ? (
             <div className="text-sm">
               <span className="text-muted-foreground">Overall Status: </span>
               <span className="font-medium">{String(report.overall_status)}</span>
             </div>
-          )}
+          ) : null}
 
           {/* Findings table */}
           {findings.length > 0 && (
@@ -682,18 +682,18 @@ function FindingRow({
   return (
     <div className={cn("border-l-2 pl-3 py-1 text-sm", borderColor)}>
       <div className="flex items-center gap-2">
-        {finding.severity && <SeverityBadge severity={String(finding.severity)} />}
-        {finding.chapter && (
+        {finding.severity ? <SeverityBadge severity={String(finding.severity)} /> : null}
+        {finding.chapter ? (
           <span className="text-xs text-muted-foreground">
             {String(finding.chapter)}
           </span>
-        )}
+        ) : null}
       </div>
-      {finding.description && (
+      {finding.description ? (
         <p className="text-muted-foreground text-xs mt-0.5">
           {String(finding.description)}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

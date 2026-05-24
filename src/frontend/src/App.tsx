@@ -9,6 +9,7 @@ import { TemplateDetailPage } from "@/pages/TemplateDetailPage";
 import { WorkflowListPage } from "@/pages/WorkflowListPage";
 import { WorkflowEditorPage } from "@/pages/WorkflowEditorPage";
 import { TrainingPage } from "@/pages/TrainingPage";
+import { TrainingEcosystemPage } from "@/pages/TrainingEcosystemPage";
 import { SearchPage } from "@/pages/SearchPage";
 import { KnowledgePage } from "@/pages/KnowledgePage";
 import { AgentsPage } from "@/pages/AgentsPage";
@@ -54,6 +55,7 @@ function AuthenticatedApp() {
         <Route path="workflows/new" element={<WorkflowEditorPage mode="create" />} />
         <Route path="workflows/:workflowId/edit" element={<WorkflowEditorPage mode="edit" />} />
         <Route path="training" element={<TrainingPage />} />
+        <Route path="training/ecosystem" element={<TrainingEcosystemPage />} />
         <Route path="search" element={<SearchPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="agents" element={<AgentsPage />} />

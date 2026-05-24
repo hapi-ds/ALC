@@ -27,6 +27,11 @@ from alcoabase.api.audit_profiles import router as audit_profiles_router
 from alcoabase.api.compliance import router as compliance_router
 from alcoabase.api.reviews import router as reviews_router
 from alcoabase.api.video_alignment import router as video_alignment_router
+from alcoabase.api.training_feedback import router as training_feedback_router
+from alcoabase.api.training_materials import router as training_materials_router
+from alcoabase.api.training_planner import router as training_planner_router
+from alcoabase.api.training_questions import router as training_questions_router
+from alcoabase.api.training_roleplay import router as training_roleplay_router
 from alcoabase.api.auth import auth_router
 
 # ---------------------------------------------------------------------------
@@ -57,6 +62,11 @@ api_router.include_router(agent_activations_router)
 api_router.include_router(audit_profiles_router)
 api_router.include_router(reviews_router)
 api_router.include_router(video_alignment_router)
+api_router.include_router(training_feedback_router)
+api_router.include_router(training_materials_router)
+api_router.include_router(training_planner_router)
+api_router.include_router(training_questions_router)
+api_router.include_router(training_roleplay_router)
 api_router.include_router(compliance_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")

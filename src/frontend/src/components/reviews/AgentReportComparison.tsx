@@ -201,11 +201,11 @@ function ReportPanel({
         data-testid={`report-panel-${index}`}
       >
         {/* Summary */}
-        {report?.summary && (
+        {report?.summary ? (
           <div className="text-xs text-muted-foreground pb-2 border-b border-border/50">
             {String(report.summary)}
           </div>
-        )}
+        ) : null}
 
         {/* Findings */}
         {findings.length === 0 ? (

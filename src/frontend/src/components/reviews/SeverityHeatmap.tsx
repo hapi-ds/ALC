@@ -78,7 +78,7 @@ function getCellColorClass(severity: SeverityLevel, count: number, maxCount: num
 /**
  * Get appropriate text color for contrast against the cell background.
  */
-function getCellTextClass(severity: SeverityLevel, count: number, maxCount: number): string {
+function getCellTextClass(_severity: SeverityLevel, count: number, maxCount: number): string {
   if (count === 0) return "text-gray-400";
   if (maxCount === 0) return "text-gray-700";
   const ratio = count / maxCount;

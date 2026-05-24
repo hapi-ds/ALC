@@ -23,13 +23,22 @@ def upgrade() -> None:
 
     Adds a nullable String(500) column to store the audit reason for each
     state transition. Existing records will have NULL for this column.
+    Skips if the table does not exist (may have been removed in a later migration).
     """
-    op.add_column(
-        "workflow_transition_audits",
-        sa.Column("change_reason", sa.String(500), nullable=True),
-    )
+    from alembic import context
+    bind = context.get_bind()
+    inspector = sa.inspect(bind)
+    if "workflow_transition_audits" in inspector.get_table_names():
+        op.add_column(
+            "workflow_transition_audits",
+            sa.Column("change_reason", sa.String(500), nullable=True),
+        )
 
 
 def downgrade() -> None:
     """Remove change_reason column from workflow_transition_audits."""
-    op.drop_column("workflow_transition_audits", "change_reason")
+    from alembic import context
+    bind = context.get_bind()
+    inspector = sa.inspect(bind)
+    if "workflow_transition_audits" in inspector.get_table_names():
+        op.drop_column("workflow_transition_audits", "change_reason")

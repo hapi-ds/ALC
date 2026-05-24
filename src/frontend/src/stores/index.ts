@@ -15,3 +15,5 @@ export { useKnowledgeStore } from "./knowledgeStore";
 export type { KnowledgeState, ChatMessage, SourceCitation } from "./knowledgeStore";
 export { useReviewStore } from "./reviewStore";
 export type { ReviewState } from "./reviewStore";
+export { useTrainingEcosystemStore } from "./trainingEcosystemStore";
+export type { TrainingEcosystemState } from "./trainingEcosystemStore";

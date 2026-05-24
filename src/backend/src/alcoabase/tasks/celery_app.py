@@ -42,6 +42,17 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute="*/15"),
         "options": {"queue": "default"},
     },
+    "recalculate-skill-gaps-every-6-hours": {
+        "task": "alcoabase.tasks.training_tasks.recalculate_skill_gaps",
+        "schedule": crontab(minute=0, hour="*/6"),
+        "kwargs": {"company_id": None},
+        "options": {"queue": "ai_operations"},
+    },
+    "abandon-stale-roleplay-sessions": {
+        "task": "alcoabase.tasks.training_tasks.abandon_stale_sessions",
+        "schedule": crontab(minute="*/15"),
+        "options": {"queue": "ai_operations"},
+    },
 }
 
 # Auto-discover tasks in the tasks package

@@ -8,6 +8,7 @@ export { WorkflowsPage } from "./WorkflowsPage";
 export { WorkflowEditorPage } from "./WorkflowEditorPage";
 export { WorkflowListPage } from "./WorkflowListPage";
 export { TrainingPage } from "./TrainingPage";
+export { TrainingEcosystemPage } from "./TrainingEcosystemPage";
 export { SearchPage } from "./SearchPage";
 export { KnowledgePage } from "./KnowledgePage";
 export { AgentsPage } from "./AgentsPage";
