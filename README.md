@@ -44,6 +44,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 * SpiffWorkflow (BPMN Workflow Engine)
 * Celery + Redis (Background Jobs)
 * ReportLab & PyMuPDF (PDF Generation & UUID Extraction)
+* watchfiles (Agent YAML hot-reload)
 
 **Data & AI Layer:**
 * PostgreSQL (Source of truth, GLP records, User roles)
@@ -78,7 +79,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 4.2 | RAG Knowledge Base UI | ✅ Complete |
 | 4.3 | AI Model Integration (vLLM) | ✅ Complete |
 | 4.4 | Multimodal Knowledge Base | ✅ Complete |
-| 5.1 | Modular Agent Registry | 🔄 In Progress |
+| 5.1 | Modular Agent Registry & Personality Framework | ✅ Complete |
 | 5.x | Multi-Agent Document Review | 🔲 Planned |
 
 See the full roadmap in [`todo.md`](todo.md).
@@ -100,6 +101,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Electronic Signatures](docs/electronic-signatures-guide.md) | PAdES signing, re-authentication, verification, certificate configuration |
 | [AI Inference](docs/ai-inference-guide.md) | vLLM integration: RAG queries, embeddings, OCR, health monitoring, mock mode |
 | [Search & Knowledge Base](docs/search-knowledge-guide.md) | Hybrid search, RAG knowledge chat, document indexing, visual content |
+| [Agent Management](docs/agent-management-guide.md) | Agent registry, archetypes, personality profiles, tuning parameters, hot-reload |
 
 ---
 

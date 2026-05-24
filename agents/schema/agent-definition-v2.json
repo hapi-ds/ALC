@@ -1,0 +1,301 @@
+{
+  "title": "Agent Definition v2",
+  "description": "Schema for AlcoaBase Agent Definition YAML files (v2)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "name",
+    "description",
+    "system_prompt",
+    "dspy_modules",
+    "knowledge_scopes",
+    "archetype"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["2.0"],
+      "description": "Schema version identifier. Must be 2.0 for this schema."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
+      "description": "Human-readable name of the agent."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "description": "Description of what the agent does."
+    },
+    "agent_type": {
+      "type": "string",
+      "enum": ["generation", "review"],
+      "default": "generation",
+      "description": "Type of agent: generation for document creation, review for document review."
+    },
+    "archetype": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Role category identifier for the agent archetype."
+    },
+    "system_prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "System prompt for the LLM defining the agent behavior."
+    },
+    "dspy_modules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Module identifier name."
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "DSPy module type (e.g. ChainOfThought, ColBERTv2Retriever)."
+          },
+          "params": {
+            "type": "object",
+            "description": "Module-specific parameters.",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "List of DSPy modules in the pipeline."
+    },
+    "knowledge_scopes": {
+      "type": "object",
+      "properties": {
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Document tags to scope knowledge retrieval."
+        }
+      },
+      "required": ["tags"],
+      "additionalProperties": false,
+      "description": "Knowledge retrieval scope configuration."
+    },
+    "personality_profile": {
+      "type": "object",
+      "required": ["tone", "verbosity", "strictness", "domain_focus", "communication_style"],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Communication tone of the agent."
+        },
+        "verbosity": {
+          "type": "string",
+          "enum": ["concise", "moderate", "detailed"],
+          "description": "Level of detail in agent responses."
+        },
+        "strictness": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "How strictly the agent enforces rules (0.0 = lenient, 1.0 = strict)."
+        },
+        "domain_focus": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "description": "List of domain expertise areas."
+        },
+        "communication_style": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Description of how the agent communicates findings."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Behavioral personality configuration for the agent."
+    },
+    "contextual_tuning": {
+      "type": "object",
+      "properties": {
+        "temperature": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "default": 0.3,
+          "description": "LLM sampling temperature."
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 131072,
+          "default": 4096,
+          "description": "Maximum number of tokens to generate."
+        },
+        "top_p": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 1.0,
+          "description": "Nucleus sampling probability threshold."
+        },
+        "frequency_penalty": {
+          "type": "number",
+          "minimum": -2.0,
+          "maximum": 2.0,
+          "default": 0.0,
+          "description": "Penalty for token frequency in generated text."
+        },
+        "presence_penalty": {
+          "type": "number",
+          "minimum": -2.0,
+          "maximum": 2.0,
+          "default": 0.0,
+          "description": "Penalty for token presence in generated text."
+        }
+      },
+      "additionalProperties": false,
+      "description": "LLM inference tuning parameters for the agent."
+    },
+    "evaluation_rubric": {
+      "type": "object",
+      "required": ["criteria", "severity_thresholds", "scoring_method"],
+      "properties": {
+        "criteria": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "required": ["name", "weight", "description"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Name of the evaluation criterion."
+              },
+              "weight": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0,
+                "description": "Weight of this criterion in scoring (0.0-1.0)."
+              },
+              "description": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Description of what this criterion evaluates."
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "List of evaluation criteria with weights."
+        },
+        "severity_thresholds": {
+          "type": "object",
+          "required": ["critical", "major", "minor", "informational"],
+          "properties": {
+            "critical": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Threshold for critical severity findings."
+            },
+            "major": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Threshold for major severity findings."
+            },
+            "minor": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Threshold for minor severity findings."
+            },
+            "informational": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Threshold for informational findings."
+            }
+          },
+          "additionalProperties": false,
+          "description": "Severity classification thresholds."
+        },
+        "scoring_method": {
+          "type": "string",
+          "enum": ["weighted_average", "pass_fail", "tiered"],
+          "description": "Method used to calculate the overall score."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Evaluation rubric defining how the agent assesses documents."
+    },
+    "example_usage": {
+      "type": "string",
+      "description": "Example usage instructions for the agent."
+    },
+    "target_document_tag": {
+      "type": "string",
+      "description": "Document tag this review agent targets (required for review agents)."
+    },
+    "required_chapters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "required"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Ordered list of expected document sections (for review agents)."
+    },
+    "compliance_checklist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Compliance items to check (for review agents)."
+    },
+    "severity_rules": {
+      "type": "object",
+      "properties": {
+        "critical": { "type": "string" },
+        "major": { "type": "string" },
+        "minor": { "type": "string" },
+        "informational": { "type": "string" }
+      },
+      "additionalProperties": false,
+      "description": "Severity classification rules (for review agents)."
+    }
+  },
+  "if": {
+    "properties": {
+      "agent_type": { "const": "review" }
+    },
+    "required": ["agent_type"]
+  },
+  "then": {
+    "required": ["target_document_tag", "required_chapters", "compliance_checklist", "severity_rules"]
+  },
+  "additionalProperties": false
+}

@@ -1,5 +1,15 @@
 """Pydantic request/response schemas for AlcoaBase API."""
 
+from alcoabase.schemas.agent import (
+    AgentCreateRequest,
+    AgentResponse,
+    ContextualTuning,
+    EvaluationCriterion,
+    EvaluationRubric,
+    FromArchetypeRequest,
+    PersonalityProfile,
+    ReloadSummary,
+)
 from alcoabase.schemas.auth import (
     CompanyMembership,
     LoginRequest,
@@ -24,6 +34,14 @@ from alcoabase.schemas.setup import (
 )
 
 __all__ = [
+    "AgentCreateRequest",
+    "AgentResponse",
+    "ContextualTuning",
+    "EvaluationCriterion",
+    "EvaluationRubric",
+    "FromArchetypeRequest",
+    "PersonalityProfile",
+    "ReloadSummary",
     "AIModeConfig",
     "AIModeResult",
     "CompanyMembership",

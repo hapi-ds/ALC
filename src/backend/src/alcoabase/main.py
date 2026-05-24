@@ -37,7 +37,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Startup:
         - Initialize database connection pool
         - Verify external service connectivity (MinIO, Redis, OpenSearch)
+        - Start agent file watcher for hot-reload
     Shutdown:
+        - Stop agent file watcher
         - Close database connection pool
         - Shutdown inference services (close shared InferenceClient)
         - Gracefully disconnect from external services
@@ -50,12 +52,82 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Validate signature configuration
     _validate_signature_config()
 
+    # Start agent file watcher for hot-reload
+    await _start_agent_watcher()
+
     yield
     # --- Shutdown ---
+    # Stop agent file watcher
+    await _stop_agent_watcher()
+
     from alcoabase.services.service_factory import shutdown_services
 
     await shutdown_services()
     await close_db()
+
+
+# ---------------------------------------------------------------------------
+# Agent File Watcher lifecycle helpers
+# ---------------------------------------------------------------------------
+
+# Module-level reference to the AgentRegistryService for watcher lifecycle
+_agent_registry_service = None
+
+
+async def _start_agent_watcher() -> None:
+    """Start the agent file watcher during application startup.
+
+    Creates an AgentRegistryService instance (if not already created)
+    and starts its file watcher for hot-reload of YAML agent definitions.
+    Logs a warning and continues if the watcher fails to start.
+    """
+    global _agent_registry_service
+    try:
+        from pathlib import Path
+
+        from alcoabase import database
+        from alcoabase.services.agent_registry import AgentRegistryService
+        from alcoabase.services.schema_validator import SchemaValidator
+
+        # Resolve paths relative to the project root
+        project_root = Path(__file__).parent.parent.parent.parent
+        agents_dir = project_root / "agents" / "examples"
+        archetypes_dir = project_root / "agents" / "archetypes"
+        schema_dir = project_root / "agents" / "schema"
+
+        session_factory = database._session_factory
+        if session_factory is None:
+            logger.warning(
+                "Database session factory not available, skipping agent file watcher."
+            )
+            return
+
+        schema_validator = SchemaValidator(schema_dir=schema_dir)
+        _agent_registry_service = AgentRegistryService(
+            session_factory=session_factory,
+            schema_validator=schema_validator,
+            agents_dir=agents_dir,
+            archetypes_dir=archetypes_dir,
+        )
+
+        # Wire the service into the agents router for dependency injection
+        from alcoabase.api.agents import set_agent_registry_service
+
+        set_agent_registry_service(_agent_registry_service)
+
+        await _agent_registry_service.start_watcher()
+    except Exception as e:
+        logger.warning("Failed to start agent file watcher: %s", e)
+
+
+async def _stop_agent_watcher() -> None:
+    """Stop the agent file watcher during application shutdown."""
+    global _agent_registry_service
+    if _agent_registry_service is not None:
+        try:
+            await _agent_registry_service.stop_watcher()
+        except Exception as e:
+            logger.warning("Error stopping agent file watcher: %s", e)
 
 
 # ---------------------------------------------------------------------------

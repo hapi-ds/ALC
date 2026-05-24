@@ -1,267 +1,238 @@
-"""FastAPI router for agent registry endpoints.
+"""FastAPI router for agent registry CRUD endpoints.
 
-Provides endpoints for:
-- GET /api/agents: List all registered agents
-- POST /api/agents/import: Import an agent from YAML
-- GET /api/agents/{agent_id}/export: Export an agent as YAML
-- POST /api/agents/{agent_id}/select: Select an agent (with audit trail)
+Provides full CRUD operations for agent definitions using the
+AgentRegistryService with database persistence and company scoping.
+
+Endpoints:
+    - POST /api/agents: Create a new agent definition
+    - GET /api/agents: List agents (filterable by archetype)
+    - GET /api/agents/{agent_id}: Get a single agent
+    - PUT /api/agents/{agent_id}: Update an agent definition
+    - DELETE /api/agents/{agent_id}: Soft-delete an agent
 
 References:
-    - Task 15.8: Create FastAPI router /api/agents
-    - Design doc Section 11: Agent Registry
+    - Design doc Section 5: FastAPI Router
+    - Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9
 """
 
-from pathlib import Path
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, Depends, HTTPException, Query
 
+from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
+from alcoabase.schemas.agent import AgentCreateRequest, AgentResponse
 from alcoabase.services.agent_registry import (
-    AgentRegistry,
+    AgentInUseError,
+    AgentNotFoundError,
+    AgentRegistryService,
     AgentValidationError,
-    UnsupportedSchemaVersionError,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
 
 # ---------------------------------------------------------------------------
-# Request/Response Schemas
+# Dependency: AgentRegistryService
 # ---------------------------------------------------------------------------
 
-
-class DSPyModuleResponse(BaseModel):
-    """Response schema for a DSPy module configuration."""
-
-    name: str
-    type: str
-    params: dict | None = None
+_agent_registry_service: AgentRegistryService | None = None
 
 
-class AgentResponse(BaseModel):
-    """Response schema for an agent definition."""
+def set_agent_registry_service(service: AgentRegistryService) -> None:
+    """Set the module-level AgentRegistryService instance.
 
-    id: str
-    schema_version: str
-    agent_type: str
-    name: str
-    description: str
-    system_prompt: str
-    dspy_modules: list[DSPyModuleResponse]
-    knowledge_scopes: dict
-    example_usage: str = ""
-    target_document_tag: str | None = None
+    Called during application startup to wire the service into the router.
+
+    Args:
+        service: The initialized AgentRegistryService instance.
+    """
+    global _agent_registry_service
+    _agent_registry_service = service
 
 
-class AgentImportRequest(BaseModel):
-    """Request schema for importing an agent from YAML."""
-
-    yaml_content: str = Field(..., min_length=1, description="YAML content of the agent definition")
-
-
-class AgentSelectRequest(BaseModel):
-    """Request schema for selecting an agent."""
-
-    user_id: int = Field(..., description="ID of the user selecting the agent")
-    purpose: str = Field(default="query", description="Purpose of the selection")
-
-
-class AgentSelectResponse(BaseModel):
-    """Response schema for agent selection."""
-
-    event_id: str
-    agent_id: str
-    agent_name: str
-    user_id: int
-    timestamp: str
-    purpose: str
-
-
-class AgentImportResponse(BaseModel):
-    """Response schema for agent import."""
-
-    id: str
-    name: str
-    agent_type: str
-    message: str
-
-
-class ValidationErrorResponse(BaseModel):
-    """Response schema for validation errors."""
-
-    detail: str
-    errors: list[str]
-
-
-# ---------------------------------------------------------------------------
-# Dependency
-# ---------------------------------------------------------------------------
-
-_agent_registry: AgentRegistry | None = None
-
-
-def get_agent_registry() -> AgentRegistry:
-    """Provide the AgentRegistry instance as a FastAPI dependency.
+def get_agent_registry_service() -> AgentRegistryService:
+    """Provide the AgentRegistryService as a FastAPI dependency.
 
     Returns:
-        The module-level AgentRegistry instance.
+        The module-level AgentRegistryService instance.
+
+    Raises:
+        HTTPException 503: If the service has not been initialized.
     """
-    global _agent_registry
-    if _agent_registry is None:
-        _agent_registry = AgentRegistry()
-        # Try to load example agents
-        examples_dir = Path(__file__).parent.parent.parent.parent.parent / "agents" / "examples"
-        if examples_dir.exists():
-            try:
-                _agent_registry.load_agents(examples_dir)
-            except Exception:
-                pass
-    return _agent_registry
+    if _agent_registry_service is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Agent registry service is not available.",
+        )
+    return _agent_registry_service
 
 
 # ---------------------------------------------------------------------------
-# Endpoints
+# CRUD Endpoints
 # ---------------------------------------------------------------------------
+
+
+@router.post("", response_model=AgentResponse, status_code=201)
+async def create_agent(
+    request: AgentCreateRequest,
+    tenant: TenantContext = Depends(get_tenant_context),
+    service: AgentRegistryService = Depends(get_agent_registry_service),
+) -> AgentResponse:
+    """Create a new agent definition.
+
+    Validates the request body against the Agent Schema and persists
+    the agent to the database scoped to the requesting company.
+
+    Args:
+        request: Agent creation request body.
+        tenant: Resolved tenant context (company_id, user_id).
+        service: AgentRegistryService dependency.
+
+    Returns:
+        The created agent definition with HTTP 201.
+
+    Raises:
+        HTTPException 422: If the agent definition fails schema validation.
+    """
+    try:
+        agent = await service.create_agent(
+            data=request.model_dump(exclude_none=True),
+            company_id=tenant.company_id,
+            user_id=tenant.user_id,
+        )
+    except AgentValidationError as e:
+        raise HTTPException(
+            status_code=422,
+            detail={"message": "Validation failed", "errors": e.errors},
+        )
+
+    return AgentResponse.model_validate(agent)
 
 
 @router.get("", response_model=list[AgentResponse])
 async def list_agents(
-    agent_type: str | None = Query(default=None, description="Filter by agent type"),
-    registry: AgentRegistry = Depends(get_agent_registry),
+    archetype: str | None = Query(default=None, description="Filter by archetype"),
+    tenant: TenantContext = Depends(get_tenant_context),
+    service: AgentRegistryService = Depends(get_agent_registry_service),
 ) -> list[AgentResponse]:
-    """List all registered agents.
+    """List active agent definitions for the current company.
+
+    Optionally filter by archetype using the `archetype` query parameter.
 
     Args:
-        agent_type: Optional filter by agent type (generation or review).
-        registry: AgentRegistry dependency.
+        archetype: Optional archetype filter.
+        tenant: Resolved tenant context (company_id).
+        service: AgentRegistryService dependency.
 
     Returns:
-        List of agent definitions.
+        List of active agent definitions.
     """
-    agents = registry.list_agents(agent_type=agent_type)
-
-    return [
-        AgentResponse(
-            id=agent.id,
-            schema_version=agent.schema_version,
-            agent_type=agent.agent_type,
-            name=agent.name,
-            description=agent.description,
-            system_prompt=agent.system_prompt,
-            dspy_modules=[
-                DSPyModuleResponse(
-                    name=m["name"],
-                    type=m["type"],
-                    params=m.get("params"),
-                )
-                for m in agent.dspy_modules
-            ],
-            knowledge_scopes=agent.knowledge_scopes,
-            example_usage=agent.example_usage,
-            target_document_tag=agent.target_document_tag,
-        )
-        for agent in agents
-    ]
+    agents = await service.list_agents(
+        company_id=tenant.company_id,
+        archetype=archetype,
+    )
+    return [AgentResponse.model_validate(agent) for agent in agents]
 
 
-@router.post("/import", response_model=AgentImportResponse, status_code=201)
-async def import_agent(
-    request: AgentImportRequest,
-    registry: AgentRegistry = Depends(get_agent_registry),
-) -> AgentImportResponse:
-    """Import an agent definition from YAML content.
+@router.get("/{agent_id}", response_model=AgentResponse)
+async def get_agent(
+    agent_id: int,
+    tenant: TenantContext = Depends(get_tenant_context),
+    service: AgentRegistryService = Depends(get_agent_registry_service),
+) -> AgentResponse:
+    """Get a single agent definition by ID.
 
-    Validates the YAML against the JSON Schema and registers the agent.
+    Returns 404 if the agent does not exist or does not belong to
+    the requesting company.
 
     Args:
-        request: Import request with YAML content.
-        registry: AgentRegistry dependency.
+        agent_id: The agent's primary key.
+        tenant: Resolved tenant context (company_id).
+        service: AgentRegistryService dependency.
 
     Returns:
-        Import confirmation with agent details.
+        The agent definition.
 
     Raises:
-        HTTPException: 400 if validation fails or schema version unsupported.
+        HTTPException 404: If agent not found or wrong company.
+    """
+    agent = await service.get_agent(agent_id=agent_id, company_id=tenant.company_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return AgentResponse.model_validate(agent)
+
+
+@router.put("/{agent_id}", response_model=AgentResponse)
+async def update_agent(
+    agent_id: int,
+    request: AgentCreateRequest,
+    tenant: TenantContext = Depends(get_tenant_context),
+    service: AgentRegistryService = Depends(get_agent_registry_service),
+) -> AgentResponse:
+    """Update an existing agent definition.
+
+    Validates the request body against the Agent Schema and updates
+    the agent in the database. Returns 404 if the agent does not exist
+    or does not belong to the requesting company.
+
+    Args:
+        agent_id: The agent's primary key.
+        request: Updated agent definition request body.
+        tenant: Resolved tenant context (company_id).
+        service: AgentRegistryService dependency.
+
+    Returns:
+        The updated agent definition with HTTP 200.
+
+    Raises:
+        HTTPException 404: If agent not found or wrong company.
+        HTTPException 422: If the agent definition fails schema validation.
     """
     try:
-        agent = registry.import_agent(request.yaml_content.encode("utf-8"))
-        return AgentImportResponse(
-            id=agent.id,
-            name=agent.name,
-            agent_type=agent.agent_type,
-            message=f"Agent '{agent.name}' imported successfully",
+        agent = await service.update_agent(
+            agent_id=agent_id,
+            data=request.model_dump(exclude_none=True),
+            company_id=tenant.company_id,
         )
-    except UnsupportedSchemaVersionError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except AgentNotFoundError:
+        raise HTTPException(status_code=404, detail="Agent not found")
     except AgentValidationError as e:
         raise HTTPException(
-            status_code=400,
-            detail=f"Validation failed: {'; '.join(e.errors)}",
+            status_code=422,
+            detail={"message": "Validation failed", "errors": e.errors},
         )
 
+    return AgentResponse.model_validate(agent)
 
-@router.get("/{agent_id}/export")
-async def export_agent(
-    agent_id: str,
-    registry: AgentRegistry = Depends(get_agent_registry),
-) -> Response:
-    """Export an agent definition as YAML.
+
+@router.delete("/{agent_id}", status_code=204)
+async def delete_agent(
+    agent_id: int,
+    tenant: TenantContext = Depends(get_tenant_context),
+    service: AgentRegistryService = Depends(get_agent_registry_service),
+) -> None:
+    """Soft-delete an agent definition.
+
+    Sets is_active to False. Returns 409 if the agent is currently
+    assigned to an active review pipeline.
 
     Args:
-        agent_id: ID of the agent to export.
-        registry: AgentRegistry dependency.
-
-    Returns:
-        YAML content as downloadable response.
+        agent_id: The agent's primary key.
+        tenant: Resolved tenant context (company_id).
+        service: AgentRegistryService dependency.
 
     Raises:
-        HTTPException: 404 if agent not found.
+        HTTPException 404: If agent not found or wrong company.
+        HTTPException 409: If agent is assigned to an active pipeline.
     """
     try:
-        yaml_bytes = registry.export_agent(agent_id)
-        return Response(
-            content=yaml_bytes,
-            media_type="application/x-yaml",
-            headers={
-                "Content-Disposition": f"attachment; filename=agent-{agent_id[:8]}.yaml"
-            },
+        await service.delete_agent(agent_id=agent_id, company_id=tenant.company_id)
+    except AgentNotFoundError:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    except AgentInUseError:
+        raise HTTPException(
+            status_code=409,
+            detail="Agent is assigned to active pipeline",
         )
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Agent not found: {agent_id}")
-
-
-@router.post("/{agent_id}/select", response_model=AgentSelectResponse)
-async def select_agent(
-    agent_id: str,
-    request: AgentSelectRequest,
-    registry: AgentRegistry = Depends(get_agent_registry),
-) -> AgentSelectResponse:
-    """Select an agent for use (records in audit trail).
-
-    Args:
-        agent_id: ID of the agent to select.
-        request: Selection request with user ID and purpose.
-        registry: AgentRegistry dependency.
-
-    Returns:
-        Selection confirmation with audit event details.
-
-    Raises:
-        HTTPException: 404 if agent not found.
-    """
-    try:
-        event = registry.record_selection(
-            user_id=request.user_id,
-            agent_id=agent_id,
-            purpose=request.purpose,
-        )
-        return AgentSelectResponse(
-            event_id=event.event_id,
-            agent_id=event.agent_id,
-            agent_name=event.agent_name,
-            user_id=event.user_id,
-            timestamp=event.timestamp.isoformat(),
-            purpose=event.purpose,
-        )
-    except KeyError:
-        raise HTTPException(status_code=404, detail=f"Agent not found: {agent_id}")

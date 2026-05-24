@@ -88,7 +88,7 @@
 
 ## Phase 5 — Multi-Agent Document Review System
 
-- [~] **5.1 Modular Agent Registry & Personality Framework**
+- [x] **5.1 Modular Agent Registry & Personality Framework**
 
   Pluggable Agent Archetypes: Define a base Agent class with configurable parameters: personality, domain expertise, and system prompts.
 
@@ -100,7 +100,7 @@
 
   Define agent archetypes (e.g., "Regulatory Compliance Auditor", "Data Integrity Specialist", "Process Safety Reviewer", "Statistical Methods Auditor").
 
-- [ ] **5.2 Multi-Agent "Always-On" Auditing**
+- [~] **5.2 Multi-Agent "Always-On" Auditing**
   
   Review Orchestration - Implement a review pipeline: document/company is submitted for review → dispatched to N configured auditor agents in parallel → each agent produces an independent review report with findings, severity ratings, and recommendations. Configurable per company/document type (MedTec audits differ from supplier audits).
 
