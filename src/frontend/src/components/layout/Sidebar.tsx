@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   Settings,
+  BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const navItems = [
   { to: "/validation", label: "Validation", icon: ShieldCheck },
   { to: "/signatures", label: "Signatures", icon: PenTool },
   { to: "/review", label: "Document Review", icon: ClipboardCheck },
+  { to: "/reviews", label: "Audit Reviews", icon: BarChart3 },
   { to: "/admin", label: "Admin", icon: Settings },
 ];
 

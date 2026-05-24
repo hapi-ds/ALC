@@ -13,6 +13,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
 
 ## ✨ Core Features
 
+* 🤖 **Multi-Agent "Always-On" Auditing**
+  Submit documents for parallel review by N AI auditor agents. A supervisory Master Auditor synthesizes findings into a unified executive summary with consensus detection, contradiction flagging, compliance scoring, and prioritized action items. Includes compliance scorecards, missing link detection, and anomaly monitoring.
 * 🛡️ **ALCOA+ Data Integrity & Audit Trail**
   Cryptographic digital signatures (PAdES), strict versioning, and immutable database audit logs for every action (Who, What, When, Why). Every mutating API request requires an `X-Change-Reason` header for full traceability.
 * 📄 **Deterministic PDF-to-Database Mapping for Protocols and Reports**
@@ -80,7 +82,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 4.3 | AI Model Integration (vLLM) | ✅ Complete |
 | 4.4 | Multimodal Knowledge Base | ✅ Complete |
 | 5.1 | Modular Agent Registry & Personality Framework | ✅ Complete |
-| 5.x | Multi-Agent Document Review | 🔲 Planned |
+| 5.2 | Multi-Agent "Always-On" Auditing | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -102,6 +104,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [AI Inference](docs/ai-inference-guide.md) | vLLM integration: RAG queries, embeddings, OCR, health monitoring, mock mode |
 | [Search & Knowledge Base](docs/search-knowledge-guide.md) | Hybrid search, RAG knowledge chat, document indexing, visual content |
 | [Agent Management](docs/agent-management-guide.md) | Agent registry, archetypes, personality profiles, tuning parameters, hot-reload |
+| [Multi-Agent Auditing](docs/multi-agent-auditing-guide.md) | Parallel review pipeline, audit profiles, compliance scorecards, anomaly detection |
 
 ---
 

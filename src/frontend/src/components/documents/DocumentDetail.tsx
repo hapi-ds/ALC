@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Tag } from "lucide-react";
+import { ArrowLeft, Plus, Tag, FileSearch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DocumentResponse } from "@/types/document";
 import { useDocumentStore } from "@/stores/documentStore";
@@ -8,6 +8,7 @@ import { useWorkflowStore } from "@/stores/workflowStore";
 import { useWorkflowExecutionStore } from "@/stores/workflowExecutionStore";
 import { TrainingStatusBanner } from "@/components/training/TrainingStatusBanner";
 import { SignatureRecordsPanel } from "@/components/signatures/SignatureRecordsPanel";
+import { SubmitForReviewModal } from "@/components/reviews/SubmitForReviewModal";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
@@ -25,6 +26,8 @@ export function DocumentDetail({
   onNewVersion,
   onBack,
 }: DocumentDetailProps) {
+  const [reviewModalOpen, setReviewModalOpen] = useState(false);
+
   const selectedVersion = useDocumentStore((state) => state.selectedVersion);
   const isVersionLoading = useDocumentStore((state) => state.isVersionLoading);
   const versionError = useDocumentStore((state) => state.versionError);
@@ -95,6 +98,16 @@ export function DocumentDetail({
     return `${sorted[0].major_version}.${sorted[0].minor_version}`;
   }, [document.versions]);
 
+  // Derive the latest version ID for review submission
+  const latestVersionId = useMemo(() => {
+    if (document.versions.length === 0) return 0;
+    const sorted = [...document.versions].sort((a, b) => {
+      if (a.major_version !== b.major_version) return b.major_version - a.major_version;
+      return b.minor_version - a.minor_version;
+    });
+    return sorted[0].id;
+  }, [document.versions]);
+
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -109,10 +122,21 @@ export function DocumentDetail({
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back
         </Button>
-        <Button onClick={onNewVersion} size="sm" className="gap-1">
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          New Version
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setReviewModalOpen(true)}
+            size="sm"
+            variant="outline"
+            className="gap-1"
+          >
+            <FileSearch className="h-4 w-4" aria-hidden="true" />
+            Submit for Review
+          </Button>
+          <Button onClick={onNewVersion} size="sm" className="gap-1">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            New Version
+          </Button>
+        </div>
       </div>
 
       {/* Document metadata */}
@@ -243,6 +267,15 @@ export function DocumentDetail({
         open={comparisonOpen}
         onOpenChange={setComparisonOpen}
         versions={document.versions}
+      />
+
+      {/* Submit for Review Modal */}
+      <SubmitForReviewModal
+        open={reviewModalOpen}
+        onClose={() => setReviewModalOpen(false)}
+        documentId={document.id}
+        documentVersionId={latestVersionId}
+        documentTitle={document.title}
       />
     </div>
   );

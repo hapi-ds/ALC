@@ -23,6 +23,9 @@ from alcoabase.api.knowledge import router as knowledge_router
 from alcoabase.api.agents import router as agents_router
 from alcoabase.api.memberships import router as memberships_router
 from alcoabase.api.agent_activations import router as agent_activations_router
+from alcoabase.api.audit_profiles import router as audit_profiles_router
+from alcoabase.api.compliance import router as compliance_router
+from alcoabase.api.reviews import router as reviews_router
 from alcoabase.api.video_alignment import router as video_alignment_router
 from alcoabase.api.auth import auth_router
 
@@ -51,6 +54,9 @@ api_router.include_router(audit_router)
 api_router.include_router(models_router)
 api_router.include_router(memberships_router)
 api_router.include_router(agent_activations_router)
+api_router.include_router(audit_profiles_router)
+api_router.include_router(reviews_router)
 api_router.include_router(video_alignment_router)
+api_router.include_router(compliance_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")

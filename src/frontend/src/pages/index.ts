@@ -14,5 +14,6 @@ export { AgentsPage } from "./AgentsPage";
 export { ValidationPage } from "./ValidationPage";
 export { SignaturesPage } from "./SignaturesPage";
 export { ReviewPage } from "./ReviewPage";
+export { ReviewDashboardPage } from "./ReviewDashboardPage";
 export { AdminPage } from "./AdminPage";
 export { LoginPage } from "./LoginPage";

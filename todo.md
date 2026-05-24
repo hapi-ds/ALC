@@ -102,7 +102,7 @@ Please write for every item in this list a short user guide after your implement
 
   Define agent archetypes (e.g., "Regulatory Compliance Auditor", "Data Integrity Specialist", "Process Safety Reviewer", "Statistical Methods Auditor").
 
-- [~] **5.2 Multi-Agent "Always-On" Auditing**
+- [x] **5.2 Multi-Agent "Always-On" Auditing**
   
   Review Orchestration - Implement a review pipeline: document/company is submitted for review → dispatched to N configured auditor agents in parallel → each agent produces an independent review report with findings, severity ratings, and recommendations. Configurable per company/document type (MedTec audits differ from supplier audits).
 
@@ -118,7 +118,7 @@ Please write for every item in this list a short user guide after your implement
 
   Company-Specific Audit Profiles - Each company/tenant gets configurable audit profiles that determine: which auditor agents are assigned, what regulatory frameworks apply (ISO 13485, GMP, GDP, ISO 9001, etc.), severity thresholds, and required review quorum before a document can be approved.
 
-- [ ] **5.3 AI-Enhanced Training Ecosystem**
+- [~] **5.3 AI-Enhanced Training Ecosystem**
 
   AI Training Planner: Automated career-path and compliance-based training schedules for employees. Maps document requirements to user roles and identifies skill gaps.
 
