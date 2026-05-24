@@ -5,6 +5,8 @@
 
 > Read and understand todo.md and generate spec for Phase x.x in a way that is good / correct for all other phases.
 
+Please write for every item in this list a short user guide after your implementation in docs. Also update readme and .env.example to reflect latest changes.
+
 ---
 
 ## Phase 1 — Foundation (must exist before anything else works)
