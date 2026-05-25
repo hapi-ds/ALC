@@ -175,7 +175,7 @@ Please write for every item in this list a short user guide after your implement
 
 ---
 
-## Phase 7 — Validation & Compliance
+## Phase 7 — Validation & Compliance of ALC/myself
 
 - [ ] **7.1 CSV Validation Runner Integration**
   Trigger Playwright E2E validation from the UI. Show progress, results, and generated validation certificate. Per-company validation scoping.
