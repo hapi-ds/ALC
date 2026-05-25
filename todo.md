@@ -140,13 +140,13 @@ Please write for every item in this list a short user guide after your implement
 
   Cross-Document Consistency: Ensures that a generated MVP (Master Validation Plan) correctly references the specific requirements listed in the associated URS (User Requirement Specification).
 
-- [~] **5.5 AI-Driven Change Impact Analysis**
+- [x] **5.5 AI-Driven Change Impact Analysis**
 
   Automated Dependency Mapping: When a Document (e.g. a SOP) is updated, the AI scans the repository to flag which other documents (URS, MVP) or Training Tasks are now out of date.
 
   Gap Analysis: If a user updates a Document (e.g. a URS), the AI compares it against the existing MVP and highlights specific sections that no longer meet the updated requirements.
 
-- [ ] **5.6 AI-Powered Traceability & Gap Discovery**
+- [~] **5.6 AI-Powered Traceability & Gap Discovery**
 
   Automated Matrix Generation: AI crawls requirements in one document and maps them to test cases in another, creating the Traceability Matrix automatically.
 
