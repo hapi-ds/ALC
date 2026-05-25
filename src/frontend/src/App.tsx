@@ -23,6 +23,7 @@ import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
 import { ReportDetailPage } from "@/pages/ReportDetailPage";
 import { ComparisonViewPage } from "@/pages/ComparisonViewPage";
+import { DocumentGeneratorPage } from "@/pages/DocumentGeneratorPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RouteGuard } from "@/components/auth/RouteGuard";
 import { useAuthStore } from "@/stores/authStore";
@@ -59,6 +60,7 @@ function AuthenticatedApp() {
         <Route path="search" element={<SearchPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="agents" element={<AgentsPage />} />
+        <Route path="document-generator" element={<DocumentGeneratorPage />} />
         <Route path="validation" element={<ValidationPage />} />
         <Route path="signatures" element={<SignaturesPage />} />
         <Route path="review" element={<ReviewPage />} />

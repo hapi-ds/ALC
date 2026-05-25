@@ -118,7 +118,7 @@ Please write for every item in this list a short user guide after your implement
 
   Company-Specific Audit Profiles - Each company/tenant gets configurable audit profiles that determine: which auditor agents are assigned, what regulatory frameworks apply (ISO 13485, GMP, GDP, ISO 9001, etc.), severity thresholds, and required review quorum before a document can be approved.
 
-- [~] **5.3 AI-Enhanced Training Ecosystem**
+- [x] **5.3 AI-Enhanced Training Ecosystem**
 
   AI Training Planner: Automated career-path and compliance-based training schedules for employees. Maps document requirements to user roles and identifies skill gaps.
 
@@ -130,7 +130,7 @@ Please write for every item in this list a short user guide after your implement
 
   Dynamic Feedback: If a user fails a training question, the AI doesn't just give the answer; it points them to the exact paragraph in the DOCX (Phase 5.7) where the information resides.
 
-- [ ] **5.4 AI Document Generator (Template-Based)**
+- [~] **5.4 AI Document Generator (Template-Based)**
 
   DOCX Template Intelligence: Use existing .docx files in the database as "Master Templates" to guide the structure of new documents.
 

@@ -49,6 +49,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     await init_db()
 
+    # Register immutability listeners for GxP audit trail models
+    from alcoabase.models.immutability import register_immutability_listeners
+
+    register_immutability_listeners()
+
     # Validate signature configuration
     _validate_signature_config()
 

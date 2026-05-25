@@ -12,6 +12,7 @@ export { TrainingEcosystemPage } from "./TrainingEcosystemPage";
 export { SearchPage } from "./SearchPage";
 export { KnowledgePage } from "./KnowledgePage";
 export { AgentsPage } from "./AgentsPage";
+export { DocumentGeneratorPage } from "./DocumentGeneratorPage";
 export { ValidationPage } from "./ValidationPage";
 export { SignaturesPage } from "./SignaturesPage";
 export { ReviewPage } from "./ReviewPage";

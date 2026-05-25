@@ -17,3 +17,5 @@ export { useReviewStore } from "./reviewStore";
 export type { ReviewState } from "./reviewStore";
 export { useTrainingEcosystemStore } from "./trainingEcosystemStore";
 export type { TrainingEcosystemState } from "./trainingEcosystemStore";
+export { useDocumentGeneratorStore } from "./documentGeneratorStore";
+export type { DocumentGeneratorState } from "./documentGeneratorStore";
