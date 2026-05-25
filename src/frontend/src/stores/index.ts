@@ -19,3 +19,5 @@ export { useTrainingEcosystemStore } from "./trainingEcosystemStore";
 export type { TrainingEcosystemState } from "./trainingEcosystemStore";
 export { useDocumentGeneratorStore } from "./documentGeneratorStore";
 export type { DocumentGeneratorState } from "./documentGeneratorStore";
+export { useImpactAnalysisStore } from "./impactAnalysisStore";
+export type { ImpactAnalysisState } from "./impactAnalysisStore";

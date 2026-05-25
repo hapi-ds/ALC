@@ -54,6 +54,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     register_immutability_listeners()
 
+    # Register impact analysis auto-trigger on DocumentVersion creation
+    from alcoabase.services.impact_analysis_trigger import (
+        register_impact_analysis_trigger,
+    )
+
+    register_impact_analysis_trigger()
+
     # Validate signature configuration
     _validate_signature_config()
 

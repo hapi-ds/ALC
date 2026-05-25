@@ -17,5 +17,6 @@ export { ValidationPage } from "./ValidationPage";
 export { SignaturesPage } from "./SignaturesPage";
 export { ReviewPage } from "./ReviewPage";
 export { ReviewDashboardPage } from "./ReviewDashboardPage";
+export { ImpactAnalysisPage } from "./ImpactAnalysisPage";
 export { AdminPage } from "./AdminPage";
 export { LoginPage } from "./LoginPage";

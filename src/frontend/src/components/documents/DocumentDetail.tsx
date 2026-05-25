@@ -9,6 +9,7 @@ import { useWorkflowExecutionStore } from "@/stores/workflowExecutionStore";
 import { TrainingStatusBanner } from "@/components/training/TrainingStatusBanner";
 import { SignatureRecordsPanel } from "@/components/signatures/SignatureRecordsPanel";
 import { SubmitForReviewModal } from "@/components/reviews/SubmitForReviewModal";
+import { DocumentImpactStatus } from "@/components/impact/DocumentImpactStatus";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
@@ -197,6 +198,9 @@ export function DocumentDetail({
           </div>
         )}
       </div>
+
+      {/* Impact Analysis Status */}
+      <DocumentImpactStatus documentUuid={document.document_uuid} />
 
       {/* Workflow State Panel — rendered when document has a matching active workflow */}
       {hasMatchingWorkflow && document.document_uuid && (

@@ -36,6 +36,7 @@ from alcoabase.api.training_planner import router as training_planner_router
 from alcoabase.api.training_questions import router as training_questions_router
 from alcoabase.api.training_roleplay import router as training_roleplay_router
 from alcoabase.api.auth import auth_router
+from alcoabase.api.impact_analysis import router as impact_analysis_router
 
 # ---------------------------------------------------------------------------
 # Main API router — all domain routers are included under /api
@@ -74,5 +75,6 @@ api_router.include_router(training_planner_router)
 api_router.include_router(training_questions_router)
 api_router.include_router(training_roleplay_router)
 api_router.include_router(compliance_router)
+api_router.include_router(impact_analysis_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")

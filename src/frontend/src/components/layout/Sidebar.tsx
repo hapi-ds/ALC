@@ -15,6 +15,7 @@ import {
   ClipboardList,
   Settings,
   BarChart3,
+  Activity,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ const navItems = [
   { to: "/signatures", label: "Signatures", icon: PenTool },
   { to: "/review", label: "Document Review", icon: ClipboardCheck },
   { to: "/reviews", label: "Audit Reviews", icon: BarChart3 },
+  { to: "/impact-analysis", label: "Impact Analysis", icon: Activity },
   { to: "/admin", label: "Admin", icon: Settings },
 ];
 
