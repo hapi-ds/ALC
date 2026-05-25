@@ -71,7 +71,7 @@ This plan implements the Template-Based AI Document Generator (Phase 5.4) as a s
     - **Property 7: Cross-Reference Validation**
     - **Validates: Requirements 3.1, 3.3, 3.4**
 
-- [-] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 6. Placeholder Processor
@@ -148,7 +148,7 @@ This plan implements the Template-Based AI Document Generator (Phase 5.4) as a s
     - Test review on already-reviewed document returns 409
     - _Requirements: 6.3, 6.4, 6.8, 6.9_
 
-- [ ] 9. Checkpoint - Ensure all tests pass
+- [x] 9. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 10. Celery tasks for template analysis and document generation
@@ -215,7 +215,7 @@ This plan implements the Template-Based AI Document Generator (Phase 5.4) as a s
     - **Property 9: Provenance Completeness and Immutability**
     - **Validates: Requirements 5.1, 5.2, 5.4, 9.5**
 
-- [ ] 13. Checkpoint - Ensure all tests pass
+- [x] 13. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 14. Frontend Zustand store and API integration
@@ -262,7 +262,7 @@ This plan implements the Template-Based AI Document Generator (Phase 5.4) as a s
     - Test review workflow approve/reject actions
     - _Requirements: 1.1, 2.1, 6.2, 7.3_
 
-- [ ] 16. Final checkpoint - Ensure all tests pass
+- [x] 16. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

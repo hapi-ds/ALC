@@ -130,7 +130,7 @@ Please write for every item in this list a short user guide after your implement
 
   Dynamic Feedback: If a user fails a training question, the AI doesn't just give the answer; it points them to the exact paragraph in the DOCX (Phase 5.7) where the information resides.
 
-- [~] **5.4 AI Document Generator (Template-Based)**
+- [x] **5.4 AI Document Generator (Template-Based)**
 
   DOCX Template Intelligence: Use existing .docx files in the database as "Master Templates" to guide the structure of new documents.
 
@@ -140,7 +140,7 @@ Please write for every item in this list a short user guide after your implement
 
   Cross-Document Consistency: Ensures that a generated MVP (Master Validation Plan) correctly references the specific requirements listed in the associated URS (User Requirement Specification).
 
-- [ ] **5.5 AI-Driven Change Impact Analysis**
+- [~] **5.5 AI-Driven Change Impact Analysis**
 
   Automated Dependency Mapping: When a Document (e.g. a SOP) is updated, the AI scans the repository to flag which other documents (URS, MVP) or Training Tasks are now out of date.
 

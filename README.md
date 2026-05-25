@@ -27,6 +27,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Strict access control ensures users can only execute tasks or create reports for specific Standard Operating Procedures (SOPs) if they possess a valid training record AND have passed a comprehension quiz for that exact document version. Quiz attempts are immutable (append-only) for full ALCOA+ audit compliance.
 * 🧠 **AI-Enhanced Training Ecosystem**
   Transforms static training into an adaptive learning platform. AI generates personalized schedules, training materials (summaries, walkthroughs, presentations), comprehension quizzes with semantic grading, and interactive "Virtual Audit" role-play sessions. Dynamic feedback points users to exact source paragraphs when they answer incorrectly.
+* 📝 **AI Document Generator (Template-Based)**
+  Generate regulatory documents from registered Master Templates. The system extracts template structure (headings, numbering, placeholders), retrieves relevant knowledge base content, and synthesizes section-by-section content using AI. Includes immutable provenance audit trails, cross-reference extraction, and a mandatory human review workflow before documents enter the active ecosystem.
 * ✅ **Automated Computer System Validation (CSV)**
   A built-in, isolated testing environment. On command, a dedicated Playwright container performs End-to-End (E2E) UI tests, signs documents, verifies database states, and generates a tamper-proof Validation Certificate for FDA/EMA audits.
 
@@ -86,6 +88,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 5.1 | Modular Agent Registry & Personality Framework | ✅ Complete |
 | 5.2 | Multi-Agent "Always-On" Auditing | ✅ Complete |
 | 5.3 | AI-Enhanced Training Ecosystem | ✅ Complete |
+| 5.4 | AI Document Generator (Template-Based) | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -109,6 +112,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Agent Management](docs/agent-management-guide.md) | Agent registry, archetypes, personality profiles, tuning parameters, hot-reload |
 | [Multi-Agent Auditing](docs/multi-agent-auditing-guide.md) | Parallel review pipeline, audit profiles, compliance scorecards, anomaly detection |
 | [AI Training Ecosystem](docs/ai-training-ecosystem-guide.md) | AI planner, material generation, question generation, virtual audits, dynamic feedback |
+| [AI Document Generator](docs/ai-document-generator-guide.md) | Template-based document generation, provenance audit trail, cross-references, review workflow |
 
 ---
 
