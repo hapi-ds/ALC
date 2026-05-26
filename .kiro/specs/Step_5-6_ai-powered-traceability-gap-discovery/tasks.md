@@ -6,8 +6,8 @@ This plan implements Phase 5.6 — AI-Powered Traceability & Gap Discovery for A
 
 ## Tasks
 
-- [-] 1. Database models, schemas, and migration
-  - [-] 1.1 Create SQLAlchemy models for traceability
+- [x] 1. Database models, schemas, and migration
+  - [x] 1.1 Create SQLAlchemy models for traceability
     - Create file `src/backend/src/alcoabase/models/traceability.py`
     - Define `TraceabilityMatrix` model with immutability event listeners (before_update permits only deleted_at mutation, before_delete raises ImmutableRecordError), composite indexes on (company_id, generation_timestamp) and (company_id, deleted_at)
     - Define `CoverageSnapshot` model with immutability event listeners (before_update and before_delete raise ImmutableRecordError), composite index on (company_id, source_document_uuid, snapshot_date)
@@ -16,7 +16,7 @@ This plan implements Phase 5.6 — AI-Powered Traceability & Gap Discovery for A
     - Register immutability listeners using the same pattern as `ImpactReport` in 5.5
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [-] 1.2 Create Pydantic schemas for traceability
+  - [x] 1.2 Create Pydantic schemas for traceability
     - Create file `src/backend/src/alcoabase/schemas/traceability.py`
     - Define `TraceabilityLinkSchema`, `OrphanRequirementSchema`, `OrphanTestCaseSchema`, `CoverageMetricSchema` with field constraints (max_length, Literal types, ge/le ranges)
     - Define request schemas: `GenerateMatrixRequest` (source_document_ids max 10, target_document_ids max 20, matrix_name 1-200 chars, description max 1000 chars), `ResolveAlertRequest`
@@ -24,17 +24,17 @@ This plan implements Phase 5.6 — AI-Powered Traceability & Gap Discovery for A
     - Define filter/pagination schemas: `MatrixFilters`, `LinkFilters`, `OrphanFilters`, `AlertFilters`, `HistoryFilters`
     - _Requirements: 1.1, 1.4, 1.5, 2.3, 3.3, 4.1, 5.1, 5.2, 5.3, 5.4, 5.5, 7.1, 7.2, 9.3, 11.3_
 
-  - [~] 1.3 Create Alembic migration for traceability tables
+  - [x] 1.3 Create Alembic migration for traceability tables
     - Generate migration with `alembic revision --autogenerate -m "add_traceability_tables"`
     - Verify upgrade creates all tables, indexes, and constraints
     - Verify downgrade drops tables in reverse dependency order: StaleLinkMarker, TraceabilityAlert, CoverageSnapshot, TraceabilityMatrix
     - _Requirements: 10.7_
 
-  - [~] 1.4 Write property tests for model immutability and constraints
+  - [x] 1.4 Write property tests for model immutability and constraints
     - **Property 7: Immutability Enforcement** — Verify TraceabilityMatrix and CoverageSnapshot reject UPDATE/DELETE via ORM, verify TraceabilityMatrix permits only deleted_at mutation
     - **Validates: Requirements 4.2, 10.1, 10.2**
 
-  - [~] 1.5 Write unit tests for Pydantic schema validation
+  - [x] 1.5 Write unit tests for Pydantic schema validation
     - Test field constraints (max_length, Literal enums, ge/le ranges), required vs optional fields
     - Test TraceabilityLinkSchema, OrphanRequirementSchema, OrphanTestCaseSchema, CoverageMetricSchema serialization/deserialization
     - Test GenerateMatrixRequest validation (source max 10, target max 20, name 1-200 chars)
