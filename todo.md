@@ -167,7 +167,7 @@ Please write for every item in this list a short user guide after your implement
 
   CRUD for users, role assignment, company assignment, activation/deactivation. Password reset flow.
 
-- [~] **6.2 Admin Dashboard — System Configuration**
+- [x] **6.2 Admin Dashboard — System Configuration**
   AI hardware settings, storage quotas, backup configuration, system health monitoring, service status overview.
 
 - [ ] **6.3 Audit Trail Viewer**

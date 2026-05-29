@@ -34,6 +34,14 @@ from alcoabase.models.review import (
 )
 from alcoabase.models.setup_status import SetupStatus
 from alcoabase.models.signature import SignatureRecord
+from alcoabase.models.system_config import (
+    BackupRecord,
+    ConfigurationSnapshot,
+    HealthCheckResult,
+    ResourceMetricPoint,
+    StorageQuota,
+    SystemConfiguration,
+)
 from alcoabase.models.template import Template, TemplateField
 from alcoabase.models.template_version import TemplateVersion, TemplateVersionField
 from alcoabase.models.training import QuizAttempt, TrainingRecord, TrainingTask
@@ -71,9 +79,11 @@ __all__ = [
     "AnomalyAlert",
     "AuditMixin",
     "AuditProfile",
+    "BackupRecord",
     "Company",
     "CompanyAgentActivation",
     "CompanyMembership",
+    "ConfigurationSnapshot",
     "CoverageSnapshot",
     "CrossReferenceEntry",
     "DependencyEdge",
@@ -88,6 +98,7 @@ __all__ = [
     "GeneratedQuestion",
     "GenerationJobMetadata",
     "GenerationProvenance",
+    "HealthCheckResult",
     "ImmutableRecordError",
     "ImpactNotification",
     "ImpactReport",
@@ -98,12 +109,15 @@ __all__ = [
     "RefreshToken",
     "Report",
     "ReportFieldValue",
+    "ResourceMetricPoint",
     "ReviewSession",
     "Role",
     "SetupStatus",
     "SignatureRecord",
     "SkillGap",
     "StaleLinkMarker",
+    "StorageQuota",
+    "SystemConfiguration",
     "Template",
     "TemplateField",
     "TemplateVersion",

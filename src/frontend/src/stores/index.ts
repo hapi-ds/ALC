@@ -23,5 +23,5 @@ export { useImpactAnalysisStore } from "./impactAnalysisStore";
 export type { ImpactAnalysisState } from "./impactAnalysisStore";
 export { useAdminStore } from "./adminStore";
 export type { AdminState } from "./adminStore";
-export { useAdminStore } from "./adminStore";
-export type { AdminState } from "./adminStore";
+export { useSystemConfigStore } from "./useSystemConfigStore";
+export type { SystemConfigState } from "./useSystemConfigStore";

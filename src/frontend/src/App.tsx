@@ -24,6 +24,7 @@ import { AdminPage } from "@/pages/AdminPage";
 import { UserManagementPage } from "@/pages/UserManagementPage";
 import { RoleManagementPage } from "@/pages/RoleManagementPage";
 import { PermissionTemplateManagementPage } from "@/pages/PermissionTemplateManagementPage";
+import { SystemConfigPage } from "@/pages/admin/SystemConfigPage";
 import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
 import { ReportDetailPage } from "@/pages/ReportDetailPage";
@@ -77,6 +78,7 @@ function AuthenticatedApp() {
         <Route path="admin/users" element={<UserManagementPage />} />
         <Route path="admin/roles" element={<RoleManagementPage />} />
         <Route path="admin/permission-templates" element={<PermissionTemplateManagementPage />} />
+        <Route path="admin/system-config" element={<SystemConfigPage />} />
       </Route>
     </Routes>
   );
