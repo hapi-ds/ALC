@@ -10,7 +10,6 @@ References:
     - Requirements: 6.1, 6.2, 6.3
 """
 
-from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -59,6 +58,14 @@ def tenant_context() -> TenantContext:
 @pytest_asyncio.fixture
 async def client(mock_session: AsyncMock, tenant_context: TenantContext) -> AsyncClient:
     """Create an httpx AsyncClient with overridden dependencies."""
+
+    # Configure mock_session.execute to return a result with scalar_one_or_none
+    mock_execute_result = MagicMock()
+    mock_document = MagicMock()
+    mock_document.id = 1
+    mock_document.document_uuid = "2025-00001"
+    mock_execute_result.scalar_one_or_none.return_value = mock_document
+    mock_session.execute.return_value = mock_execute_result
 
     async def _override_get_db_session():
         yield mock_session
@@ -109,11 +116,40 @@ class TestAPIChangeReasonExtraction:
             triggers_training=False,
         )
 
-        with patch(
-            "alcoabase.api.workflows.WorkflowEngine.request_transition",
-            new_callable=AsyncMock,
-            return_value=mock_result,
-        ) as mock_request_transition:
+        # Mock Document returned by session.execute for the document lookup
+        mock_document = MagicMock()
+        mock_document.id = 1
+        mock_document.document_uuid = "2025-00001"
+
+        # Mock WorkflowDefinition returned by resolve_workflow
+        mock_workflow_def = MagicMock()
+        mock_workflow_def.signature_required_transitions = []
+
+        # Mock DocumentState returned by get_document_state
+        mock_doc_state = MagicMock()
+        mock_doc_state.current_state = "Draft"
+
+        with (
+            patch(
+                "alcoabase.api.workflows.WorkflowEngine.request_transition",
+                new_callable=AsyncMock,
+                return_value=mock_result,
+            ) as mock_request_transition,
+            patch(
+                "alcoabase.api.workflows.WorkflowEngine.resolve_workflow",
+                new_callable=AsyncMock,
+                return_value=mock_workflow_def,
+            ),
+            patch(
+                "alcoabase.api.workflows.WorkflowEngine.get_document_state",
+                new_callable=AsyncMock,
+                return_value=mock_doc_state,
+            ),
+            patch(
+                "alcoabase.api.workflows.require_permission",
+                return_value=AsyncMock(return_value=None),
+            ),
+        ):
             response = await client.post(
                 "/api/workflows/transition",
                 json={"document_uuid": "2025-00001", "target_state": "Review"},

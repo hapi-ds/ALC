@@ -23,6 +23,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.database import get_db_session
+from alcoabase.dependencies.rbac import require_permission
 from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
 from alcoabase.models.workflow import (
     DocumentState,
@@ -548,7 +549,13 @@ async def request_transition(
     """Request a state transition for a document.
 
     Validates the transition against the BPMN workflow and executes it
-    if valid. Returns trigger flags for signature and training hooks.
+    if valid. Enforces RBAC permission checks:
+    - Approval transitions (those in signature_required_transitions)
+      require ``workflows:approve`` permission.
+    - All other transitions (document edits) require
+      ``documents:update`` permission.
+
+    Returns trigger flags for signature and training hooks.
 
     Args:
         body: Transition request body with document_uuid and target_state.
@@ -562,7 +569,42 @@ async def request_transition(
 
     Raises:
         HTTPException: 400 if transition is invalid or no workflow defined.
+        HTTPException: 403 if user lacks required permission.
     """
+    # Load document to resolve workflow for permission check
+    doc_result = await session.execute(
+        select(Document).where(Document.document_uuid == body.document_uuid)
+    )
+    document = doc_result.scalar_one_or_none()
+    if document is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Document not found: {body.document_uuid}",
+        )
+
+    # Resolve workflow to determine transition type
+    workflow_def = await engine.resolve_workflow(session, document.id)
+
+    # Get current state to build transition string
+    doc_state = await engine.get_document_state(session, body.document_uuid)
+    current_state = doc_state.current_state if doc_state else ""
+    transition_str = f"{current_state}\u2192{body.target_state}"
+
+    # Determine if this is an approval transition
+    is_approval_transition = transition_str in (
+        workflow_def.signature_required_transitions or []
+    )
+
+    # Enforce RBAC based on transition type
+    if is_approval_transition:
+        # Approval transitions require workflows:approve permission
+        permission_dep = require_permission("workflows", "approve")
+        await permission_dep(tenant_ctx=tenant, session=session)
+    else:
+        # Document edit transitions require documents:update permission
+        permission_dep = require_permission("documents", "update")
+        await permission_dep(tenant_ctx=tenant, session=session)
+
     change_reason: str | None = request.headers.get("x-change-reason")
 
     result = await engine.request_transition(

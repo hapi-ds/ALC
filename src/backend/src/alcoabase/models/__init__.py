@@ -23,6 +23,7 @@ from alcoabase.models.impact_analysis import (
     ImpactNotification,
     ImpactReport,
 )
+from alcoabase.models.permission_template import PermissionTemplate
 from alcoabase.models.refresh_token import RefreshToken
 from alcoabase.models.report import Report, ReportFieldValue
 from alcoabase.models.review import (
@@ -91,6 +92,7 @@ __all__ = [
     "ImpactNotification",
     "ImpactReport",
     "MasterReviewSummary",
+    "PermissionTemplate",
     "ProcessingJob",
     "QuizAttempt",
     "RefreshToken",

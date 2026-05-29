@@ -21,3 +21,7 @@ export { useDocumentGeneratorStore } from "./documentGeneratorStore";
 export type { DocumentGeneratorState } from "./documentGeneratorStore";
 export { useImpactAnalysisStore } from "./impactAnalysisStore";
 export type { ImpactAnalysisState } from "./impactAnalysisStore";
+export { useAdminStore } from "./adminStore";
+export type { AdminState } from "./adminStore";
+export { useAdminStore } from "./adminStore";
+export type { AdminState } from "./adminStore";

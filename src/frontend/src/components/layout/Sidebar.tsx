@@ -17,8 +17,12 @@ import {
   BarChart3,
   Activity,
   GitMerge,
+  Users,
+  Shield,
+  FileKey,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/authStore";
 
 const navItems = [
   { to: "/documents", label: "Documents", icon: FileText },
@@ -40,7 +44,20 @@ const navItems = [
   { to: "/admin", label: "Admin", icon: Settings },
 ];
 
+const adminNavItems = [
+  { to: "/admin/users", label: "User Management", icon: Users },
+  { to: "/admin/roles", label: "Role Management", icon: Shield },
+  { to: "/admin/permission-templates", label: "Permission Templates", icon: FileKey },
+];
+
+/** Roles that grant access to the Administration section */
+const ADMIN_ROLES = ["system_admin", "doc_admin", "it_admin", "admin"];
+
 export function Sidebar() {
+  const user = useAuthStore((s) => s.user);
+  const showAdminSection =
+    user?.roles?.some((role) => ADMIN_ROLES.includes(role)) ?? false;
+
   return (
     <aside className="w-64 border-r border-border bg-muted/30 flex flex-col h-full">
       <div className="p-4 border-b border-border">
@@ -70,6 +87,36 @@ export function Sidebar() {
             </li>
           ))}
         </ul>
+
+        {showAdminSection && (
+          <>
+            <div className="mt-4 mb-2 px-3">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Administration
+              </h2>
+            </div>
+            <ul className="space-y-1">
+              {adminNavItems.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      )
+                    }
+                  >
+                    <item.icon className="h-4 w-4" aria-hidden="true" />
+                    <span>{item.label}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </nav>
     </aside>
   );

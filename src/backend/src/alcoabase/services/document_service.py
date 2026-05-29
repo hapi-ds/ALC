@@ -3,12 +3,14 @@
 Provides document lifecycle management including creation with UUID
 generation, version management (major/minor), retrieval, and search
 with pagination. Supports video file uploads with ffprobe metadata
-extraction.
+extraction. Integrates with RBACService for template-aware access
+control using "most restrictive wins" policy.
 
 References:
     - Design doc Section 3: Document Service
     - Requirements 1, 2: Document creation, versioning, retrieval, search
     - Requirements 4.1-4.7: Video file upload and storage
+    - Requirements 13.1-13.3: RBAC integration with document access
 """
 
 import asyncio
@@ -23,9 +25,15 @@ from sqlalchemy.orm import selectinload
 
 from alcoabase.config import get_settings
 from alcoabase.models.document import Document, DocumentTag, DocumentVersion
+from alcoabase.models.permission_template import PermissionTemplate
 from alcoabase.models.video import VideoMetadata
 from alcoabase.services.storage_service import StorageService
 from alcoabase.services.uuid_service import UUIDService
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from alcoabase.services.rbac import RBACService
 
 logger = logging.getLogger(__name__)
 
@@ -42,26 +50,31 @@ class DocumentService:
     """Service for document CRUD operations, versioning, and search.
 
     Coordinates between PostgreSQL (metadata), MinIO (file storage),
-    and the UUID service to provide transactional document management.
+    the UUID service, and RBACService to provide transactional document
+    management with template-aware access control.
 
     Attributes:
         _storage: StorageService instance for MinIO operations.
         _uuid_service: UUIDService instance for Document-UUID generation.
+        _rbac_service: Optional RBACService for permission template checks.
     """
 
     def __init__(
         self,
         storage_service: StorageService | None = None,
         uuid_service: UUIDService | None = None,
+        rbac_service: "RBACService | None" = None,
     ) -> None:
         """Initialize the document service.
 
         Args:
             storage_service: Optional StorageService instance (creates default if None).
             uuid_service: Optional UUIDService instance (creates default if None).
+            rbac_service: Optional RBACService for template-aware access checks.
         """
         self._storage = storage_service or StorageService()
         self._uuid_service = uuid_service or UUIDService()
+        self._rbac_service = rbac_service
 
     async def create_document(
         self,
@@ -550,8 +563,16 @@ class DocumentService:
         document_uuid: str | None = None,
         offset: int = 0,
         limit: int = 20,
+        user_id: int | None = None,
+        company_id: int | None = None,
     ) -> dict[str, Any]:
-        """Search documents with filtering and pagination.
+        """Search documents with filtering, pagination, and RBAC enforcement.
+
+        When user_id and company_id are provided and an RBACService is
+        configured, documents governed by permission templates that deny
+        "read" access for the user's role are excluded from results.
+        This implements Requirement 13.3: documents excluded from search
+        results and listing views when the user lacks read permission.
 
         Args:
             session: Active async database session.
@@ -560,10 +581,21 @@ class DocumentService:
             document_uuid: Optional Document-UUID to filter by.
             offset: Number of results to skip (pagination).
             limit: Maximum number of results to return.
+            user_id: Optional user ID for RBAC filtering.
+            company_id: Optional company ID for RBAC filtering.
 
         Returns:
             Dictionary with 'items' (list of Documents) and 'total' count.
         """
+        from sqlalchemy import func
+
+        # Determine which document types are restricted for this user
+        excluded_doc_types = await self._get_excluded_document_types(
+            session=session,
+            user_id=user_id,
+            company_id=company_id,
+        )
+
         query = select(Document).options(
             selectinload(Document.tags),
             selectinload(Document.versions),
@@ -578,9 +610,11 @@ class DocumentService:
         if document_uuid:
             query = query.where(Document.document_uuid == document_uuid)
 
-        # Get total count
-        from sqlalchemy import func
+        # Exclude documents whose type is restricted by permission templates
+        if excluded_doc_types:
+            query = query.where(Document.document_type.notin_(excluded_doc_types))
 
+        # Get total count with same filters
         count_query = select(func.count()).select_from(Document)
         if tag:
             count_query = count_query.join(DocumentTag).where(DocumentTag.tag == tag)
@@ -588,6 +622,10 @@ class DocumentService:
             count_query = count_query.where(Document.folder_path == folder_path)
         if document_uuid:
             count_query = count_query.where(Document.document_uuid == document_uuid)
+        if excluded_doc_types:
+            count_query = count_query.where(
+                Document.document_type.notin_(excluded_doc_types)
+            )
 
         total_result = await session.execute(count_query)
         total = total_result.scalar_one()
@@ -599,3 +637,123 @@ class DocumentService:
         items = list(result.scalars().unique().all())
 
         return {"items": items, "total": total}
+
+    async def check_document_access(
+        self,
+        session: AsyncSession,
+        document: Document,
+        user_id: int,
+        company_id: int,
+        action: str,
+    ) -> bool:
+        """Check if a user has access to a specific document.
+
+        Delegates to RBACService.check_document_access() which applies
+        the "most restrictive wins" policy: access is granted only if
+        BOTH the user's base role AND the permission template (if any)
+        grant the requested action.
+
+        Args:
+            session: Active async database session.
+            document: The Document instance to check access for.
+            user_id: The ID of the user requesting access.
+            company_id: The ID of the company context.
+            action: The action being requested (e.g., "read", "update", "approve").
+
+        Returns:
+            True if access is granted, False otherwise.
+        """
+        if self._rbac_service is None:
+            # No RBAC service configured — allow access (backward compatible)
+            return True
+
+        from alcoabase.services.rbac import AccessGranted
+
+        result = await self._rbac_service.check_document_access(
+            user_id=user_id,
+            company_id=company_id,
+            document=document,
+            action=action,
+            session=session,
+        )
+        return isinstance(result, AccessGranted)
+
+    async def _get_excluded_document_types(
+        self,
+        session: AsyncSession,
+        user_id: int | None,
+        company_id: int | None,
+    ) -> list[str]:
+        """Determine which document types should be excluded from results.
+
+        Queries all permission templates for the company, then checks
+        which ones deny "read" access for the user's role. Document types
+        governed by those templates are excluded from search/list results.
+
+        This implements the "most restrictive wins" policy at the query
+        level: if a permission template exists for a document type and
+        the user's role is either not listed or lacks "read", those
+        documents are excluded.
+
+        Args:
+            session: Active async database session.
+            user_id: The user ID to check permissions for.
+            company_id: The company context.
+
+        Returns:
+            List of document_type strings that should be excluded.
+        """
+        if user_id is None or company_id is None or self._rbac_service is None:
+            return []
+
+        # Get the user's role for this company
+        role = await self._rbac_service.get_role_for_user(
+            user_id=user_id,
+            company_id=company_id,
+            session=session,
+        )
+        if role is None:
+            # No role found — exclude all template-governed types
+            templates_stmt = select(PermissionTemplate.document_type).where(
+                PermissionTemplate.company_id == company_id,
+            )
+            result = await session.execute(templates_stmt)
+            return list(result.scalars().all())
+
+        # Also check base role permission for documents:read
+        from alcoabase.services.rbac import RBACService
+
+        base_has_read = RBACService._has_permission(
+            role.permissions or {}, "documents", "read"
+        )
+        if not base_has_read:
+            # Base role doesn't have documents:read — all documents excluded
+            # (This is handled by the RBAC dependency at the route level,
+            # but we include it here for completeness)
+            templates_stmt = select(PermissionTemplate.document_type).where(
+                PermissionTemplate.company_id == company_id,
+            )
+            result = await session.execute(templates_stmt)
+            return list(result.scalars().all())
+
+        # Load all permission templates for this company
+        templates_stmt = select(PermissionTemplate).where(
+            PermissionTemplate.company_id == company_id,
+        )
+        templates_result = await session.execute(templates_stmt)
+        templates = templates_result.scalars().all()
+
+        excluded_types: list[str] = []
+        role_name = role.name
+
+        for template in templates:
+            role_permissions: dict[str, list[str]] = template.role_permissions or {}
+
+            # "Most restrictive wins": if the role is not listed in the
+            # template OR "read" is not in the allowed actions, exclude
+            if role_name not in role_permissions:
+                excluded_types.append(template.document_type)
+            elif "read" not in role_permissions[role_name]:
+                excluded_types.append(template.document_type)
+
+        return excluded_types

@@ -5,18 +5,27 @@ This module defines the core multi-tenancy models:
 - CompanyMembership: Association between users and companies with roles.
 - CompanyAgentActivation: Per-company activation of global agent definitions.
 
+Phase 6.1 extends CompanyMembership with role_id FK to the new RBAC system
+and revoked_at for soft-delete membership revocation.
+
 References:
     - Multi-tenancy design: .kiro/specs/multi-tenancy/design.md
     - Requirements: .kiro/specs/multi-tenancy/requirements.md (Req 1, 2, 10, 12)
+    - Phase 6.1: .kiro/specs/Step_6-1_admin-dashboard-user-management/design.md
 """
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from alcoabase.database import Base
+from alcoabase.models.audit import AuditMixin
+
+if TYPE_CHECKING:
+    from alcoabase.models.user import Role, User
 
 
 class Company(Base):
@@ -54,21 +63,27 @@ class Company(Base):
     )
 
 
-class CompanyMembership(Base):
+class CompanyMembership(Base, AuditMixin):
     """Association between a user and a company with a designated role.
 
     A user can belong to multiple companies. Each membership has a role
     that determines the user's permissions within that company context.
 
+    Extended for Phase 6.1: role_id FK references the Role table for
+    the new RBAC system, while keeping the legacy string role field for
+    backward compatibility during migration.
+
     Attributes:
         id: Primary key.
         user_id: Foreign key to the user.
         company_id: Foreign key to the company.
-        role: Membership role ("admin", "member", or "viewer").
+        role: Legacy string role (kept for migration compatibility).
+        role_id: FK to roles table (new RBAC system).
         created_at: Server-side UTC timestamp of membership creation.
         revoked_at: Timestamp when membership was revoked (null if active).
         user: Relationship to the User model.
         company: Relationship to the Company model.
+        role_ref: Relationship to the Role model (new RBAC system).
     """
 
     __tablename__ = "company_memberships"
@@ -76,7 +91,10 @@ class CompanyMembership(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), index=True)
-    role: Mapped[str] = mapped_column(String(50))
+    role: Mapped[str] = mapped_column(String(50))  # Legacy field
+    role_id: Mapped[int | None] = mapped_column(
+        ForeignKey("roles.id"), nullable=True
+    )  # New RBAC FK (nullable during migration)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
@@ -86,11 +104,13 @@ class CompanyMembership(Base):
 
     user: Mapped["User"] = relationship()
     company: Mapped["Company"] = relationship(back_populates="memberships")
+    role_ref: Mapped["Role | None"] = relationship()
 
     __table_args__ = (
         UniqueConstraint(
             "user_id", "company_id", name="uq_company_memberships_user_company"
         ),
+        Index("ix_company_memberships_company_role", "company_id", "role_id"),
     )
 
 

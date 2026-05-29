@@ -19,4 +19,7 @@ export { ReviewPage } from "./ReviewPage";
 export { ReviewDashboardPage } from "./ReviewDashboardPage";
 export { ImpactAnalysisPage } from "./ImpactAnalysisPage";
 export { AdminPage } from "./AdminPage";
+export { UserManagementPage } from "./UserManagementPage";
+export { RoleManagementPage } from "./RoleManagementPage";
+export { PermissionTemplateManagementPage } from "./PermissionTemplateManagementPage";
 export { LoginPage } from "./LoginPage";

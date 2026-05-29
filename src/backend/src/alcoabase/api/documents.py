@@ -28,11 +28,13 @@ from alcoabase.services.document_reviewer import (
     ReviewReport as ReviewReportModel,
 )
 from alcoabase.services.document_service import DocumentService
+from alcoabase.services.rbac import RBACService
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 # Module-level service instance
-_document_service = DocumentService()
+_rbac_service = RBACService()
+_document_service = DocumentService(rbac_service=_rbac_service)
 
 
 def get_document_service() -> DocumentService:
@@ -177,6 +179,18 @@ async def get_document(
     document = await service.get_document(session, document_uuid)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Document not found: {document_uuid}")
+
+    # Check RBAC document access with permission template enforcement (Req 13.1, 13.2)
+    has_access = await service.check_document_access(
+        session=session,
+        document=document,
+        user_id=tenant.user_id,
+        company_id=tenant.company_id,
+        action="read",
+    )
+    if not has_access:
+        raise HTTPException(status_code=403, detail="Access denied: insufficient document permissions.")
+
     return DocumentResponse.model_validate(document)
 
 
@@ -239,7 +253,7 @@ async def search_documents(
     Returns:
         Search results with items and total count.
     """
-    # TODO: Pass tenant.company_id to service layer for filtering
+    # Pass user_id and company_id for RBAC-aware filtering (Req 13.3)
     result = await service.search_documents(
         session=session,
         tag=tag,
@@ -247,6 +261,8 @@ async def search_documents(
         document_uuid=document_uuid,
         offset=offset,
         limit=limit,
+        user_id=tenant.user_id,
+        company_id=tenant.company_id,
     )
     items = [DocumentResponse.model_validate(doc) for doc in result["items"]]
     return DocumentSearchResponse(items=items, total=result["total"])
