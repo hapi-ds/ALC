@@ -158,7 +158,7 @@ Please write for every item in this list a short user guide after your implement
 
 ## Phase 6 — Admin & System Management
 
-- [~] **6.1 Admin Dashboard — User Management**
+- [x] **6.1 Admin Dashboard — User Management**
   Doc-Admin Group: Introduction of a specialized "Document Administrator" role responsible for defining BPMN workflows (3.1) and managing granular read/write/approve permissions.
 
   Role-Based Access Control (RBAC): UI to manage group assignments, ensuring IT-Admins handle system health (6.2) while Doc-Admins control document lifecycles and compliance logic.
@@ -167,7 +167,7 @@ Please write for every item in this list a short user guide after your implement
 
   CRUD for users, role assignment, company assignment, activation/deactivation. Password reset flow.
 
-- [ ] **6.2 Admin Dashboard — System Configuration**
+- [~] **6.2 Admin Dashboard — System Configuration**
   AI hardware settings, storage quotas, backup configuration, system health monitoring, service status overview.
 
 - [ ] **6.3 Audit Trail Viewer**

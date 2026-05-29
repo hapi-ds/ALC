@@ -35,6 +35,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Automatically generates Traceability Matrices by crawling requirements documents (URS) and mapping them to test cases (IQ/OQ/PQ/MVP) using three-pass matching (exact ID, cross-reference, semantic similarity). Detects orphan requirements and test cases, computes coverage metrics and compliance readiness scores, and integrates with Change Impact Analysis to flag stale links when requirements change.
 * ✅ **Automated Computer System Validation (CSV)**
   A built-in, isolated testing environment. On command, a dedicated Playwright container performs End-to-End (E2E) UI tests, signs documents, verifies database states, and generates a tamper-proof Validation Certificate for FDA/EMA audits.
+* 🔐 **Granular Role-Based Access Control (RBAC)**
+  Five specialized roles (System Admin, Document Admin, IT Admin, Member, Viewer) with resource-action permission matrices. Permission templates define document-type-specific access rules using a "most restrictive wins" policy. Full user lifecycle management with audit-compliant deactivation, password reset, and company membership management.
 
 ---
 
@@ -95,6 +97,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 5.4 | AI Document Generator (Template-Based) | ✅ Complete |
 | 5.5 | AI-Driven Change Impact Analysis | ✅ Complete |
 | 5.6 | AI-Powered Traceability & Gap Discovery | ✅ Complete |
+| 6.1 | Admin Dashboard — User Management | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -121,6 +124,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [AI Document Generator](docs/ai-document-generator-guide.md) | Template-based document generation, provenance audit trail, cross-references, review workflow |
 | [Change Impact Analysis](docs/change-impact-analysis-guide.md) | Dependency graph, automatic impact detection, gap analysis, notifications, training task resets |
 | [Traceability & Gap Discovery](docs/traceability-gap-discovery-guide.md) | Automated traceability matrices, three-pass matching, orphan detection, coverage metrics, stale link alerts |
+| [Admin Dashboard — User Management](docs/admin-dashboard-user-management-guide.md) | RBAC roles, user CRUD, permission templates, company memberships, audit-compliant lifecycle management |
 
 ---
 
