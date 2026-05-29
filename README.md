@@ -31,6 +31,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Generate regulatory documents from registered Master Templates. The system extracts template structure (headings, numbering, placeholders), retrieves relevant knowledge base content, and synthesizes section-by-section content using AI. Includes immutable provenance audit trails, cross-reference extraction, and a mandatory human review workflow before documents enter the active ecosystem.
 * 🔄 **AI-Driven Change Impact Analysis**
   Automatically detects when documents are updated and identifies affected downstream documents and training tasks. Builds a dependency graph from cross-references, database links, and semantic similarity. Performs section-level gap analysis with severity ratings (critical/major/minor) and AI-generated remediation suggestions. Produces immutable audit reports and notifies document owners of required updates.
+* 🔗 **AI-Powered Traceability & Gap Discovery**
+  Automatically generates Traceability Matrices by crawling requirements documents (URS) and mapping them to test cases (IQ/OQ/PQ/MVP) using three-pass matching (exact ID, cross-reference, semantic similarity). Detects orphan requirements and test cases, computes coverage metrics and compliance readiness scores, and integrates with Change Impact Analysis to flag stale links when requirements change.
 * ✅ **Automated Computer System Validation (CSV)**
   A built-in, isolated testing environment. On command, a dedicated Playwright container performs End-to-End (E2E) UI tests, signs documents, verifies database states, and generates a tamper-proof Validation Certificate for FDA/EMA audits.
 
@@ -92,6 +94,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 5.3 | AI-Enhanced Training Ecosystem | ✅ Complete |
 | 5.4 | AI Document Generator (Template-Based) | ✅ Complete |
 | 5.5 | AI-Driven Change Impact Analysis | ✅ Complete |
+| 5.6 | AI-Powered Traceability & Gap Discovery | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -117,6 +120,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [AI Training Ecosystem](docs/ai-training-ecosystem-guide.md) | AI planner, material generation, question generation, virtual audits, dynamic feedback |
 | [AI Document Generator](docs/ai-document-generator-guide.md) | Template-based document generation, provenance audit trail, cross-references, review workflow |
 | [Change Impact Analysis](docs/change-impact-analysis-guide.md) | Dependency graph, automatic impact detection, gap analysis, notifications, training task resets |
+| [Traceability & Gap Discovery](docs/traceability-gap-discovery-guide.md) | Automated traceability matrices, three-pass matching, orphan detection, coverage metrics, stale link alerts |
 
 ---
 
