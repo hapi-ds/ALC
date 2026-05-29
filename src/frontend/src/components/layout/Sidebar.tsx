@@ -16,6 +16,7 @@ import {
   Settings,
   BarChart3,
   Activity,
+  GitMerge,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +36,7 @@ const navItems = [
   { to: "/review", label: "Document Review", icon: ClipboardCheck },
   { to: "/reviews", label: "Audit Reviews", icon: BarChart3 },
   { to: "/impact-analysis", label: "Impact Analysis", icon: Activity },
+  { to: "/traceability", label: "Traceability", icon: GitMerge },
   { to: "/admin", label: "Admin", icon: Settings },
 ];
 

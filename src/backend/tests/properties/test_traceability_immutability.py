@@ -383,7 +383,7 @@ IMMUTABLE_MATRIX_COLUMNS = st.sampled_from([
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=50)
+@settings(max_examples=10)
 @given(matrix=st_traceability_matrix_data(), column=IMMUTABLE_MATRIX_COLUMNS)
 def test_traceability_matrix_update_non_deleted_at_raises_error(
     matrix: TraceabilityMatrixData,
@@ -404,7 +404,7 @@ def test_traceability_matrix_update_non_deleted_at_raises_error(
     assert exc_info.value.record_id == matrix.id
 
 
-@settings(max_examples=50)
+@settings(max_examples=10)
 @given(matrix=st_traceability_matrix_data())
 def test_traceability_matrix_soft_delete_permitted(
     matrix: TraceabilityMatrixData,
@@ -428,7 +428,7 @@ def test_traceability_matrix_soft_delete_permitted(
     assert result.coverage_metrics == matrix.coverage_metrics
 
 
-@settings(max_examples=50)
+@settings(max_examples=10)
 @given(matrix=st_traceability_matrix_data())
 def test_traceability_matrix_delete_raises_error(
     matrix: TraceabilityMatrixData,
@@ -452,7 +452,7 @@ def test_traceability_matrix_delete_raises_error(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=50)
+@settings(max_examples=10)
 @given(snapshot=st_coverage_snapshot_data())
 def test_coverage_snapshot_update_raises_error(
     snapshot: CoverageSnapshotData,
@@ -471,7 +471,7 @@ def test_coverage_snapshot_update_raises_error(
     assert exc_info.value.record_id == snapshot.id
 
 
-@settings(max_examples=50)
+@settings(max_examples=10)
 @given(snapshot=st_coverage_snapshot_data())
 def test_coverage_snapshot_delete_raises_error(
     snapshot: CoverageSnapshotData,

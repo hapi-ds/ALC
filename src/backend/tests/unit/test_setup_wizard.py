@@ -15,9 +15,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import event, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
 
 from alcoabase.database import Base
+
+
+# Render JSONB as JSON in SQLite (must be registered before create_all)
+@compiles(JSONB, "sqlite")
+def _compile_jsonb_sqlite(type_, compiler, **kw):
+    return "JSON"
 from alcoabase.middleware.setup_guard import SetupGuardMiddleware
 from alcoabase.services.password_validator import PasswordValidator
 from alcoabase.services.slug_generator import SlugGenerator

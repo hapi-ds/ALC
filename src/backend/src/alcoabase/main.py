@@ -61,6 +61,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     register_impact_analysis_trigger()
 
+    # Register traceability alert trigger on ImpactReport creation
+    from alcoabase.services.traceability_alert_trigger import (
+        register_traceability_alert_trigger,
+    )
+
+    register_traceability_alert_trigger()
+
     # Validate signature configuration
     _validate_signature_config()
 

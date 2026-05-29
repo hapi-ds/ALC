@@ -19,6 +19,7 @@ import { ReviewPage } from "@/pages/ReviewPage";
 import { ReviewDashboardPage } from "@/pages/ReviewDashboardPage";
 import { ReviewSessionDetailPage } from "@/pages/ReviewSessionDetailPage";
 import { ImpactAnalysisPage } from "@/pages/ImpactAnalysisPage";
+import { TraceabilityPage } from "@/pages/TraceabilityPage";
 import { AdminPage } from "@/pages/AdminPage";
 import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
@@ -68,6 +69,7 @@ function AuthenticatedApp() {
         <Route path="reviews" element={<ReviewDashboardPage />} />
         <Route path="reviews/:sessionId" element={<ReviewSessionDetailPage />} />
         <Route path="impact-analysis" element={<ImpactAnalysisPage />} />
+        <Route path="traceability" element={<TraceabilityPage />} />
         <Route path="admin" element={<AdminPage />} />
       </Route>
     </Routes>
