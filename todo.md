@@ -175,20 +175,7 @@ Please write for every item in this list a short user guide after your implement
 
 ---
 
-## Phase 7 — Validation & Compliance of ALC/myself
-
-- [ ] **7.1 CSV Validation Runner Integration**
-  Trigger Playwright E2E validation from the UI. Show progress, results, and generated validation certificate. Per-company validation scoping.
-
-- [ ] **7.2 Traceability Matrix**
-  Auto-generated matrix linking requirements → test cases → results. Exportable for FDA/EMA audit submissions.
-
-- [ ] **7.3 Automated Validation Evidence Locker**
-
-  Self-Documentation: Generates a "Validation Snapshot" upon deployment or configuration changes, capturing current Playwright E2E results and system state.
-
-  AI-Generated Test Scenarios: AI analyzes new roadmap features and automatically proposes Playwright test scripts to maintain high CSV (Computerized System Validation) coverage.
-
+## Phase 7 — Deleted
 
 ---
 
@@ -248,6 +235,25 @@ Please write for every item in this list a short user guide after your implement
   **One-Click Internalization & Traceability:** Allow users to "internalize" a public paper into the company's document repository. This automatically binds the paper to the Global Traceability Matrix (7.2, 8.3), mapping external scientific evidence directly to internal requirements or validation tests for FDA/EMA submissions. All search criteria, dates, and retrieval actions are logged immutably in the Audit Trail Viewer (6.3).
 
 ---
+
+## Phase 10 — Validation & Compliance of ALC/myself
+
+- [ ] **10.1 CSV Validation Runner Integration**
+  Trigger Playwright E2E validation from the UI. Show progress, results, and generated validation certificate. Per-company validation scoping.
+
+- [ ] **10.2 Traceability Matrix**
+  Auto-generated matrix linking requirements → test cases → results. Exportable for FDA/EMA audit submissions.
+
+- [ ] **10.3 Automated Validation Evidence Locker**
+
+  Self-Documentation: Generates a "Validation Snapshot" upon deployment or configuration changes, capturing current Playwright E2E results and system state.
+
+  AI-Generated Test Scenarios: AI analyzes new roadmap features and automatically proposes Playwright test scripts to maintain high CSV (Computerized System Validation) coverage.
+
+
+---
+
+
 
 ## Notes
 
