@@ -37,6 +37,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   A built-in, isolated testing environment. On command, a dedicated Playwright container performs End-to-End (E2E) UI tests, signs documents, verifies database states, and generates a tamper-proof Validation Certificate for FDA/EMA audits.
 * 🔐 **Granular Role-Based Access Control (RBAC)**
   Five specialized roles (System Admin, Document Admin, IT Admin, Member, Viewer) with resource-action permission matrices. Permission templates define document-type-specific access rules using a "most restrictive wins" policy. Full user lifecycle management with audit-compliant deactivation, password reset, and company membership management.
+* ⚙️ **Centralized System Configuration**
+  Administrators manage AI hardware settings, storage quotas, backup schedules, health monitoring, and service status from a single dashboard. All changes are audited with X-Change-Reason headers, versioned via snapshots, and reversible through atomic rollback. Includes real-time health monitoring of all infrastructure services with configurable thresholds.
 
 ---
 
@@ -98,6 +100,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 5.5 | AI-Driven Change Impact Analysis | ✅ Complete |
 | 5.6 | AI-Powered Traceability & Gap Discovery | ✅ Complete |
 | 6.1 | Admin Dashboard — User Management | ✅ Complete |
+| 6.2 | Admin Dashboard — System Configuration | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -125,6 +128,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Change Impact Analysis](docs/change-impact-analysis-guide.md) | Dependency graph, automatic impact detection, gap analysis, notifications, training task resets |
 | [Traceability & Gap Discovery](docs/traceability-gap-discovery-guide.md) | Automated traceability matrices, three-pass matching, orphan detection, coverage metrics, stale link alerts |
 | [Admin Dashboard — User Management](docs/admin-dashboard-user-management-guide.md) | RBAC roles, user CRUD, permission templates, company memberships, audit-compliant lifecycle management |
+| [Admin Dashboard — System Configuration](docs/admin-system-configuration-guide.md) | AI hardware settings, storage quotas, backup scheduling, health monitoring, service status, configuration rollback |
 
 ---
 
