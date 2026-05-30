@@ -236,15 +236,25 @@ Please write for every item in this list a short user guide after your implement
 
 ---
 
-## Phase 10 — Validation & Compliance of ALC/myself
+## Phase 10 — Manual Testing
 
-- [ ] **10.1 CSV Validation Runner Integration**
+- [ ] **10.1 Setup**
+  Authentication, multi company setup, LLM ...
+
+- [ ] **10.2 Doc handling**
+  Upload, virtual folders, versioning, workflows
+
+---
+
+## Phase 11 — Validation & Compliance of ALC/myself
+
+- [ ] **11.1 CSV Validation Runner Integration**
   Trigger Playwright E2E validation from the UI. Show progress, results, and generated validation certificate. Per-company validation scoping.
 
-- [ ] **10.2 Traceability Matrix**
+- [ ] **11.2 Traceability Matrix**
   Auto-generated matrix linking requirements → test cases → results. Exportable for FDA/EMA audit submissions.
 
-- [ ] **10.3 Automated Validation Evidence Locker**
+- [ ] **11.3 Automated Validation Evidence Locker**
 
   Self-Documentation: Generates a "Validation Snapshot" upon deployment or configuration changes, capturing current Playwright E2E results and system state.
 
