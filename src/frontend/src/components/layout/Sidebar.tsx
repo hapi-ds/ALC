@@ -20,6 +20,7 @@ import {
   Users,
   Shield,
   FileKey,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -48,6 +49,7 @@ const adminNavItems = [
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/roles", label: "Role Management", icon: Shield },
   { to: "/admin/permission-templates", label: "Permission Templates", icon: FileKey },
+  { to: "/admin/audit-trail", label: "Audit Trail", icon: ScrollText },
 ];
 
 /** Roles that grant access to the Administration section */

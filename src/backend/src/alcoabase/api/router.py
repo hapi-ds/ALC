@@ -8,6 +8,7 @@ their respective modules.
 from fastapi import APIRouter
 
 from alcoabase.api.audit import router as audit_router
+from alcoabase.api.audit_trail import router as audit_trail_router
 from alcoabase.api.companies import router as companies_router
 from alcoabase.api.setup import router as setup_router
 from alcoabase.api.documents import router as documents_router
@@ -71,6 +72,7 @@ api_router.include_router(knowledge_router)
 api_router.include_router(agents_router)
 api_router.include_router(validation_router)
 api_router.include_router(audit_router)
+api_router.include_router(audit_trail_router)
 api_router.include_router(models_router)
 api_router.include_router(memberships_router)
 api_router.include_router(agent_activations_router)

@@ -25,3 +25,5 @@ export { useAdminStore } from "./adminStore";
 export type { AdminState } from "./adminStore";
 export { useSystemConfigStore } from "./useSystemConfigStore";
 export type { SystemConfigState } from "./useSystemConfigStore";
+export { useAuditTrailStore } from "./useAuditTrailStore";
+export type { AuditTrailState } from "./useAuditTrailStore";

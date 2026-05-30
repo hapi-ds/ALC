@@ -6,8 +6,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
 
 ## Tasks
 
-- [ ] 1. Database model, schemas, and migration
-  - [ ] 1.1 Create SQLAlchemy model for audit_access_log
+- [x] 1. Database model, schemas, and migration
+  - [x] 1.1 Create SQLAlchemy model for audit_access_log
     - Create file `src/backend/src/alcoabase/models/audit_access_log.py`
     - Define `AuditAccessLog` model: id (int PK), user_id (FK users.id, indexed), company_id (FK companies.id, indexed), action (String, "view" | "export"), filters_applied (JSON, nullable), event_count (int, nullable), timestamp (DateTime TZ, server_default=func.now(), indexed)
     - Add composite index on (user_id, timestamp) for efficient access log queries
@@ -15,7 +15,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Register model in `src/backend/src/alcoabase/models/__init__.py`
     - _Requirements: 11.1, 11.2, 11.3_
 
-  - [ ] 1.2 Create Pydantic schemas for audit trail
+  - [x] 1.2 Create Pydantic schemas for audit trail
     - Create file `src/backend/src/alcoabase/schemas/audit_trail.py`
     - Define `AuditTrailFilters` schema: user_id (int | None), date_start (datetime | None), date_end (datetime | None), record_type (str | None, validated against allowed types: documents, templates, reports, workflows, signatures, training_tasks, training_records), operation_type (Literal["INSERT", "UPDATE", "DELETE"] | None)
     - Define `AuditEvent` response schema: transaction_id (int), timestamp (datetime), user_id (int), user_display_name (str | None), record_type (str), record_id (int), operation_type (Literal["INSERT", "UPDATE", "DELETE"]), change_reason (str | None), changed_fields (list[str], max 10), total_changed_fields (int), company_id (int)
@@ -28,14 +28,14 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Define `AuditTrailListParams` query schema: cursor (str | None), page_size (int, default=50, ge=1, le=200), search (str | None), plus all filter fields as query params
     - _Requirements: 1.3, 2.1, 2.2, 3.1–3.5, 5.1–5.3, 6.1–6.5, 7.1–7.3_
 
-  - [ ] 1.3 Create Alembic migration for audit_access_log table
+  - [x] 1.3 Create Alembic migration for audit_access_log table
     - Generate migration with `alembic revision --autogenerate -m "add_audit_access_log_table"`
     - Upgrade: create `audit_access_log` table with all columns, indexes, and foreign key constraints
     - Add composite index on (user_id, timestamp)
     - Downgrade: drop `audit_access_log` table
     - _Requirements: 11.3_
 
-  - [ ]* 1.4 Write unit tests for Pydantic schema validation
+  - [x] 1.4 Write unit tests for Pydantic schema validation
     - Test AuditTrailFilters: valid record_type values accepted, invalid rejected; valid operation_type Literal accepted, invalid rejected; date_start before date_end validation
     - Test AuditEvent serialization: changed_fields max 10 items, total_changed_fields reflects actual count
     - Test AuditTrailListParams: page_size clamped to [1, 200], cursor format validation
@@ -43,8 +43,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test FieldChange: old_value/new_value accept Any type (str, int, dict, list, None)
     - _Requirements: 1.3, 2.2, 3.1–3.4_
 
-- [ ] 2. Core service: AuditAccessLogger
-  - [ ] 2.1 Implement AuditAccessLogger service
+- [x] 2. Core service: AuditAccessLogger
+  - [x] 2.1 Implement AuditAccessLogger service
     - Create file `src/backend/src/alcoabase/services/audit_access_logger.py`
     - Implement `log_access(session, user_id, company_id, action, filters_applied, event_count)`: create AuditAccessLog record with server-side timestamp, commit immediately (fire-and-forget pattern)
     - Action values: "view" for list/detail requests, "export" for PDF export requests
@@ -53,15 +53,15 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - No update or delete methods — table is append-only
     - _Requirements: 11.1, 11.2, 11.3_
 
-  - [ ]* 2.2 Write unit tests for AuditAccessLogger
+  - [x] 2.2 Write unit tests for AuditAccessLogger
     - Test log_access creates record with correct user_id, company_id, action, timestamp
     - Test log_access with filters_applied as dict and as None
     - Test log_access with event_count for export actions
     - Test that no update/delete methods exist on the service
     - _Requirements: 11.1, 11.2, 11.3_
 
-- [ ] 3. Core service: AuditTrailService
-  - [ ] 3.1 Implement AuditTrailService
+- [x] 3. Core service: AuditTrailService
+  - [x] 3.1 Implement AuditTrailService
     - Create file `src/backend/src/alcoabase/services/audit_trail_service.py`
     - Define `AUDITED_RECORD_TYPES` mapping: {"documents": DocumentVersion, "templates": TemplateVersion, "reports": ReportVersion, "workflows": WorkflowVersion, "signatures": SignatureVersion, "training_tasks": TrainingTaskVersion, "training_records": TrainingRecordVersion}
     - Implement `list_events(session, company_id, filters, search_query, cursor, page_size, cross_company)`:
@@ -87,63 +87,63 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - Sum results across all accessible tables
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 2.1, 2.2, 2.3, 3.1–3.5, 4.1–4.3, 5.1–5.3, 6.1–6.5_
 
-  - [ ]* 3.2 Write property test for aggregation completeness and ordering
+  - [x] 3.2 Write property test for aggregation completeness and ordering
     - **Property 1: Aggregation completeness and ordering**
     - Generate random sets of audit events distributed across multiple version tables with varying timestamps; verify aggregation returns every event exactly once, ordered by timestamp descending
     - Use Hypothesis strategies to generate events with random timestamps, record types, and transaction IDs
     - **Validates: Requirements 1.1, 1.2**
 
-  - [ ]* 3.3 Write property test for event serialization field truncation
+  - [x] 3.3 Write property test for event serialization field truncation
     - **Property 2: Event serialization includes required fields with truncation**
     - Generate version table entries with N changed fields (0 ≤ N ≤ 50); verify serialized AuditEvent includes all required fields and changed_fields contains at most 10 items with total_changed_fields reflecting actual count
     - **Validates: Requirements 1.3**
 
-  - [ ]* 3.4 Write property test for user identity resolution
+  - [x] 3.4 Write property test for user identity resolution
     - **Property 3: User identity resolution with fallback**
     - Generate audit events with user_ids that exist and don't exist in users table; verify user_display_name is display name when user exists, None when user unavailable, and user_id is always the numeric identifier
     - **Validates: Requirements 1.4**
 
-  - [ ]* 3.5 Write property test for transaction grouping
+  - [x] 3.5 Write property test for transaction grouping
     - **Property 4: Transaction grouping**
     - Generate sets of events where multiple events share the same transaction_id; verify those events are presented with transaction_id as correlation identifier
     - **Validates: Requirements 1.5**
 
-  - [ ]* 3.6 Write property test for graceful degradation
+  - [x] 3.6 Write property test for graceful degradation
     - **Property 5: Graceful degradation on partial failure**
     - Generate subsets of version tables that fail during aggregation; verify service returns events from all non-failing tables and includes a warning listing exactly the failed record types
     - **Validates: Requirements 1.6**
 
-  - [ ]* 3.7 Write property test for pagination completeness
+  - [x] 3.7 Write property test for pagination completeness
     - **Property 6: Pagination completeness with page size clamping**
     - Generate datasets of audit events and sequences of cursor-based page requests with page_size in [1, 200]; verify iterating through all pages yields every matching event exactly once with no duplicates and no gaps
     - **Validates: Requirements 2.1, 2.2**
 
-  - [ ]* 3.8 Write property test for total count accuracy
+  - [x] 3.8 Write property test for total count accuracy
     - **Property 7: Total count accuracy**
     - Generate combinations of filters and search queries applied to a dataset; verify total_count equals the number of events satisfying all applied criteria
     - **Validates: Requirements 2.3**
 
-  - [ ]* 3.9 Write property test for filter correctness
+  - [x] 3.9 Write property test for filter correctness
     - **Property 8: Filter correctness**
     - Generate single filters (user_id, date_range, record_type, operation_type) applied to a dataset; verify every event in response satisfies the filter and no satisfying event is excluded
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4**
 
-  - [ ]* 3.10 Write property test for filter AND-combination with search
+  - [x] 3.10 Write property test for filter AND-combination with search
     - **Property 9: Filter AND-combination with search**
     - Generate combinations of multiple filters and search query; verify result set equals the intersection of applying each filter and search individually
     - **Validates: Requirements 3.5, 5.3**
 
-  - [ ]* 3.11 Write property test for tenant scoping
+  - [x] 3.11 Write property test for tenant scoping
     - **Property 10: Tenant scoping**
     - Generate audit events belonging to multiple companies; verify query scoped to company_id returns only events from that company and no events from other companies
     - **Validates: Requirements 4.1**
 
-  - [ ]* 3.12 Write property test for substring search completeness
+  - [x] 3.12 Write property test for substring search completeness
     - **Property 11: Substring search completeness**
     - Generate audit events and substrings of their searchable fields (change_reason, record_type, user_display_name, record_id as string); verify searching for that substring includes the event in results
     - **Validates: Requirements 5.1, 5.2**
 
-  - [ ]* 3.13 Write unit tests for AuditTrailService
+  - [x] 3.13 Write unit tests for AuditTrailService
     - Test list_events returns events ordered by timestamp descending
     - Test list_events with each filter type individually (user_id, date_range, record_type, operation_type)
     - Test list_events with combined filters (AND logic)
@@ -161,8 +161,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test page_size clamping to [1, 200]
     - _Requirements: 1.1–1.7, 2.1–2.3, 3.1–3.5, 4.1–4.3, 5.1–5.3, 6.1–6.5_
 
-- [ ] 4. Core service: AuditPDFExporter
-  - [ ] 4.1 Implement AuditPDFExporter service
+- [x] 4. Core service: AuditPDFExporter
+  - [x] 4.1 Implement AuditPDFExporter service
     - Create file `src/backend/src/alcoabase/services/audit_pdf_exporter.py`
     - Implement `generate_pdf(events, metadata) -> bytes`:
       - Use ReportLab with A4 page size, portrait orientation
@@ -186,22 +186,22 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - Check Celery task state and return status with download_url if completed
     - _Requirements: 7.1–7.10_
 
-  - [ ]* 4.2 Write property test for PDF content consistency
+  - [x] 4.2 Write property test for PDF content consistency
     - **Property 12: PDF content consistency with API**
     - Generate sets of filter criteria and audit events; verify the events included in the generated PDF are exactly the same set that the list API would return for those criteria
     - **Validates: Requirements 7.1**
 
-  - [ ]* 4.3 Write property test for PDF header metadata completeness
+  - [x] 4.3 Write property test for PDF header metadata completeness
     - **Property 13: PDF header metadata completeness**
     - Generate export requests with varying metadata; verify generated PDF header contains: company name, export timestamp (UTC), all applied filters, total event count, and requesting user identity
     - **Validates: Requirements 7.2**
 
-  - [ ]* 4.4 Write property test for PDF event formatting with truncation
+  - [x] 4.4 Write property test for PDF event formatting with truncation
     - **Property 14: PDF event formatting with truncation**
     - Generate audit events with change_reason of varying lengths (0 to 1000+ chars); verify PDF entry includes sequential number, timestamp, user identity, record type, record ID, operation_type; if change_reason length > 500, verify truncation to 500 chars followed by ellipsis
     - **Validates: Requirements 7.3**
 
-  - [ ]* 4.5 Write unit tests for AuditPDFExporter
+  - [x] 4.5 Write unit tests for AuditPDFExporter
     - Test generate_pdf produces valid PDF bytes (parseable by PyMuPDF)
     - Test PDF uses A4 page size, portrait orientation
     - Test PDF uses fixed-width font for tabular data
@@ -214,11 +214,11 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test get_export_status returns correct status for pending/completed/failed jobs
     - _Requirements: 7.1–7.10_
 
-- [ ] 5. Checkpoint - Ensure all tests pass
+- [x] 5. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Celery task for async PDF export
-  - [ ] 6.1 Implement Celery task for PDF export
+- [x] 6. Celery task for async PDF export
+  - [x] 6.1 Implement Celery task for PDF export
     - Create file `src/backend/src/alcoabase/tasks/audit_export_tasks.py`
     - Implement `export_audit_pdf_task(self, job_id, company_id, filters, search_query, requesting_user_id)`:
       - Decorated with `@celery_app.task(bind=True, soft_time_limit=300, max_retries=0, queue="default", name="alcoabase.tasks.audit_export_tasks.export_audit_pdf_task")`
@@ -232,7 +232,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - On any other exception: return {"status": "failed", "error_message": str(error)}; ensure no partial PDF is stored
     - _Requirements: 7.5, 7.9, 7.10_
 
-  - [ ]* 6.2 Write unit tests for Celery export task
+  - [x] 6.2 Write unit tests for Celery export task
     - Test successful export: events fetched, PDF generated, uploaded to MinIO, access logged
     - Test timeout handling: SoftTimeLimitExceeded caught, status set to "failed"
     - Test error handling: exception caught, no partial PDF stored, error message returned
@@ -240,8 +240,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test presigned URL generation for download
     - _Requirements: 7.5, 7.9, 7.10_
 
-- [ ] 7. API router: audit trail endpoints
-  - [ ] 7.1 Implement audit trail API router (list and detail endpoints)
+- [x] 7. API router: audit trail endpoints
+  - [x] 7.1 Implement audit trail API router (list and detail endpoints)
     - Create file `src/backend/src/alcoabase/api/audit_trail.py`
     - Define router with prefix `/audit-trail`
     - Implement GET `/` → list/filter/search audit events (paginated):
@@ -257,7 +257,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - Return 404 if event not found
     - _Requirements: 1.1–1.7, 2.1–2.3, 3.1–3.5, 4.1–4.3, 5.1–5.3, 6.1–6.5, 9.1–9.4, 11.1_
 
-  - [ ] 7.2 Implement export endpoints
+  - [x] 7.2 Implement export endpoints
     - Add to `src/backend/src/alcoabase/api/audit_trail.py`
     - Implement POST `/export` → trigger PDF export:
       - Body: ExportRequest (filters, search_query)
@@ -272,14 +272,14 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - Return 404 if job_id not found
     - _Requirements: 7.1–7.10, 11.2_
 
-  - [ ] 7.3 Implement immutability enforcement
+  - [x] 7.3 Implement immutability enforcement
     - Add to `src/backend/src/alcoabase/api/audit_trail.py`
     - Implement PUT, PATCH, DELETE handlers for `/audit-trail` and `/audit-trail/{path:path}`:
       - Return HTTP 403 with body: {"detail": "Audit records are immutable per ALCOA+ and CFR 21 Part 11"}
       - Enforce regardless of requesting user's role or permissions
     - _Requirements: 8.1, 8.2, 8.4_
 
-  - [ ] 7.4 Implement cross-company query support for system_admin
+  - [x] 7.4 Implement cross-company query support for system_admin
     - Add to GET `/` endpoint in `src/backend/src/alcoabase/api/audit_trail.py`
     - Add optional query param `cross_company: bool = False`
     - If cross_company=True: verify user has system_admin role, pass cross_company=True to AuditTrailService
@@ -287,21 +287,21 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - If no X-Company-Id header and cross_company is False: return HTTP 400
     - _Requirements: 4.1, 4.2, 4.3_
 
-  - [ ] 7.5 Register audit_trail router in central router
+  - [x] 7.5 Register audit_trail router in central router
     - Add import and `include_router` call in `src/backend/src/alcoabase/api/router.py` for audit_trail router with prefix `/audit-trail`
     - _Requirements: 9.1_
 
-  - [ ]* 7.6 Write property test for immutability enforcement
+  - [x] 7.6 Write property test for immutability enforcement
     - **Property 15: Immutability enforcement**
     - Generate HTTP requests using PUT, PATCH, and DELETE methods against any audit trail endpoint path, with users of varying roles (including system_admin); verify all return HTTP 403 with message "Audit records are immutable per ALCOA+ and CFR 21 Part 11"
     - **Validates: Requirements 8.1, 8.2, 8.4**
 
-  - [ ]* 7.7 Write property test for access logging completeness
+  - [x] 7.7 Write property test for access logging completeness
     - **Property 16: Access logging completeness**
     - Generate audit trail interactions (view and export); verify each creates an entry in audit_access_log containing user_id, timestamp, action type, and applied filters
     - **Validates: Requirements 11.1, 11.2**
 
-  - [ ]* 7.8 Write unit tests for audit trail API router
+  - [x] 7.8 Write unit tests for audit trail API router
     - Test GET / returns paginated events with correct structure
     - Test GET / with each filter type (user_id, date_range, record_type, operation_type)
     - Test GET / with search query
@@ -322,11 +322,11 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test access logging occurs on each request
     - _Requirements: 1.1–1.7, 2.1–2.3, 3.1–3.5, 4.1–4.3, 5.1–5.3, 6.1–6.5, 7.1–7.10, 8.1–8.4, 9.1–9.4, 11.1–11.2_
 
-- [ ] 8. Checkpoint - Ensure all tests pass
+- [x] 8. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Frontend: TypeScript types and Zustand store
-  - [ ] 9.1 Create TypeScript types for audit trail
+- [x] 9. Frontend: TypeScript types and Zustand store
+  - [x] 9.1 Create TypeScript types for audit trail
     - Create file `src/frontend/src/types/auditTrail.ts`
     - Define `AuditEvent` interface: transaction_id (number), timestamp (string), user_id (number), user_display_name (string | null), record_type (string), record_id (number), operation_type ("INSERT" | "UPDATE" | "DELETE"), change_reason (string | null), changed_fields (string[]), total_changed_fields (number), company_id (number)
     - Define `AuditTrailFilters` interface: user_id? (number), date_start? (string), date_end? (string), record_type? (string), operation_type? ("INSERT" | "UPDATE" | "DELETE")
@@ -337,7 +337,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Define `SortConfig` interface: column (string), direction ("asc" | "desc")
     - _Requirements: 1.3, 2.1, 2.4, 3.6, 5.4, 6.1–6.5, 7.7, 10.1–10.6_
 
-  - [ ] 9.2 Create Zustand store for audit trail
+  - [x] 9.2 Create Zustand store for audit trail
     - Create file `src/frontend/src/stores/useAuditTrailStore.ts`
     - Implement state: events (AuditEvent[]), filters (AuditTrailFilters), searchQuery (string), cursor (string | null), totalCount (number), isLoading (boolean), selectedEvent (AuditEventDetail | null), exportStatus (ExportStatus | null), sort (SortConfig), warnings (string[])
     - Implement actions:
@@ -353,8 +353,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
       - `resetFilters()`: clear all filters and search, refetch
     - _Requirements: 2.4, 3.6, 5.4, 7.7, 10.1–10.6_
 
-- [ ] 10. Frontend: Audit Trail Viewer page and components
-  - [ ] 10.1 Implement AuditTrailFilters component
+- [x] 10. Frontend: Audit Trail Viewer page and components
+  - [x] 10.1 Implement AuditTrailFilters component
     - Create file `src/frontend/src/components/AuditTrailFilters.tsx`
     - User selection dropdown (searchable, fetches from /api/users)
     - Date range picker (start date, end date) using shadcn/ui DatePicker
@@ -366,7 +366,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Use shadcn/ui Select, Input, Button, Popover components
     - _Requirements: 3.6, 5.4, 10.6_
 
-  - [ ] 10.2 Implement AuditTrailTable component
+  - [x] 10.2 Implement AuditTrailTable component
     - Create file `src/frontend/src/components/AuditTrailTable.tsx`
     - shadcn/ui DataTable with columns: timestamp, user (display_name or user_id fallback), record type, record ID, operation, change reason
     - Sortable columns: timestamp, user, record type, operation type (click header to toggle sort)
@@ -381,7 +381,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Display total count: "Showing X of Y events"
     - _Requirements: 2.4, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 10.3 Implement AuditEventDetailPanel component
+  - [x] 10.3 Implement AuditEventDetailPanel component
     - Create file `src/frontend/src/components/AuditEventDetailPanel.tsx`
     - Slide-over panel (shadcn/ui Sheet) triggered by row click in table
     - Display full event metadata: timestamp, user, record type, record ID, operation, change reason (full text)
@@ -394,7 +394,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Loading state while fetching detail
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
 
-  - [ ] 10.4 Implement AuditExportButton component
+  - [x] 10.4 Implement AuditExportButton component
     - Create file `src/frontend/src/components/AuditExportButton.tsx`
     - "Export to PDF" button using shadcn/ui Button
     - On click: call store.triggerExport()
@@ -407,7 +407,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Show tooltip "No events to export" when disabled
     - _Requirements: 7.7, 7.8, 7.9_
 
-  - [ ] 10.5 Implement AuditTrailPage
+  - [x] 10.5 Implement AuditTrailPage
     - Create file `src/frontend/src/pages/AuditTrailPage.tsx`
     - Route: `/admin/audit-trail`
     - Page layout: header with title "Audit Trail", filter bar, data table, export button
@@ -417,17 +417,17 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Page title and breadcrumb consistent with existing admin pages
     - _Requirements: 9.3, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6_
 
-  - [ ] 10.6 Register route and add navigation link
+  - [x] 10.6 Register route and add navigation link
     - Add route `/admin/audit-trail` to the React Router configuration with AuditTrailPage component
     - Add route guard checking for system_admin, doc_admin, or it_admin roles
     - Add "Audit Trail" navigation link in the admin sidebar/menu (consistent with existing admin nav items)
     - _Requirements: 9.3, 10.1_
 
-- [ ] 11. Checkpoint - Ensure all tests pass
+- [x] 11. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Frontend tests
-  - [ ]* 12.1 Write property-based tests for frontend (fast-check)
+- [x] 12. Frontend tests
+  - [x] 12.1 Write property-based tests for frontend (fast-check)
     - Create file `src/frontend/src/__tests__/audit-trail.property.test.ts`
     - Property test: filter state management — generate random filter combinations, verify store state correctly reflects applied filters after setFilters()
     - Property test: event formatting/truncation — generate events with change_reason of varying lengths, verify display truncation logic is consistent
@@ -436,7 +436,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Use fast-check with `{ numRuns: 100 }` configuration
     - _Requirements: 1.3, 2.4, 3.6, 10.2_
 
-  - [ ]* 12.2 Write unit tests for frontend components (Vitest + Testing Library)
+  - [x] 12.2 Write unit tests for frontend components (Vitest + Testing Library)
     - Create file `src/frontend/src/__tests__/audit-trail.test.tsx`
     - Test AuditTrailTable renders columns correctly with mock data
     - Test AuditTrailTable loading state shows skeleton rows
@@ -456,8 +456,8 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test AuditTrailPage fetches events on mount
     - _Requirements: 2.4, 3.6, 5.4, 6.1–6.5, 7.7, 7.8, 9.3, 10.1–10.6_
 
-- [ ] 13. Integration tests
-  - [ ]* 13.1 Write backend integration tests
+- [x] 13. Integration tests
+  - [x] 13.1 Write backend integration tests
     - Create file `src/backend/tests/integration/test_audit_trail_integration.py`
     - Test full request flow: API → AuditTrailService → Version Tables → Response (with seeded test data)
     - Test multi-tenant isolation: create events for two companies, verify each company only sees their own events
@@ -471,7 +471,7 @@ This plan implements Phase 6.3 — Audit Trail Viewer for AlcoaBase. The impleme
     - Test event detail for each operation type (INSERT, UPDATE, DELETE)
     - _Requirements: 1.1–1.7, 2.1–2.3, 3.1–3.5, 4.1–4.3, 5.1–5.3, 6.1–6.5, 7.1–7.10, 8.1–8.4, 9.1–9.4, 11.1–11.3_
 
-- [ ] 14. Final checkpoint - Ensure all tests pass
+- [x] 14. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

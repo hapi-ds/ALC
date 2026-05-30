@@ -7,6 +7,7 @@ Models requiring GxP audit trail versioning should inherit from AuditMixin.
 from alcoabase.models.agent import AgentDefinition
 from alcoabase.models.anomaly import AnomalyAlert
 from alcoabase.models.audit import AuditMixin
+from alcoabase.models.audit_access_log import AuditAccessLog
 from alcoabase.models.audit_profile import AuditProfile
 from alcoabase.models.company import Company, CompanyAgentActivation, CompanyMembership
 from alcoabase.models.document import Document, DocumentTag, DocumentVersion
@@ -77,6 +78,7 @@ __all__ = [
     "AgentDefinition",
     "AgentReview",
     "AnomalyAlert",
+    "AuditAccessLog",
     "AuditMixin",
     "AuditProfile",
     "BackupRecord",

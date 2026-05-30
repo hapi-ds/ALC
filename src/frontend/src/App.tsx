@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
+import { Toaster } from "sonner";
 import { MainLayout } from "@/components/layout";
 import { DocumentsPage } from "@/pages/DocumentsPage";
 import { VirtualFoldersPage } from "@/pages/VirtualFoldersPage";
@@ -25,6 +26,7 @@ import { UserManagementPage } from "@/pages/UserManagementPage";
 import { RoleManagementPage } from "@/pages/RoleManagementPage";
 import { PermissionTemplateManagementPage } from "@/pages/PermissionTemplateManagementPage";
 import { SystemConfigPage } from "@/pages/admin/SystemConfigPage";
+import { AuditTrailPage } from "@/pages/AuditTrailPage";
 import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
 import { ReportDetailPage } from "@/pages/ReportDetailPage";
@@ -32,6 +34,7 @@ import { ComparisonViewPage } from "@/pages/ComparisonViewPage";
 import { DocumentGeneratorPage } from "@/pages/DocumentGeneratorPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RouteGuard } from "@/components/auth/RouteGuard";
+import { AdminRouteGuard } from "@/components/auth/AdminRouteGuard";
 import { useAuthStore } from "@/stores/authStore";
 import { useSessionTimer } from "@/hooks/useSessionTimer";
 
@@ -79,6 +82,7 @@ function AuthenticatedApp() {
         <Route path="admin/roles" element={<RoleManagementPage />} />
         <Route path="admin/permission-templates" element={<PermissionTemplateManagementPage />} />
         <Route path="admin/system-config" element={<SystemConfigPage />} />
+        <Route path="admin/audit-trail" element={<AdminRouteGuard><AuditTrailPage /></AdminRouteGuard>} />
       </Route>
     </Routes>
   );
@@ -92,20 +96,23 @@ function App() {
   }, [initialize]);
 
   return (
-    <Routes>
-      {/* Public routes */}
-      <Route path="/login" element={<LoginPage />} />
+    <>
+      <Toaster position="top-right" richColors />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected routes */}
-      <Route
-        path="/*"
-        element={
-          <RouteGuard>
-            <AuthenticatedApp />
-          </RouteGuard>
-        }
-      />
-    </Routes>
+        {/* Protected routes */}
+        <Route
+          path="/*"
+          element={
+            <RouteGuard>
+              <AuthenticatedApp />
+            </RouteGuard>
+          }
+        />
+      </Routes>
+    </>
   );
 }
 

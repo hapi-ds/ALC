@@ -22,4 +22,5 @@ export { AdminPage } from "./AdminPage";
 export { UserManagementPage } from "./UserManagementPage";
 export { RoleManagementPage } from "./RoleManagementPage";
 export { PermissionTemplateManagementPage } from "./PermissionTemplateManagementPage";
+export { AuditTrailPage } from "./AuditTrailPage";
 export { LoginPage } from "./LoginPage";

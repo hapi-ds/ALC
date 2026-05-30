@@ -39,6 +39,7 @@ _EXEMPT_PATH_PREFIXES: tuple[str, ...] = (
     "/redoc",
     "/api/v1/auth",
     "/api/v1/setup",
+    "/api/audit-trail",
 )
 
 
