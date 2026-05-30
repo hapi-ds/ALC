@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from alcoabase.services.knowledge_service import KnowledgeService
+from alcoabase.services.risk_controlled import risk_controlled
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +261,7 @@ class DocumentGenerator:
     # Document Generation (Task 14.1 + 14.4)
     # -----------------------------------------------------------------------
 
+    @risk_controlled(task_type_id="document_generation")
     async def generate(
         self,
         instructions: str,
@@ -268,6 +270,7 @@ class DocumentGenerator:
         document_type: str = "SOP",
         title: str | None = None,
         chat_history: list[dict[str, str]] | None = None,
+        company_id: int | None = None,
     ) -> GeneratedDocument:
         """Generate a new document using the DSPy pipeline (placeholder).
 

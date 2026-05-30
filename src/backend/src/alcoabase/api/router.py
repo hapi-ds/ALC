@@ -45,6 +45,7 @@ from alcoabase.api.admin_users import router as admin_users_router
 from alcoabase.api.auth import auth_router
 from alcoabase.api.impact_analysis import router as impact_analysis_router
 from alcoabase.api.system_config import router as system_config_router
+from alcoabase.api.risk_framework import router as risk_framework_router
 from alcoabase.api.traceability import router as traceability_router
 
 # ---------------------------------------------------------------------------
@@ -92,5 +93,6 @@ api_router.include_router(admin_users_router)
 api_router.include_router(admin_roles_router)
 api_router.include_router(admin_permission_templates_router)
 api_router.include_router(admin_memberships_router)
+api_router.include_router(risk_framework_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")

@@ -53,6 +53,11 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute="*/15"),
         "options": {"queue": "ai_operations"},
     },
+    "expire-stale-hitl-checkpoints": {
+        "task": "alcoabase.tasks.risk_framework_tasks.expire_stale_checkpoints",
+        "schedule": crontab(minute="*/15"),
+        "options": {"queue": "default"},
+    },
 }
 
 # Auto-discover tasks in the tasks package

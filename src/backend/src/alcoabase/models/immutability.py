@@ -159,7 +159,8 @@ def register_immutability_listeners() -> None:
 
     Attaches before_update and before_delete listeners to
     GenerationProvenance, CrossReferenceEntry, ImpactReport,
-    GapAnalysisResult, TraceabilityMatrix, and CoverageSnapshot models,
+    GapAnalysisResult, TraceabilityMatrix, CoverageSnapshot,
+    RiskAssessmentRecord, AIOperationLog, and ControlEnforcementLog models,
     preventing modification or deletion of these append-only audit records.
 
     TraceabilityMatrix uses a special listener that permits only deleted_at
@@ -173,6 +174,11 @@ def register_immutability_listeners() -> None:
         GenerationProvenance,
     )
     from alcoabase.models.impact_analysis import GapAnalysisResult, ImpactReport
+    from alcoabase.models.risk_framework import (
+        AIOperationLog,
+        ControlEnforcementLog,
+        RiskAssessmentRecord,
+    )
     from alcoabase.models.traceability import CoverageSnapshot, TraceabilityMatrix
 
     # Prevent UPDATE on fully immutable models
@@ -181,6 +187,9 @@ def register_immutability_listeners() -> None:
     event.listen(ImpactReport, "before_update", _prevent_update)
     event.listen(GapAnalysisResult, "before_update", _prevent_update)
     event.listen(CoverageSnapshot, "before_update", _prevent_update)
+    event.listen(RiskAssessmentRecord, "before_update", _prevent_update)
+    event.listen(AIOperationLog, "before_update", _prevent_update)
+    event.listen(ControlEnforcementLog, "before_update", _prevent_update)
 
     # TraceabilityMatrix: permit only deleted_at mutation (soft-delete)
     event.listen(
@@ -194,10 +203,14 @@ def register_immutability_listeners() -> None:
     event.listen(GapAnalysisResult, "before_delete", _prevent_delete)
     event.listen(TraceabilityMatrix, "before_delete", _prevent_delete)
     event.listen(CoverageSnapshot, "before_delete", _prevent_delete)
+    event.listen(RiskAssessmentRecord, "before_delete", _prevent_delete)
+    event.listen(AIOperationLog, "before_delete", _prevent_delete)
+    event.listen(ControlEnforcementLog, "before_delete", _prevent_delete)
 
     logger.info(
         "Registered immutability listeners for GenerationProvenance, "
         "CrossReferenceEntry, ImpactReport, GapAnalysisResult, "
-        "TraceabilityMatrix, and CoverageSnapshot "
+        "TraceabilityMatrix, CoverageSnapshot, RiskAssessmentRecord, "
+        "AIOperationLog, and ControlEnforcementLog "
         "(GxP audit trail enforcement)."
     )

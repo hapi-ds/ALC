@@ -28,6 +28,7 @@ from alcoabase.models.review import ActionItem, AgentReview, ReviewSession
 from alcoabase.services.agent_registry import AgentRegistryService
 from alcoabase.services.audit_profile_service import AuditProfileService
 from alcoabase.services.inference_client import InferenceClient
+from alcoabase.services.risk_controlled import risk_controlled
 from alcoabase.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,7 @@ class ReviewPipelineService:
     # Pipeline Operations
     # -----------------------------------------------------------------------
 
+    @risk_controlled(task_type_id="multi_agent_audit")
     async def submit_review(
         self,
         document_id: int,

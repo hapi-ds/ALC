@@ -29,6 +29,7 @@ from alcoabase.services.inference_client import (
     InferenceError,
 )
 from alcoabase.services.knowledge_service import KnowledgeService
+from alcoabase.services.risk_controlled import risk_controlled
 
 if TYPE_CHECKING:
     from alcoabase.services.agent_registry import AgentRegistryService
@@ -104,6 +105,7 @@ class GapAnalysisService:
         self._model_name = model_name
         self._agent_registry = agent_registry
 
+    @risk_controlled(task_type_id="traceability_gap_discovery")
     async def execute_gap_analysis(
         self,
         source_doc_id: int,
@@ -111,6 +113,7 @@ class GapAnalysisService:
         source_version_id: int | None,
         target_version_id: int | None,
         company_id: int,
+        user_id: int | None = None,
     ) -> GapAnalysisResult:
         """Execute gap analysis between two documents.
 

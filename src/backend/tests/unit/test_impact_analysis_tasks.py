@@ -438,6 +438,7 @@ class TestExecuteGapAnalysisTask:
             target_version_id=3,
             company_id=1,
             document_uuid="gap_analysis",
+            requesting_user_id=None,
         )
 
     @patch("alcoabase.tasks.impact_analysis_tasks._execute_gap_analysis_async")

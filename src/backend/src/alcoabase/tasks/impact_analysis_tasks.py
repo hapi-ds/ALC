@@ -466,6 +466,7 @@ async def _analyze_change_impact_async(
             new_version_id=new_version_id,
             previous_version_id=previous_version_id,
             company_id=company_id,
+            user_id=requesting_user_id,
         )
 
         async with session_factory() as session:
@@ -750,6 +751,7 @@ def execute_gap_analysis(
     target_version_id: int | None,
     company_id: int,
     document_uuid: str = "gap_analysis",
+    requesting_user_id: int | None = None,
 ) -> dict[str, Any]:
     """Execute gap analysis between two documents.
 
@@ -764,6 +766,7 @@ def execute_gap_analysis(
         target_version_id: Specific target version (None = latest).
         company_id: Company ID for tenant scoping.
         document_uuid: Document UUID for job tracking.
+        requesting_user_id: User who triggered the analysis.
 
     Returns:
         Dict with gap analysis results.
@@ -777,6 +780,7 @@ def execute_gap_analysis(
                 target_version_id=target_version_id,
                 company_id=company_id,
                 document_uuid=document_uuid,
+                requesting_user_id=requesting_user_id,
             )
         )
         return result
@@ -800,6 +804,7 @@ async def _execute_gap_analysis_async(
     target_version_id: int | None,
     company_id: int,
     document_uuid: str,
+    requesting_user_id: int | None = None,
 ) -> dict[str, Any]:
     """Async implementation of the gap analysis task.
 
@@ -810,6 +815,7 @@ async def _execute_gap_analysis_async(
         target_version_id: Specific target version (None = latest).
         company_id: Company ID for tenant scoping.
         document_uuid: Document UUID for job tracking.
+        requesting_user_id: User who triggered the analysis.
 
     Returns:
         Dict with gap analysis results.
@@ -872,6 +878,7 @@ async def _execute_gap_analysis_async(
                 source_version_id=source_version_id,
                 target_version_id=target_version_id,
                 company_id=company_id,
+                user_id=requesting_user_id,
             )
             await session.commit()
 

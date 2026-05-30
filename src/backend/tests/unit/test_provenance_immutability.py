@@ -214,10 +214,10 @@ class TestRegisterImmutabilityListeners:
             assert cross_ref_delete_calls[0][0][2] is _prevent_delete
 
     def test_registers_all_four_listeners(self) -> None:
-        """Verifies exactly 12 listeners are registered (6 models × 2 events)."""
+        """Verifies exactly 18 listeners are registered (9 models × 2 events)."""
         with patch.object(event, "listen") as mock_listen:
             register_immutability_listeners()
-            assert mock_listen.call_count == 12
+            assert mock_listen.call_count == 18
 
 
 # ---------------------------------------------------------------------------

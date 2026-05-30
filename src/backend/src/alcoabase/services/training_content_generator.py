@@ -20,6 +20,7 @@ from enum import Enum
 from typing import Any
 
 from alcoabase.services.knowledge_service import KnowledgeService
+from alcoabase.services.risk_controlled import risk_controlled
 
 logger = logging.getLogger(__name__)
 
@@ -168,6 +169,7 @@ class TrainingContentGenerator:
     # Training Summary Generation (Task 16.1)
     # -----------------------------------------------------------------------
 
+    @risk_controlled(task_type_id="training_content_generation")
     async def generate_training_content(
         self,
         sop_document_uuid: str,
@@ -175,6 +177,7 @@ class TrainingContentGenerator:
         sop_text: str,
         previous_version_text: str | None = None,
         user_id: int | None = None,
+        company_id: int | None = None,
     ) -> TrainingContent:
         """Generate complete training content for an SOP version.
 

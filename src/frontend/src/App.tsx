@@ -27,6 +27,7 @@ import { RoleManagementPage } from "@/pages/RoleManagementPage";
 import { PermissionTemplateManagementPage } from "@/pages/PermissionTemplateManagementPage";
 import { SystemConfigPage } from "@/pages/admin/SystemConfigPage";
 import { AuditTrailPage } from "@/pages/AuditTrailPage";
+import { AIRiskFrameworkPage } from "@/pages/AIRiskFrameworkPage";
 import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
 import { ReportDetailPage } from "@/pages/ReportDetailPage";
@@ -83,6 +84,7 @@ function AuthenticatedApp() {
         <Route path="admin/permission-templates" element={<PermissionTemplateManagementPage />} />
         <Route path="admin/system-config" element={<SystemConfigPage />} />
         <Route path="admin/audit-trail" element={<AdminRouteGuard><AuditTrailPage /></AdminRouteGuard>} />
+        <Route path="admin/ai-risk-framework" element={<AIRiskFrameworkPage />} />
       </Route>
     </Routes>
   );

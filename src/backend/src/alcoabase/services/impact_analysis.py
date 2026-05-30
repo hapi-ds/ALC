@@ -26,6 +26,7 @@ from alcoabase.schemas.impact_analysis import (
     ChangeDeltaSchema,
     GapFindingSchema,
 )
+from alcoabase.services.risk_controlled import risk_controlled
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import async_sessionmaker
@@ -106,12 +107,14 @@ class ImpactAnalysisService:
         self._session_factory = session_factory
         self._job_tracker = job_tracker
 
+    @risk_controlled(task_type_id="change_impact_analysis")
     async def compute_change_delta(
         self,
         document_uuid: str,
         new_version_id: int,
         previous_version_id: int | None,
         company_id: int,
+        user_id: int | None = None,
     ) -> ChangeDeltaSchema:
         """Compute the change delta between two document versions.
 

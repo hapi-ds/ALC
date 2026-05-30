@@ -27,3 +27,5 @@ export { useSystemConfigStore } from "./useSystemConfigStore";
 export type { SystemConfigState } from "./useSystemConfigStore";
 export { useAuditTrailStore } from "./useAuditTrailStore";
 export type { AuditTrailState } from "./useAuditTrailStore";
+export { useRiskFrameworkStore } from "./riskFrameworkStore";
+export type { RiskFrameworkState } from "./riskFrameworkStore";

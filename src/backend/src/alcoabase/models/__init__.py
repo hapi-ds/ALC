@@ -26,6 +26,19 @@ from alcoabase.models.impact_analysis import (
 )
 from alcoabase.models.permission_template import PermissionTemplate
 from alcoabase.models.refresh_token import RefreshToken
+from alcoabase.models.risk_framework import (
+    AIOperationLog,
+    AITaskType,
+    AuditDepth,
+    CheckpointStatus,
+    CompanyRiskProfile,
+    ControlEnforcementLog,
+    GateResult,
+    HITLCheckpoint,
+    RiskAssessmentRecord,
+    RiskTier,
+    RiskTierOverride,
+)
 from alcoabase.models.report import Report, ReportFieldValue
 from alcoabase.models.review import (
     ActionItem,
@@ -73,19 +86,25 @@ from alcoabase.models.virtual_folder import VirtualFolder
 from alcoabase.models.workflow import DocumentState, WorkflowDefinition, WorkflowVersion
 
 __all__ = [
+    "AIOperationLog",
+    "AITaskType",
     "ActionItem",
     "ActiveQuestionSet",
     "AgentDefinition",
     "AgentReview",
     "AnomalyAlert",
     "AuditAccessLog",
+    "AuditDepth",
     "AuditMixin",
     "AuditProfile",
     "BackupRecord",
+    "CheckpointStatus",
     "Company",
     "CompanyAgentActivation",
     "CompanyMembership",
+    "CompanyRiskProfile",
     "ConfigurationSnapshot",
+    "ControlEnforcementLog",
     "CoverageSnapshot",
     "CrossReferenceEntry",
     "DependencyEdge",
@@ -97,9 +116,11 @@ __all__ = [
     "DocumentVersion",
     "DynamicFeedbackCache",
     "GapAnalysisResult",
+    "GateResult",
     "GeneratedQuestion",
     "GenerationJobMetadata",
     "GenerationProvenance",
+    "HITLCheckpoint",
     "HealthCheckResult",
     "ImmutableRecordError",
     "ImpactNotification",
@@ -113,6 +134,9 @@ __all__ = [
     "ReportFieldValue",
     "ResourceMetricPoint",
     "ReviewSession",
+    "RiskAssessmentRecord",
+    "RiskTier",
+    "RiskTierOverride",
     "Role",
     "SetupStatus",
     "SignatureRecord",

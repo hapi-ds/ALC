@@ -25,6 +25,7 @@ from typing import TYPE_CHECKING, Any
 
 from alcoabase.config import get_settings
 from alcoabase.services.knowledge_service import KnowledgeService, SearchResult
+from alcoabase.services.risk_controlled import risk_controlled
 
 if TYPE_CHECKING:
     from alcoabase.services.inference_client import InferenceClient
@@ -177,11 +178,13 @@ class RAGPipeline:
     # Core Query (Task 13.1)
     # -----------------------------------------------------------------------
 
+    @risk_controlled(task_type_id="rag_knowledge_query")
     async def query(
         self,
         question: str,
         user_id: int,
         conversation_id: str | None = None,
+        company_id: int | None = None,
     ) -> RAGResponse:
         """Retrieve relevant chunks and generate a grounded answer.
 
