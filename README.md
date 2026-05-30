@@ -39,6 +39,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Five specialized roles (System Admin, Document Admin, IT Admin, Member, Viewer) with resource-action permission matrices. Permission templates define document-type-specific access rules using a "most restrictive wins" policy. Full user lifecycle management with audit-compliant deactivation, password reset, and company membership management.
 * ⚙️ **Centralized System Configuration**
   Administrators manage AI hardware settings, storage quotas, backup schedules, health monitoring, and service status from a single dashboard. All changes are audited with X-Change-Reason headers, versioned via snapshots, and reversible through atomic rollback. Includes real-time health monitoring of all infrastructure services with configurable thresholds.
+* 📋 **Centralized Audit Trail Viewer**
+  A dedicated admin page aggregating all audit events across all record types into a unified, searchable, filterable chronological view. Supports PDF export for FDA/EMA regulatory submissions with A4 formatting, cursor-based pagination for million-row datasets, and complete immutability enforcement per ALCOA+ and 21 CFR Part 11. Every access to the audit trail is itself logged for meta-auditing.
 
 ---
 
@@ -101,6 +103,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 5.6 | AI-Powered Traceability & Gap Discovery | ✅ Complete |
 | 6.1 | Admin Dashboard — User Management | ✅ Complete |
 | 6.2 | Admin Dashboard — System Configuration | ✅ Complete |
+| 6.3 | Audit Trail Viewer | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -129,6 +132,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Traceability & Gap Discovery](docs/traceability-gap-discovery-guide.md) | Automated traceability matrices, three-pass matching, orphan detection, coverage metrics, stale link alerts |
 | [Admin Dashboard — User Management](docs/admin-dashboard-user-management-guide.md) | RBAC roles, user CRUD, permission templates, company memberships, audit-compliant lifecycle management |
 | [Admin Dashboard — System Configuration](docs/admin-system-configuration-guide.md) | AI hardware settings, storage quotas, backup scheduling, health monitoring, service status, configuration rollback |
+| [Audit Trail Viewer](docs/audit-trail-viewer-guide.md) | Centralized audit log viewer with filtering, search, PDF export, immutability enforcement, and meta-auditing |
 
 ---
 

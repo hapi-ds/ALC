@@ -170,7 +170,7 @@ Please write for every item in this list a short user guide after your implement
 - [x] **6.2 Admin Dashboard — System Configuration**
   AI hardware settings, storage quotas, backup configuration, system health monitoring, service status overview.
 
-- [ ] **6.3 Audit Trail Viewer**
+- [x] **6.3 Audit Trail Viewer**
   Searchable, filterable audit log UI. Who did what, when, why. Export to PDF for regulatory submissions.
 
 ---
@@ -181,7 +181,7 @@ Please write for every item in this list a short user guide after your implement
 
 ## Phase 8 — Governance, Corporate Setup & Documentation
 
-- [ ] **8.1 AI Risk & Compliance Framework Structure**
+- [~] **8.1 AI Risk & Compliance Framework Structure**
   **Risk-Based Tiering:** Establish a formal classification system separating High-Risk AI tasks (e.g., Document Generation 5.4, Automated Auditing 5.2) from Low-Risk AI tasks (e.g., Knowledge Base RAG 4.2) to define appropriate validation depth.
   **Task-Specific Control Sets:** Define specific control measures and human-in-the-loop (HITL) requirements for each risk tier to ensure GxP and regulatory alignment as a base for all following documents
 
