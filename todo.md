@@ -181,7 +181,7 @@ Please write for every item in this list a short user guide after your implement
 
 ## Phase 8 — Governance, Corporate Setup & Documentation
 
-- [~] **8.1 AI Risk & Compliance Framework Structure**
+- [x] **8.1 AI Risk & Compliance Framework Structure**
   **Risk-Based Tiering:** Establish a formal classification system separating High-Risk AI tasks (e.g., Document Generation 5.4, Automated Auditing 5.2) from Low-Risk AI tasks (e.g., Knowledge Base RAG 4.2) to define appropriate validation depth.
   **Task-Specific Control Sets:** Define specific control measures and human-in-the-loop (HITL) requirements for each risk tier to ensure GxP and regulatory alignment as a base for all following documents
 

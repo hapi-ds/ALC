@@ -41,6 +41,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Administrators manage AI hardware settings, storage quotas, backup schedules, health monitoring, and service status from a single dashboard. All changes are audited with X-Change-Reason headers, versioned via snapshots, and reversible through atomic rollback. Includes real-time health monitoring of all infrastructure services with configurable thresholds.
 * 📋 **Centralized Audit Trail Viewer**
   A dedicated admin page aggregating all audit events across all record types into a unified, searchable, filterable chronological view. Supports PDF export for FDA/EMA regulatory submissions with A4 formatting, cursor-based pagination for million-row datasets, and complete immutability enforcement per ALCOA+ and 21 CFR Part 11. Every access to the audit trail is itself logged for meta-auditing.
+* 🛡️ **AI Risk & Compliance Framework**
+  A cross-cutting governance layer that classifies all AI operations into risk tiers (High, Medium, Low) and enforces tier-appropriate controls at runtime. High-risk operations require human-in-the-loop (HITL) review before outputs become visible; medium-risk operations block automated actions until reviewed; low-risk operations return immediately. Includes per-company risk profile customization, 72-hour checkpoint expiry, immutable operation logs at configurable audit depth, and a visual risk matrix dashboard. Supports regulatory alignment with 21 CFR Part 11, EU AI Act, GMP, GLP, GCP, and ISO 13485.
 
 ---
 
@@ -104,6 +106,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 6.1 | Admin Dashboard — User Management | ✅ Complete |
 | 6.2 | Admin Dashboard — System Configuration | ✅ Complete |
 | 6.3 | Audit Trail Viewer | ✅ Complete |
+| 8.1 | AI Risk & Compliance Framework | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -133,6 +136,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Admin Dashboard — User Management](docs/admin-dashboard-user-management-guide.md) | RBAC roles, user CRUD, permission templates, company memberships, audit-compliant lifecycle management |
 | [Admin Dashboard — System Configuration](docs/admin-system-configuration-guide.md) | AI hardware settings, storage quotas, backup scheduling, health monitoring, service status, configuration rollback |
 | [Audit Trail Viewer](docs/audit-trail-viewer-guide.md) | Centralized audit log viewer with filtering, search, PDF export, immutability enforcement, and meta-auditing |
+| [AI Risk & Compliance Framework](docs/ai-risk-compliance-framework-guide.md) | Risk tier classification, HITL checkpoints, control gate enforcement, operation logging, company risk profiles |
 
 ---
 
