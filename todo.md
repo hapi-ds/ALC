@@ -196,12 +196,12 @@ Please write for every item in this list a short user guide after your implement
   **Traceability Integration:** Ensure all ALC requirements are mapped to the Global Traceability Matrix (7.2). Enhance 7.2 if neccessary.
 
 
-- [~] **8.4 Cross-Sector AI Regulatory Guidelines**
+- [x] **8.4 Cross-Sector AI Regulatory Guidelines**
   **Contextual Policy Engine:** Develop how to use AI guidelines-documents for stuff based on current global regulations (e.g., EU AI Act, FDA/EMA guidance) and the ALC-URS. Integrate risk-analysis based on 8.1
   **Sector-Specific Modules:** Create distinct policy templates for Pharma (GMP), MedTech (ISO 13485), and IVD (IVDR) to guide stuff how to use ALC functions.
 
 
-- [~] **8.5 Documentation Suite: User & Admin Guides**
+- [x] **8.5 Documentation Suite: User & Admin Guides**
   **Comprehensive User Guide:** Create a manual for end-users covering document lifecycle, training workflows, and interacting with AI agents.
   **Technical Admin Guide:** Develop a detailed administrator manual for system configuration (6.2), user management (6.1), and oversight of the AI model layer (4.3).
 
