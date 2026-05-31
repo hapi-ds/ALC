@@ -186,7 +186,7 @@ Please write for every item in this list a short user guide after your implement
   **Task-Specific Control Sets:** Define specific control measures and human-in-the-loop (HITL) requirements for each risk tier to ensure GxP and regulatory alignment as a base for all following documents
 
 
-- [ ] **8.2 ALC Corporate Environment Setup**
+- [~] **8.2 ALC Corporate Environment Setup**
   
   **ALC Company Entity:** Initialize a dedicated "ALC" tenant/company within the Multi-Tenancy framework (1.1) to serve as the master reference and internal management hub and as a example/test environment. Add all following documents here
   **Standardized Configuration:** Apply baseline regulatory settings and user pools specific to the ALC corporate structure.
