@@ -6,15 +6,15 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
 
 ## Tasks
 
-- [ ] 1. Define schemas, data models, and content module
-  - [ ] 1.1 Create Pydantic schemas for GuidelinesGenerationReport and GuidelinesGenerationError
+- [x] 1. Define schemas, data models, and content module
+  - [x] 1.1 Create Pydantic schemas for GuidelinesGenerationReport and GuidelinesGenerationError
     - Create `src/backend/src/alcoabase/schemas/guidelines_generation.py`
     - Define `DocumentReportEntry` model with fields: document_id (int), document_uuid (str), title (str), sector (str), version_number (int), tags_applied (list[str]), workflow_state (str), is_new_document (bool), policy_section_count (int)
     - Define `GuidelinesGenerationReport` model with fields: documents_created (list[DocumentReportEntry]), total_documents (int), total_policy_sections (int), risk_tiers_referenced (list[str]), regulatory_frameworks_covered (list[str]), total_duration_ms (int)
     - Define `GuidelinesGenerationError` model with fields: error (str), failed_operation (str), document_title (str | None), detail (str | None)
     - _Requirements: 5.4, 6.5_
 
-  - [ ] 1.2 Create guidelines content module with template constants and sector module definitions
+  - [x] 1.2 Create guidelines content module with template constants and sector module definitions
     - Create `src/backend/src/alcoabase/services/guidelines_content.py`
     - Define `RegulatoryFramework` frozen dataclass with fields: identifier (str), display_name (str), key_articles (list[str])
     - Define `SectorModule` frozen dataclass with fields: sector_id (str), title (str), sector_label (str), applicable_regulations (list[RegulatoryFramework]), dedicated_subsections (list[str]), risk_elevation_rules (dict[str, str])
@@ -30,8 +30,8 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Implement content assembly functions for each document section (header, purpose/scope, regulatory overview, risk summary, policy sections, human oversight, audit requirements, prohibited uses, glossary, URS references, regulatory reference table, sector-specific sections)
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 4.4, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7_
 
-- [ ] 2. Implement GuidelinesGeneratorService core
-  - [ ] 2.1 Create GuidelinesGeneratorService class with execute() orchestrator
+- [x] 2. Implement GuidelinesGeneratorService core
+  - [x] 2.1 Create GuidelinesGeneratorService class with execute() orchestrator
     - Create `src/backend/src/alcoabase/services/guidelines_generator_service.py`
     - Implement `GuidelinesGeneratorService.__init__(self, session: AsyncSession, storage_service: StorageService | None = None, uuid_service: UUIDService | None = None)`
     - Implement `async execute() -> GuidelinesGenerationReport` orchestrator that calls each step in sequence: validate_prerequisites → load_risk_framework_data → check_urs_availability → generate all 4 documents → validate all content → upload/version each document → apply tags → apply workflows → build report
@@ -40,7 +40,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Acquire DB advisory lock at start to prevent concurrent generation
     - _Requirements: 5.1, 5.3, 5.9, 6.1_
 
-  - [ ] 2.2 Implement _validate_prerequisites() step
+  - [x] 2.2 Implement _validate_prerequisites() step
     - Query for ALC company by slug "alc-corporate" — raise RuntimeError with "ALC corporate environment not provisioned. Run Phase 8.2 seed first." if not found
     - Query for doc-admin user by username "alc-doc-admin" — raise RuntimeError with "ALC Document Administrator user not found. Run Phase 8.2 seed first." if not found
     - Query for governance workflow by document_tag "ALC-GOV" and company_id — raise RuntimeError with "ALC Governance workflow not found. Run Phase 8.2 seed first." if not found
@@ -48,7 +48,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Check prerequisites in strict order: company → doc-admin → workflow (halt on first failure)
     - _Requirements: 3.6, 3.7, 3.8, 8.1, 8.2, 8.3, 8.9_
 
-  - [ ] 2.3 Implement _load_risk_framework_data() step
+  - [x] 2.3 Implement _load_risk_framework_data() step
     - Query all active AI_Task_Types for the ALC company
     - Raise RuntimeError with "No AI task types registered. Run Phase 8.1 seed first." if zero found
     - Query active Company_Risk_Profile for tier overrides (if exists)
@@ -58,7 +58,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - If no active profile, set company_profile_active=False (triggers notice in generated content)
     - _Requirements: 1.3, 1.7, 1.8, 4.1, 4.2, 4.3, 4.5, 4.6, 8.4_
 
-  - [ ] 2.4 Implement _check_urs_availability() and content generation methods
+  - [x] 2.4 Implement _check_urs_availability() and content generation methods
     - `_check_urs_availability()`: Query for document with tags ["URS", "ALC-GOV"] in ALC company; return True/False
     - `_generate_master_guideline()`: Assemble master guideline from template constants + risk context; include all required sections (header, purpose/scope, regulatory overview, risk summary, policy sections per task type, human oversight, audit requirements, prohibited uses, roles/responsibilities, periodic review, glossary, URS references, regulatory reference table)
     - `_generate_sector_guideline()`: Assemble sector guideline from SectorModule config + risk context; include sector regulatory context, sector risk considerations, sector policy sections, sector risk mapping table, validation requirements, record keeping, dedicated subsections, cross-references, regulatory reference table
@@ -66,12 +66,12 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Include "default classifications applied" notice when no active Company_Risk_Profile
     - _Requirements: 1.2, 1.4, 1.5, 2.2, 2.6, 2.7, 4.5, 8.8_
 
-  - [ ] 2.5 Implement content validation methods
+  - [x] 2.5 Implement content validation methods
     - `_validate_content(content, document_title)`: Check content is non-empty and contains at least one Markdown heading (regex `^#{1,3}\s`); raise RuntimeError with document title if invalid
     - `_validate_section_lengths(content, document_title)`: For sector guidelines, check each section has ≥ 100 characters of content (excluding header); raise RuntimeError identifying section name and document title if any section fails
     - _Requirements: 2.8, 8.6, 8.7_
 
-  - [ ] 2.6 Implement document upload, versioning, tagging, and workflow methods
+  - [x] 2.6 Implement document upload, versioning, tagging, and workflow methods
     - `_detect_existing_document(title, company)`: Query by title + tags ["AI-Guidelines", "ALC-GOV"] + company_id; return Document or None
     - `_upload_or_version_document(title, content, company, doc_admin, workflow)`: If not found → generate Document-UUID (YYYY-NNNNN), upload to MinIO, INSERT Document + DocumentVersion (major=1, minor=0); if found → SELECT MAX(major_version), upload new version to MinIO, INSERT DocumentVersion (major=N+1, minor=0), UPDATE current_status to "Draft"
     - `_apply_tags(document, is_new)`: Insert "AI-Guidelines" and "ALC-GOV" DocumentTag records if not already present
@@ -79,11 +79,11 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Set created_by to alc-doc-admin user; record change_reason "AI Regulatory Guidelines Generation — Phase 8.4 automated governance document creation"
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7_
 
-- [ ] 3. Checkpoint - Ensure core service logic is complete
+- [x] 3. Checkpoint - Ensure core service logic is complete
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement CLI script and API endpoint
-  - [ ] 4.1 Create CLI script for guidelines generation
+- [x] 4. Implement CLI script and API endpoint
+  - [x] 4.1 Create CLI script for guidelines generation
     - Create `src/backend/src/alcoabase/scripts/generate_ai_guidelines.py`
     - Create async session, call `GuidelinesGeneratorService.execute()`, manage transaction (commit on success, rollback on failure)
     - Print GuidelinesGenerationReport as JSON to stdout on success (exit 0)
@@ -91,7 +91,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Ensure script is invocable via `uv run python -m alcoabase.scripts.generate_ai_guidelines`
     - _Requirements: 5.1, 5.5_
 
-  - [ ] 4.2 Create API endpoint for guidelines generation
+  - [x] 4.2 Create API endpoint for guidelines generation
     - Create `src/backend/src/alcoabase/api/admin_guidelines.py` with `POST /api/admin/generate-ai-guidelines`
     - Require system_administrator or document_administrator role authentication
     - Require X-Change-Reason header (return 400 if missing)
@@ -99,11 +99,11 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Register the router in `api/router.py`
     - _Requirements: 5.2, 5.6, 5.7, 5.8, 5.9_
 
-- [ ] 5. Checkpoint - Ensure CLI and API work end-to-end
+- [x] 5. Checkpoint - Ensure CLI and API work end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Write property-based tests
-  - [ ]* 6.1 Write property test for document structure invariant (Property 1)
+- [x] 6. Write property-based tests
+  - [x] 6.1 Write property test for document structure invariant (Property 1)
     - **Property 1: Document structure invariant**
     - **Validates: Requirements 1.2, 2.2**
     - Create test in `src/backend/tests/properties/test_guidelines_generator_properties.py`
@@ -111,51 +111,51 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Verify master guideline contains all required sections in specified order
     - Verify each sector guideline contains all required sector sections in specified order
 
-  - [ ]* 6.2 Write property test for risk data completeness (Property 2)
+  - [x] 6.2 Write property test for risk data completeness (Property 2)
     - **Property 2: Risk data completeness in guidelines**
     - **Validates: Requirements 1.3, 4.2, 4.3**
     - Generate random task types with assigned tiers and control sets
     - Verify each Risk_Integration_Block contains: display_name, tier level, all controls (HITL, audit depth, validations, output labeling, expiry, rate limits), and risk_factors array
 
-  - [ ]* 6.3 Write property test for policy section structural completeness (Property 3)
+  - [x] 6.3 Write property test for policy section structural completeness (Property 3)
     - **Property 3: Policy section structural completeness**
     - **Validates: Requirements 1.4, 7.3**
     - Generate random task types, produce Policy_Sections
     - Verify each Policy_Section contains exactly 5 subsections in order: (a) permitted uses, (b) restrictions, (c) compliance procedure (3–15 steps), (d) required evidence, (e) consequences of non-compliance
 
-  - [ ]* 6.4 Write property test for sector non-contradiction invariant (Property 4)
+  - [x] 6.4 Write property test for sector non-contradiction invariant (Property 4)
     - **Property 4: Sector non-contradiction invariant**
     - **Validates: Requirements 2.7**
     - Generate random tier assignments for task types
     - Verify no sector guideline assigns a lower tier than the master guideline
     - Verify sector control sets are supersets of (or equal to) master control sets
 
-  - [ ]* 6.5 Write property test for section minimum content validation (Property 5)
+  - [x] 6.5 Write property test for section minimum content validation (Property 5)
     - **Property 5: Section minimum content validation**
     - **Validates: Requirements 2.8**
     - Generate content with varying section lengths (some < 100 chars, some ≥ 100 chars)
     - Verify validation raises RuntimeError for sections < 100 chars, passes for valid sections
 
-  - [ ]* 6.6 Write property test for document governance completeness (Property 6)
+  - [x] 6.6 Write property test for document governance completeness (Property 6)
     - **Property 6: Document governance completeness**
     - **Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5**
     - Run service with valid prerequisites and random task type sets
     - Verify each document has: Document record with created_by=doc_admin, document_uuid matching `\d{4}-\d{5}`, DocumentTag records for both tags, DocumentState with current_state="Draft"
 
-  - [ ]* 6.7 Write property test for effective tier resolution (Property 7)
+  - [x] 6.7 Write property test for effective tier resolution (Property 7)
     - **Property 7: Effective tier resolution**
     - **Validates: Requirements 4.1, 4.5**
     - Generate random default tiers and company profile overrides
     - Verify: override used when present, default used otherwise
     - Verify notice included when no active profile
 
-  - [ ]* 6.8 Write property test for transaction atomicity (Property 8)
+  - [x] 6.8 Write property test for transaction atomicity (Property 8)
     - **Property 8: Transaction atomicity on failure**
     - **Validates: Requirements 5.3, 6.7, 8.5**
     - Simulate failures at each step (prerequisite, risk data, content, upload, tags, workflow)
     - Verify DB contains zero new records from the current attempt after rollback
 
-  - [ ]* 6.9 Write property test for versioning idempotency (Property 9)
+  - [x] 6.9 Write property test for versioning idempotency (Property 9)
     - **Property 9: Versioning idempotency**
     - **Validates: Requirements 6.1, 6.3, 6.4, 6.5**
     - Run service N times (N drawn from 1–5)
@@ -163,27 +163,27 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Verify strictly increasing major_version numbers
     - Verify is_new_document=True for first, False for subsequent
 
-  - [ ]* 6.10 Write property test for report accuracy (Property 10)
+  - [x] 6.10 Write property test for report accuracy (Property 10)
     - **Property 10: Report accuracy**
     - **Validates: Requirements 5.4, 6.5**
     - Run service with random task type configurations
     - Verify report fields match actual DB state: 4 entries, correct total_documents, total_policy_sections matches actual count, risk_tiers_referenced matches used tiers, total_duration_ms > 0
 
-  - [ ]* 6.11 Write property test for content validation correctness (Property 11)
+  - [x] 6.11 Write property test for content validation correctness (Property 11)
     - **Property 11: Content validation correctness**
     - **Validates: Requirements 8.6, 8.7**
     - Generate random strings (some with headings, some without, some empty)
     - Verify validation passes iff string is non-empty AND contains `^#{1,3}\s` pattern
     - Verify error message includes document title on failure
 
-  - [ ]* 6.12 Write property test for regulatory citation completeness (Property 12)
+  - [x] 6.12 Write property test for regulatory citation completeness (Property 12)
     - **Property 12: Regulatory citation completeness**
     - **Validates: Requirements 7.1, 7.2, 7.7**
     - Generate content with random task types
     - Verify every control requirement has an inline citation (regulation + article) or "Industry best practice" annotation
     - Verify Regulatory Reference Table has ≥ 1 row per distinct regulation cited
 
-  - [ ]* 6.13 Write property test for policy section count invariant (Property 13)
+  - [x] 6.13 Write property test for policy section count invariant (Property 13)
     - **Property 13: Policy section count invariant**
     - **Validates: Requirements 1.1, 7.5**
     - Generate with N task types (N ≥ 8)
@@ -191,8 +191,8 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Verify each sector guideline has ≥ 6 Policy_Sections
     - Verify total_policy_sections in report equals actual count across all 4 documents
 
-- [ ] 7. Write unit tests
-  - [ ]* 7.1 Write unit tests for prerequisites validation and risk framework loading
+- [x] 7. Write unit tests
+  - [x] 7.1 Write unit tests for prerequisites validation and risk framework loading
     - Create `src/backend/tests/unit/test_guidelines_generator_service.py`
     - Test: validate_prerequisites with all present (returns company, user, workflow)
     - Test: validate_prerequisites no company (RuntimeError with correct message)
@@ -205,7 +205,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Test: check_urs_availability returns True when URS exists, False when missing
     - _Requirements: 1.7, 1.8, 4.1, 4.5, 4.6, 8.1, 8.2, 8.3, 8.4, 8.8, 8.9_
 
-  - [ ]* 7.2 Write unit tests for content generation and validation
+  - [x] 7.2 Write unit tests for content generation and validation
     - Test: generate_master_guideline has all required sections in order
     - Test: generate_master_guideline includes Risk_Integration_Blocks for each task type
     - Test: generate_master_guideline includes all 4 prohibited uses
@@ -231,7 +231,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Test: URS reference blocks match "Implements: REQ-{MODULE}-{NN}" pattern
     - _Requirements: 1.2, 1.3, 1.4, 1.5, 1.6, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 4.4, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 8.6, 8.7_
 
-  - [ ]* 7.3 Write unit tests for document operations and report building
+  - [x] 7.3 Write unit tests for document operations and report building
     - Test: detect_existing_document found (returns Document)
     - Test: detect_existing_document not found (returns None)
     - Test: upload_or_version new document has correct title, type, company_id, created_by, UUID format
@@ -246,8 +246,8 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Test: report risk_tiers_referenced matches used tiers
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.4, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
 
-- [ ] 8. Write integration tests
-  - [ ]* 8.1 Write integration tests for CLI, API, and end-to-end flows
+- [x] 8. Write integration tests
+  - [x] 8.1 Write integration tests for CLI, API, and end-to-end flows
     - Create `src/backend/tests/integration/test_guidelines_generator_integration.py`
     - Test: CLI success (exit 0, stdout is valid JSON GuidelinesGenerationReport with 4 documents)
     - Test: CLI failure without prerequisites (exit 1, stderr has JSON error with failed_operation)
@@ -266,7 +266,7 @@ Implement the `GuidelinesGeneratorService` — a backend service that programmat
     - Test: Rollback on upload failure (no partial documents after MinIO failure)
     - _Requirements: 5.1, 5.2, 5.3, 5.5, 5.6, 5.7, 5.8, 5.9, 6.1, 6.3, 6.4, 6.5, 6.6, 6.7, 8.5, 8.8_
 
-- [ ] 9. Final checkpoint - Ensure all tests pass
+- [x] 9. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
