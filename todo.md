@@ -191,7 +191,7 @@ Please write for every item in this list a short user guide after your implement
   **ALC Company Entity:** Initialize a dedicated "ALC" tenant/company within the Multi-Tenancy framework (1.1) to serve as the master reference and internal management hub and as a example/test environment. Add all following documents here
   **Standardized Configuration:** Apply baseline regulatory settings and user pools specific to the ALC corporate structure.
 
-- [~] **8.3 User Requirement Specifications (URS) for ALC**
+- [x] **8.3 User Requirement Specifications (URS) for ALC**
   **Requirement Elicitation:** Enhance existing URS based on current implementation within the ALC company scope, defining the functional and non-functional needs of the platform from a corporate perspective.
   **Traceability Integration:** Ensure all ALC requirements are mapped to the Global Traceability Matrix (7.2). Enhance 7.2 if neccessary.
 
