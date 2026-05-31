@@ -37,6 +37,7 @@ from alcoabase.schemas.setup import (
     SetupCompleteResult,
     SetupProgress,
 )
+from alcoabase.services.alc_seed_constants import validate_company_slug
 from alcoabase.services.password_validator import PasswordValidator
 from alcoabase.services.slug_generator import SlugGenerator
 
@@ -267,6 +268,12 @@ class SetupService:
             slug = data.slug
         else:
             slug = self._slug_generator.generate(data.display_name)
+
+        # Reject reserved slugs (e.g. "alc-corporate")
+        try:
+            validate_company_slug(slug)
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e))
 
         # Create Company record
         company = Company(

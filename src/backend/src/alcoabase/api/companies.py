@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from alcoabase.database import get_db_session
 from alcoabase.models.company import Company
 from alcoabase.schemas.company import CompanyCreate, CompanyResponse, CompanyUpdate
+from alcoabase.services.alc_seed_constants import validate_company_slug
 
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
@@ -49,6 +50,13 @@ async def create_company(
         HTTPException: 409 if a company with the same slug already exists.
     """
     # TODO: Add auth guard — System Admin only
+
+    # Reject reserved slugs (e.g. "alc-corporate")
+    try:
+        validate_company_slug(payload.slug)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
     company = Company(
         slug=payload.slug,
         display_name=payload.display_name,

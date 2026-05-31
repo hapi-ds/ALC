@@ -273,6 +273,16 @@ class Settings(BaseSettings):
         alias="CORS_ORIGINS",
     )
 
+    # ─────────────────────────────────────────────────────────────────────
+    # ALC Corporate Seed
+    # ─────────────────────────────────────────────────────────────────────
+
+    alc_seed_default_password: str = Field(
+        default="AlcCorp2024!",
+        description="Default password for ALC corporate seed user accounts.",
+        alias="ALC_SEED_DEFAULT_PASSWORD",
+    )
+
 
 @lru_cache
 def get_settings() -> Settings:
