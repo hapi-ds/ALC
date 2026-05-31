@@ -45,6 +45,12 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   A cross-cutting governance layer that classifies all AI operations into risk tiers (High, Medium, Low) and enforces tier-appropriate controls at runtime. High-risk operations require human-in-the-loop (HITL) review before outputs become visible; medium-risk operations block automated actions until reviewed; low-risk operations return immediately. Includes per-company risk profile customization, 72-hour checkpoint expiry, immutable operation logs at configurable audit depth, and a visual risk matrix dashboard. Supports regulatory alignment with 21 CFR Part 11, EU AI Act, GMP, GLP, GCP, and ISO 13485.
 * 🏢 **ALC Corporate Environment Setup**
   A dedicated seeding service that provisions the canonical "AlcoaBase Corporate" tenant with a complete governance environment: predefined user pool (IT Admin, Doc Admin, Quality Manager, Standard User), regulatory baseline (ISO 27001, ISO 9001, EU AI Act), governance folder structure, AI risk profile, agent activations, and a BPMN governance workflow. Fully idempotent and atomic — safe to re-run at any time via CLI or REST API.
+* 📜 **User Requirement Specifications (URS) for ALC**
+  Automated generation of a formal Enhanced URS document within the ALC corporate governance environment. Maps all platform capabilities to traceable Requirement IDs (REQ-{MODULE}-{NN}) for regulatory audit submissions. Integrates with the governance workflow and provides cross-reference anchors for all other governance documents.
+* 📋 **Cross-Sector AI Regulatory Guidelines**
+  Generates 4 AI usage policy documents (1 master cross-sector + 3 sector-specific modules for Pharma/GMP, MedTech/ISO 13485, and IVD/IVDR). Integrates with the AI Risk & Compliance Framework to reference risk tier classifications and HITL requirements. Uploaded as governed documents with full lifecycle workflow.
+* 📖 **Documentation Suite: User & Admin Guides**
+  Programmatic generation of comprehensive User Guide (12 sections, 28+ procedures) and Technical Admin Guide (12 sections, 25+ procedures). Includes step-by-step procedures with screenshot placeholders, cross-references to URS requirements and AI Guidelines, inter-guide links, and a Related Governance Documents section. Supports versioning on re-execution.
 
 ---
 
@@ -110,6 +116,9 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 6.3 | Audit Trail Viewer | ✅ Complete |
 | 8.1 | AI Risk & Compliance Framework | ✅ Complete |
 | 8.2 | ALC Corporate Environment Setup | ✅ Complete |
+| 8.3 | User Requirement Specifications (URS) for ALC | ✅ Complete |
+| 8.4 | Cross-Sector AI Regulatory Guidelines | ✅ Complete |
+| 8.5 | Documentation Suite: User & Admin Guides | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -141,6 +150,8 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Audit Trail Viewer](docs/audit-trail-viewer-guide.md) | Centralized audit log viewer with filtering, search, PDF export, immutability enforcement, and meta-auditing |
 | [AI Risk & Compliance Framework](docs/ai-risk-compliance-framework-guide.md) | Risk tier classification, HITL checkpoints, control gate enforcement, operation logging, company risk profiles |
 | [ALC Corporate Environment](docs/alc-corporate-environment-guide.md) | Corporate tenant seeding, user pool provisioning, regulatory baseline, governance folders, risk profile, agent activations, governance workflow |
+| [Cross-Sector AI Guidelines](docs/cross-sector-ai-guidelines-guide.md) | AI usage policy generation, risk tier integration, sector-specific modules (Pharma/MedTech/IVD), governance workflow |
+| [Documentation Suite](docs/documentation-suite-guide.md) | User Guide & Admin Guide generation, cross-references, versioning, governance integration |
 
 ---
 

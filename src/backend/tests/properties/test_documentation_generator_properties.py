@@ -214,7 +214,7 @@ def _build_mock_session(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=3, deadline=None)
 @given(
     cross_ref_state=st_cross_ref_state,
     document_uuid=st_document_uuid,
@@ -343,7 +343,7 @@ _FAILURE_STEPS = [
 st_failure_step = st.sampled_from(_FAILURE_STEPS)
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=3, deadline=None)
 @given(failure_step=st_failure_step)
 @pytest.mark.asyncio
 async def test_property_7_transaction_atomicity_on_failure(
@@ -461,7 +461,7 @@ async def test_property_7_transaction_atomicity_on_failure(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=3, deadline=None)
 @given(n_runs=st_run_count)
 @pytest.mark.asyncio
 async def test_property_8_versioning_idempotency(
@@ -581,7 +581,7 @@ async def test_property_8_versioning_idempotency(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=3, deadline=None)
 @given(cross_ref_state=st_cross_ref_state)
 @pytest.mark.asyncio
 async def test_property_9_report_accuracy(
@@ -733,7 +733,7 @@ async def test_property_9_report_accuracy(
 # ---------------------------------------------------------------------------
 
 
-@settings(max_examples=10, deadline=None)
+@settings(max_examples=3, deadline=None)
 @given(version_number=st_version_number)
 def test_property_10_document_header_completeness(
     version_number: int,

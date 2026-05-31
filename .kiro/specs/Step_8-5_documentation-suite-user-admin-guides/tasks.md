@@ -101,7 +101,7 @@ Implement the `DocumentationGeneratorService` — a backend service that program
     - Set created_by to alc-doc-admin user; record change_reason "Documentation Suite Generation — Phase 8.5 automated governance document creation"
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [-] 3. Checkpoint - Ensure core service logic is complete
+- [x] 3. Checkpoint - Ensure core service logic is complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 4. Implement CLI script and API endpoint
@@ -121,7 +121,7 @@ Implement the `DocumentationGeneratorService` — a backend service that program
     - Register the router in `api/router.py`
     - _Requirements: 4.2, 4.6, 4.7, 4.8, 4.9_
 
-- [~] 5. Checkpoint - Ensure CLI and API work end-to-end
+- [x] 5. Checkpoint - Ensure CLI and API work end-to-end
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 6. Write property-based tests
@@ -331,7 +331,7 @@ Implement the `DocumentationGeneratorService` — a backend service that program
     - Test: Generation timing under 120 seconds (both guides generated within time limit)
     - _Requirements: 4.1, 4.2, 4.3, 4.5, 4.6, 4.7, 4.8, 4.9, 5.1, 5.4, 5.5, 5.6, 5.7, 7.6, 7.7, 8.4, 8.8_
 
-- [~] 9. Final checkpoint - Ensure all tests pass
+- [x] 9. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

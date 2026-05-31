@@ -238,11 +238,154 @@ Please write for every item in this list a short user guide after your implement
 
 ## Phase 10 — Manual Testing
 
-- [ ] **10.1 Setup**
-  Authentication, multi company setup, LLM ...
+### 10.1 Setup & Environment
 
-- [ ] **10.2 Doc handling**
-  Upload, virtual folders, versioning, workflows
+- [ ] **10.1.1 Docker Services Health**
+  Verify all services start: postgres, minio, opensearch, redis, backend, celery-worker, frontend, csv-runner. Run `make health` and confirm all green.
+
+- [ ] **10.1.2 Setup Wizard — Admin Account**
+  Run `make setup`. Create root admin account. Verify login works with created credentials. Confirm setup redirect is cleared.
+
+- [ ] **10.1.3 Setup Wizard — Company Creation**
+  Create a second company via setup wizard. Verify it appears in company list. Switch between companies. Verify data isolation.
+
+- [ ] **10.1.4 Setup Wizard — AI Mode Configuration**
+  Test all 3 AI modes: `mock` (default), `gpu`, `cpu`. Verify vLLM service status reflects the selected mode. Test AI mode switch post-setup.
+
+- [ ] **10.1.5 Setup Wizard — Demo Data Seeding**
+  Complete setup with demo data. Verify demo company (ALC) is populated with sample documents, templates, workflows, and users.
+
+- [ ] **10.1.6 Authentication — Login/Logout**
+  Test login with valid/invalid credentials. Test session expiry behavior. Test logout clears session. Test refresh token rotation.
+
+- [ ] **10.1.7 Multi-Tenancy Isolation**
+  Verify documents, templates, workflows, users are scoped to company. Cross-company queries blocked for non-admin. Verify virtual folders are company-scoped.
+
+---
+
+### 10.2 Document Handling
+
+- [ ] **10.2.1 Document Upload**
+  Upload single document (PDF, DOCX). Verify file stored in MinIO. Verify metadata captured (name, type, size, company). Verify upload progress indicator.
+
+- [ ] **10.2.2 Document List & Search**
+  Verify document list displays correctly with pagination. Test filter by type, status, tag. Test full-text search. Verify relevance scoring.
+
+- [ ] **10.2.3 Document Detail View**
+  Open document detail. Verify metadata display, version info, workflow state, signature status, training status. Test download document.
+
+- [ ] **10.2.4 Document Versioning**
+  Upload new version of existing document (major version). Verify version history display. Upload minor version. Verify diff metadata between versions.
+
+- [ ] **10.2.5 Virtual Folders — CRUD**
+  Create virtual folder. Rename virtual folder. Delete virtual folder. Verify documents can be added/removed from folders.
+
+- [ ] **10.2.6 Virtual Folders — Tag Filtering**
+  Apply tags to documents. Filter documents by tag in virtual folders view. Verify tag-based filtering matches backend results.
+
+- [ ] **10.2.7 Workflow Editor — Create**
+  Open workflow editor. Drag BPMN elements onto canvas. Connect nodes. Validate BPMN XML. Save workflow definition. Verify it appears in workflow list.
+
+- [ ] **10.2.8 Workflow Editor — Edit & Version**
+  Edit existing workflow. Make changes. Save — verify new version created. Verify old version preserved. Compare version diffs.
+
+- [ ] **10.2.9 Workflow Execution — State Transitions**
+  Assign workflow to document. Trigger state transitions. Verify transition validation (only allowed transitions). Verify change reason required. Verify risk warnings.
+
+- [ ] **10.2.10 Workflow History Timeline**
+  Open document with workflow history. Verify timeline displays all transitions with timestamps, users, and reasons.
+
+---
+
+### 10.3 Template & Report Management
+
+- [ ] **10.3.1 Template Builder — Drag & Drop**
+  Create template from scratch using drag-and-drop builder. Add various field types (text, number, date, select). Configure field properties. Save template.
+
+- [ ] **10.3.2 Template PDF Generation**
+  Download offline template PDF from template detail. Verify PDF contains embedded field UUIDs (AcroForm). Verify field labels match configuration.
+
+- [ ] **10.3.3 Report Data Entry**
+  Create report from template. Fill all fields. Submit report. Verify report appears in report list. Verify template pre-population for new reports.
+
+- [ ] **10.3.4 PDF Upload & Data Extraction**
+  Upload filled PDF back to system. Verify automatic data extraction. Display extracted vs. manual entry comparison. Verify mismatch detection.
+
+- [ ] **10.3.5 Template Versioning**
+  Update template schema. Verify new version created. Verify old version preserved. Create report from old template version.
+
+---
+
+### 10.4 Training & Signatures
+
+- [ ] **10.4.1 Training Task Assignment**
+  Update SOP document version. Verify training task auto-created. Verify assigned to relevant users. Verify training task appears in user training list.
+
+- [ ] **10.4.2 Training Completion**
+  Complete training task. Verify training status updated. Verify quiz auto-generated. Verify training records displayed correctly.
+
+- [ ] **10.4.3 Quiz Submission & Scoring**
+  Take AI-generated quiz. Submit answers. Verify scoring (80% pass threshold). Verify attempt history displayed. Verify quiz immutability (no edit/delete).
+
+- [ ] **10.4.4 Training-Gated Access**
+  Attempt to open GxP document without completed training. Verify access blocked. Complete training + quiz. Verify access granted.
+
+- [ ] **10.4.5 Electronic Signature — Sign**
+  Re-authenticate (password prompt). Sign document with PAdES. Verify signature record created. Verify visual signature overlay on PDF.
+
+- [ ] **10.4.6 Electronic Signature — Verify**
+  Verify signature on signed document. Verify signature is invalid after PDF modification. Verify signature records display certificate info.
+
+---
+
+### 10.5 AI Features
+
+- [ ] **10.5.1 Hybrid Search**
+  Execute search across documents. Verify BM25 + semantic results. Test faceted filtering. Verify relevance scores and snippets.
+
+- [ ] **10.5.2 RAG Knowledge Base**
+  Ask question against knowledge base. Verify answer with source citations. Test conversational follow-up queries. Verify conversation history.
+
+- [ ] **10.5.3 Multi-Agent Review**
+  Submit document for multi-agent review. Verify parallel review execution. Verify individual agent reports. Verify master auditor summary. Verify compliance scorecard.
+
+- [ ] **10.5.4 AI Document Generator**
+  Generate document from template. Verify section-by-section content. Verify cross-references. Verify generation provenance audit trail.
+
+- [ ] **10.5.5 Change Impact Analysis**
+  Update a document. Verify impact analysis triggered. Verify dependency graph updated. Verify affected documents flagged. Verify gap analysis results.
+
+- [ ] **10.5.6 Traceability Matrix**
+  Generate traceability matrix. Verify requirement-to-test-case links. Verify orphan detection. Verify coverage metrics.
+
+---
+
+### 10.6 Administration
+
+- [ ] **10.6.1 User Management**
+  Create user with temporary password. Assign roles. Activate/deactivate user. Reset password. Verify user change history.
+
+- [ ] **10.6.2 Role & Permission Management**
+  View role permission matrix. Create permission template. Assign template to document type. Verify permissions enforced.
+
+- [ ] **10.6.3 System Configuration**
+  View AI hardware settings. Update AI config. Verify vLLM status monitoring. View storage quotas. Update storage quota. Verify health monitoring.
+
+- [ ] **10.6.4 Audit Trail Viewer**
+  Open audit trail. Verify events displayed with details. Test filter by user, date, operation type. Test substring search. Export to PDF.
+
+- [ ] **10.6.5 Backup Management**
+  View backup schedule. Update backup schedule. Trigger manual backup. Verify backup history. View backup status.
+
+---
+
+### 10.7 Corporate Environment (ALC)
+
+- [ ] **10.7.1 Corporate Seed Verification**
+  Verify ALC corporate tenant has predefined users (IT Admin, Doc Admin, Quality Manager, Standard User). Verify governance folder structure. Verify AI risk profile. Verify agent activations.
+
+- [ ] **10.7.2 Governance Workflow**
+  Verify BPMN governance workflow exists for ALC. Test workflow execution. Verify compliance frameworks applied.
 
 ---
 
