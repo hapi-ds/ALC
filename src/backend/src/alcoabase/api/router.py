@@ -40,6 +40,7 @@ from alcoabase.api.admin_memberships import router as admin_memberships_router
 from alcoabase.api.admin_permission_templates import (
     router as admin_permission_templates_router,
 )
+from alcoabase.api.admin_documentation import router as admin_documentation_router
 from alcoabase.api.admin_guidelines import router as admin_guidelines_router
 from alcoabase.api.admin_seed import router as admin_seed_router
 from alcoabase.api.admin_roles import router as admin_roles_router
@@ -99,6 +100,7 @@ api_router.include_router(admin_memberships_router)
 api_router.include_router(admin_seed_router)
 api_router.include_router(admin_urs_router)
 api_router.include_router(admin_guidelines_router)
+api_router.include_router(admin_documentation_router)
 api_router.include_router(risk_framework_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")
