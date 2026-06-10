@@ -51,6 +51,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Generates 4 AI usage policy documents (1 master cross-sector + 3 sector-specific modules for Pharma/GMP, MedTech/ISO 13485, and IVD/IVDR). Integrates with the AI Risk & Compliance Framework to reference risk tier classifications and HITL requirements. Uploaded as governed documents with full lifecycle workflow.
 * 📖 **Documentation Suite: User & Admin Guides**
   Programmatic generation of comprehensive User Guide (12 sections, 28+ procedures) and Technical Admin Guide (12 sections, 25+ procedures). Includes step-by-step procedures with screenshot placeholders, cross-references to URS requirements and AI Guidelines, inter-guide links, and a Related Governance Documents section. Supports versioning on re-execution.
+* 🔬 **Literature Search Engine & External API Gateways**
+  Secure, multi-tenant gateway to external scientific literature databases (PubMed, Crossref, arXiv). Plugin/adapter architecture for adding new sources without code changes. Per-company API key management with AES-256-GCM encryption at rest. Hierarchical rate limiting (system-wide and per-company), circuit breaker resilience, full audit trail of all outbound API calls, proxy/firewall routing, and async search dispatch for long-running queries.
 
 ---
 
@@ -119,6 +121,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 8.3 | User Requirement Specifications (URS) for ALC | ✅ Complete |
 | 8.4 | Cross-Sector AI Regulatory Guidelines | ✅ Complete |
 | 8.5 | Documentation Suite: User & Admin Guides | ✅ Complete |
+| 9.1 | Literature Search Engine & External API Gateways | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -152,6 +155,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [ALC Corporate Environment](docs/alc-corporate-environment-guide.md) | Corporate tenant seeding, user pool provisioning, regulatory baseline, governance folders, risk profile, agent activations, governance workflow |
 | [Cross-Sector AI Guidelines](docs/cross-sector-ai-guidelines-guide.md) | AI usage policy generation, risk tier integration, sector-specific modules (Pharma/MedTech/IVD), governance workflow |
 | [Documentation Suite](docs/documentation-suite-guide.md) | User Guide & Admin Guide generation, cross-references, versioning, governance integration |
+| [Literature Search Engine](docs/literature-search-guide.md) | External literature search (PubMed, Crossref, arXiv), API key management, rate limiting, audit trail |
 
 ---
 
