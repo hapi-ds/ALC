@@ -274,6 +274,60 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Literature Search Gateway (Phase 9.1)
+    # ─────────────────────────────────────────────────────────────────────
+
+    literature_enabled: bool = Field(
+        default=False,
+        description=(
+            "Enable the literature search gateway. When False, skip initialization "
+            "and return HTTP 503 on all literature endpoints."
+        ),
+        alias="ALC_LITERATURE_ENABLED",
+    )
+    literature_encryption_key: str | None = Field(
+        default=None,
+        description=(
+            "32-byte AES-256-GCM master key for encrypting API keys at rest. "
+            "Required when literature_enabled is True."
+        ),
+        alias="ALC_LITERATURE_ENCRYPTION_KEY",
+    )
+    literature_adapter_dir: str | None = Field(
+        default=None,
+        description=(
+            "Filesystem path to scan for adapter modules at startup. "
+            "Defaults to the built-in adapters directory if not set."
+        ),
+        alias="ALC_LITERATURE_ADAPTER_DIR",
+    )
+    literature_proxy_url: str | None = Field(
+        default=None,
+        description="HTTP/HTTPS proxy URL for outbound literature API requests.",
+        alias="ALC_LITERATURE_PROXY_URL",
+    )
+    literature_proxy_user: str | None = Field(
+        default=None,
+        description="Username for proxy authentication.",
+        alias="ALC_LITERATURE_PROXY_USER",
+    )
+    literature_proxy_password: str | None = Field(
+        default=None,
+        description="Password for proxy authentication.",
+        alias="ALC_LITERATURE_PROXY_PASSWORD",
+    )
+    literature_health_check_interval_seconds: int = Field(
+        default=300,
+        description="Interval in seconds between periodic adapter health checks.",
+        alias="ALC_LITERATURE_HEALTH_CHECK_INTERVAL_SECONDS",
+    )
+    literature_async_result_ttl_seconds: int = Field(
+        default=3600,
+        description="TTL in seconds for async search task results stored in Redis.",
+        alias="ALC_LITERATURE_ASYNC_RESULT_TTL_SECONDS",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # ALC Corporate Seed
     # ─────────────────────────────────────────────────────────────────────
 

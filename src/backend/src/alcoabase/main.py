@@ -12,15 +12,20 @@ This module configures:
 - Main API router aggregating all domain sub-routers
 """
 
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from alcoabase.api.router import api_router
 from alcoabase.middleware import AuditMiddleware, CSVTaggingMiddleware, SetupGuardMiddleware
+
+if TYPE_CHECKING:
+    from alcoabase.literature.services.source_registry import SourceRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         - Initialize database connection pool
         - Verify external service connectivity (MinIO, Redis, OpenSearch)
         - Start agent file watcher for hot-reload
+        - Initialize literature gateway services (when enabled)
     Shutdown:
+        - Stop literature health check task
         - Stop agent file watcher
         - Close database connection pool
         - Shutdown inference services (close shared InferenceClient)
@@ -74,8 +81,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Start agent file watcher for hot-reload
     await _start_agent_watcher()
 
+    # Initialize literature gateway services
+    await _initialize_literature_gateway(app)
+
     yield
     # --- Shutdown ---
+    # Stop literature health check task
+    await _shutdown_literature_gateway(app)
+
     # Stop agent file watcher
     await _stop_agent_watcher()
 
@@ -147,6 +160,219 @@ async def _stop_agent_watcher() -> None:
             await _agent_registry_service.stop_watcher()
         except Exception as e:
             logger.warning("Error stopping agent file watcher: %s", e)
+
+
+# ---------------------------------------------------------------------------
+# Literature Gateway lifecycle helpers
+# ---------------------------------------------------------------------------
+
+# Module-level reference to the periodic health check task
+_literature_health_check_task: asyncio.Task[None] | None = None
+
+
+async def _initialize_literature_gateway(app: FastAPI) -> None:
+    """Initialize the literature gateway services during startup.
+
+    When ``ALC_LITERATURE_ENABLED=True``:
+        1. Validates the encryption key is present (refuses to start if missing).
+        2. Creates APIKeyVault with the decoded master key.
+        3. Creates SourceRegistry and discovers adapters.
+        4. Creates RateLimiter with Redis URL.
+        5. Creates CircuitBreaker with Redis URL.
+        6. Creates ProxyManager with vault and proxy config.
+        7. Creates AuditLogger with async session factory.
+        8. Creates LiteratureGatewayService with all dependencies.
+        9. Stores all services on app.state for route handler access.
+        10. Registers a periodic health check background task.
+
+    When ``ALC_LITERATURE_ENABLED=False``:
+        Skips all initialization. Route handlers will return HTTP 503
+        since app.state services are None.
+
+    Args:
+        app: The FastAPI application instance.
+
+    Raises:
+        RuntimeError: If literature_enabled is True but the encryption key
+            is missing (wraps EncryptionKeyMissingError).
+    """
+    import base64
+    from pathlib import Path
+
+    from alcoabase.config import get_settings
+
+    settings = get_settings()
+
+    if not settings.literature_enabled:
+        logger.info(
+            "Literature gateway disabled (ALC_LITERATURE_ENABLED=false). "
+            "Skipping initialization."
+        )
+        return
+
+    # ── Step 1: Validate and decode encryption key ────────────────────────
+    if not settings.literature_encryption_key:
+        from alcoabase.literature.exceptions import EncryptionKeyMissingError
+
+        raise EncryptionKeyMissingError(
+            "ALC_LITERATURE_ENCRYPTION_KEY is required when "
+            "ALC_LITERATURE_ENABLED=true. Refusing to start.",
+            env_var_name="ALC_LITERATURE_ENCRYPTION_KEY",
+        )
+
+    try:
+        master_key = base64.b64decode(settings.literature_encryption_key)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to base64-decode ALC_LITERATURE_ENCRYPTION_KEY: {e}"
+        ) from e
+
+    # ── Step 2: Create APIKeyVault ────────────────────────────────────────
+    from alcoabase.literature.services.api_key_vault import APIKeyVault
+
+    api_key_vault = APIKeyVault(master_key)
+    logger.info("Literature APIKeyVault initialized.")
+
+    # ── Step 3: Create SourceRegistry and discover adapters ───────────────
+    from alcoabase.literature.services.source_registry import SourceRegistry
+
+    source_registry = SourceRegistry()
+
+    # Determine adapter directory: use configured path or default built-in
+    if settings.literature_adapter_dir:
+        adapter_dir = settings.literature_adapter_dir
+    else:
+        adapter_dir = str(
+            Path(__file__).parent / "literature" / "adapters"
+        )
+
+    await source_registry.discover_adapters(adapter_dir)
+    logger.info("Literature SourceRegistry initialized.")
+
+    # ── Step 4: Create RateLimiter ────────────────────────────────────────
+    from alcoabase.literature.services.rate_limiter import RateLimiter
+
+    rate_limiter = RateLimiter(settings.redis_url)
+    logger.info("Literature RateLimiter initialized with Redis.")
+
+    # ── Step 5: Create CircuitBreaker ─────────────────────────────────────
+    from alcoabase.literature.services.circuit_breaker import CircuitBreaker
+
+    circuit_breaker = CircuitBreaker(settings.redis_url)
+    logger.info("Literature CircuitBreaker initialized with Redis.")
+
+    # ── Step 6: Create ProxyManager ───────────────────────────────────────
+    from alcoabase.literature.services.proxy_manager import ProxyManager
+
+    proxy_manager = ProxyManager(vault=api_key_vault)
+    logger.info("Literature ProxyManager initialized.")
+
+    # ── Step 7: Create AuditLogger ────────────────────────────────────────
+    from alcoabase import database
+    from alcoabase.literature.services.audit_logger import AuditLogger
+
+    session_factory = database._session_factory
+    if session_factory is None:
+        raise RuntimeError(
+            "Database session factory not available during literature gateway init."
+        )
+
+    audit_logger = AuditLogger(session_factory)
+    logger.info("Literature AuditLogger initialized.")
+
+    # ── Step 8: Create LiteratureGatewayService ───────────────────────────
+    from alcoabase.literature.services.gateway_service import LiteratureGatewayService
+
+    gateway_service = LiteratureGatewayService(
+        source_registry=source_registry,
+        rate_limiter=rate_limiter,
+        circuit_breaker=circuit_breaker,
+        api_key_vault=api_key_vault,
+        audit_logger=audit_logger,
+        proxy_manager=proxy_manager,
+    )
+    logger.info("Literature LiteratureGatewayService initialized.")
+
+    # ── Step 9: Store services on app.state ───────────────────────────────
+    app.state.literature_gateway_service = gateway_service
+    app.state.literature_source_registry = source_registry
+    app.state.literature_rate_limiter = rate_limiter
+    app.state.literature_circuit_breaker = circuit_breaker
+    app.state.literature_api_key_vault = api_key_vault
+    app.state.literature_audit_logger = audit_logger
+    app.state.literature_proxy_manager = proxy_manager
+    # proxy_config is loaded from DB on demand; set None initially
+    app.state.literature_proxy_config = None
+
+    # ── Step 10: Register periodic health check ───────────────────────────
+    global _literature_health_check_task
+
+    interval = settings.literature_health_check_interval_seconds
+    _literature_health_check_task = asyncio.create_task(
+        _periodic_health_check(source_registry, interval),
+        name="literature_health_check",
+    )
+
+    logger.info(
+        "Literature gateway fully initialized. Health check interval: %ds.",
+        interval,
+    )
+
+
+async def _shutdown_literature_gateway(app: FastAPI) -> None:
+    """Shutdown the literature gateway services.
+
+    Cancels the periodic health check task if running.
+
+    Args:
+        app: The FastAPI application instance.
+    """
+    global _literature_health_check_task
+
+    if _literature_health_check_task is not None:
+        _literature_health_check_task.cancel()
+        try:
+            await _literature_health_check_task
+        except asyncio.CancelledError:
+            pass
+        _literature_health_check_task = None
+        logger.info("Literature health check task stopped.")
+
+
+async def _periodic_health_check(
+    source_registry: "SourceRegistry",
+    interval_seconds: int,
+) -> None:
+    """Run periodic health checks against all registered adapters.
+
+    Loops indefinitely, running health checks at the configured interval.
+    Catches all exceptions to ensure the task never crashes silently.
+
+    Args:
+        source_registry: The SourceRegistry to check adapters through.
+        interval_seconds: Seconds between health check cycles.
+    """
+    while True:
+        try:
+            await asyncio.sleep(interval_seconds)
+            adapters = source_registry.list_adapters()
+            for adapter_info in adapters:
+                adapter_name = adapter_info.get("name", "")
+                if adapter_name:
+                    try:
+                        status = await source_registry.run_health_check(adapter_name)
+                        logger.debug(
+                            "Health check for '%s': %s", adapter_name, status
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "Health check failed for '%s': %s", adapter_name, e
+                        )
+        except asyncio.CancelledError:
+            logger.info("Periodic health check task cancelled.")
+            break
+        except Exception as e:
+            logger.error("Unexpected error in health check loop: %s", e)
 
 
 # ---------------------------------------------------------------------------
