@@ -1709,7 +1709,12 @@ async def _process_sanitization(
             storage_result.object_path,
         )
 
-        # Step 8: Check dual_uuid_integration_enabled
+        # Step 8: Check auto_embed_on_ingest from EmbeddingConfiguration
+        # and dual_uuid_integration_enabled from IngestionConfiguration
+        from alcoabase.literature.embedding.models.embedding_config import (
+            EmbeddingConfiguration,
+        )
+
         async with session_factory() as session:
             config_stmt = select(IngestionConfiguration).where(
                 IngestionConfiguration.company_id == company_id
@@ -1721,54 +1726,92 @@ async def _process_sanitization(
                 config.dual_uuid_integration_enabled if config else False
             )
 
+            # Query embedding configuration for auto_embed_on_ingest
+            embed_config_stmt = select(EmbeddingConfiguration).where(
+                EmbeddingConfiguration.company_id == company_id
+            )
+            embed_config_result = await session.execute(embed_config_stmt)
+            embed_config = embed_config_result.scalar_one_or_none()
+
+            # Default: auto_embed_on_ingest=True when no config exists
+            auto_embed_on_ingest = (
+                embed_config.auto_embed_on_ingest if embed_config else True
+            )
+
         if dual_uuid_enabled:
             # In a full implementation, this would dispatch a dual_uuid_extract task.
-            # For now, log and transition directly to indexed.
+            # For now, log and continue.
             logger.info(
                 "Record %d: dual_uuid_integration enabled for company %d. "
-                "Transitioning to indexed (dual_uuid_extract not yet implemented).",
+                "(dual_uuid_extract not yet implemented).",
                 record_id,
                 company_id,
             )
 
-        # Step 9: Transition to indexed
-        async with session_factory() as session:
-            record = await session.get(IngestionRecord, record_id)
-            previous_state = record.state
-            record.state = IngestionState.INDEXED.value
+        # Step 9: Dispatch embedding generation or transition to indexed
+        if auto_embed_on_ingest:
+            # Dispatch generate_embeddings task to handle embedding
+            # and the sanitized → indexed state transition
+            from alcoabase.config import get_settings as _get_settings
 
-            triggering_event = (
-                "dual_uuid_skipped"
-                if not dual_uuid_enabled
-                else "dual_uuid_complete"
+            _settings = _get_settings()
+            celery_app.send_task(
+                "alcoabase.tasks.literature_embedding_tasks.generate_embeddings",
+                kwargs={
+                    "record_id": record_id,
+                    "company_id": company_id,
+                    "triggering_event": "auto",
+                },
+                queue=_settings.literature_embedding_queue,
+                priority=5,
             )
+            logger.info(
+                "Dispatched generate_embeddings task for record_id=%d, "
+                "company_id=%d (auto_embed_on_ingest=True).",
+                record_id,
+                company_id,
+            )
+        else:
+            # No auto-embedding: transition directly to indexed
+            async with session_factory() as session:
+                record = await session.get(IngestionRecord, record_id)
+                previous_state = record.state
+                record.state = IngestionState.INDEXED.value
 
-            history_entry = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "from_state": previous_state,
-                "to_state": IngestionState.INDEXED.value,
-                "triggering_event": triggering_event,
-            }
-            current_history = list(record.state_history or [])
-            current_history.append(history_entry)
-            record.state_history = current_history
+                triggering_event = (
+                    "dual_uuid_skipped"
+                    if not dual_uuid_enabled
+                    else "dual_uuid_complete"
+                )
 
-            audit_entry = IngestionAuditLog(
-                company_id=company_id,
-                ingestion_record_id=record_id,
-                event_type="state_transition",
-                details={
+                history_entry = {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                     "from_state": previous_state,
                     "to_state": IngestionState.INDEXED.value,
                     "triggering_event": triggering_event,
-                },
-            )
-            session.add(audit_entry)
-            await session.commit()
+                }
+                current_history = list(record.state_history or [])
+                current_history.append(history_entry)
+                record.state_history = current_history
 
-        logger.info(
-            "Record %d transitioned to indexed.", record_id
-        )
+                audit_entry = IngestionAuditLog(
+                    company_id=company_id,
+                    ingestion_record_id=record_id,
+                    event_type="state_transition",
+                    details={
+                        "from_state": previous_state,
+                        "to_state": IngestionState.INDEXED.value,
+                        "triggering_event": triggering_event,
+                    },
+                )
+                session.add(audit_entry)
+                await session.commit()
+
+            logger.info(
+                "Record %d transitioned to indexed "
+                "(auto_embed_on_ingest=False, manual trigger via API).",
+                record_id,
+            )
 
         return {
             "status": "completed",
@@ -1776,6 +1819,7 @@ async def _process_sanitization(
             "word_count": structured_content.word_count,
             "sanitized_path": storage_result.object_path,
             "dual_uuid_enabled": dual_uuid_enabled,
+            "embedding_dispatched": auto_embed_on_ingest,
         }
 
     finally:

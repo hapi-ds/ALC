@@ -6,48 +6,48 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
 
 ## Tasks
 
-- [ ] 1. Configuration, models, and schemas
-  - [~] 1.1 Extend config.py with Phase 9.3 environment settings
+- [x] 1. Configuration, models, and schemas
+  - [x] 1.1 Extend config.py with Phase 9.3 environment settings
     - Add `literature_index_shards`, `literature_index_replicas`, `literature_hnsw_ef_construction`, `literature_hnsw_m`, `literature_rrf_k`, `literature_embedding_queue`, `reindex_batch_size` fields to the Settings class in `src/backend/src/alcoabase/config.py`
     - Use Pydantic Field with aliases matching `ALC_LITERATURE_INDEX_SHARDS`, `ALC_LITERATURE_INDEX_REPLICAS`, etc.
     - Add startup validation: refuse to start if `ALC_OPENSEARCH_URL` or `MODEL_EMBEDDING_NAME` are missing
     - Log resolved config values at INFO on startup (redact credentials from OpenSearch URL)
     - _Requirements: 13.1, 13.2, 13.3, 13.4, 13.5, 13.6, 13.7, 13.8, 13.9, 13.10_
 
-  - [~] 1.2 Create EmbeddingConfiguration SQLAlchemy model
+  - [x] 1.2 Create EmbeddingConfiguration SQLAlchemy model
     - Create `src/backend/src/alcoabase/literature/embedding/models/__init__.py` and `embedding_config.py`
     - Define `EmbeddingConfiguration` with fields: `id`, `company_id` (FK, unique), `chunk_size_tokens` (128–2048, default 512), `chunk_overlap_tokens` (0–256, default 50), `auto_embed_on_ingest` (default True), `embed_abstract_only` (default False), `max_chunks_per_document` (1–5000, default 500)
     - Include `AuditMixin` and `__versioned__ = {}` for SQLAlchemy-Continuum
     - _Requirements: 9.1_
 
-  - [~] 1.3 Create ReindexJob SQLAlchemy model
+  - [x] 1.3 Create ReindexJob SQLAlchemy model
     - Create `src/backend/src/alcoabase/literature/embedding/models/reindex_job.py`
     - Define `ReindexJob` with fields: `id`, `task_id` (UUID string, unique, indexed), `company_id` (FK, indexed), `status` (queued|in_progress|completed|failed|cancelled), `total_records`, `total_batches`, `current_batch`, `records_processed`, `records_failed`, `started_at`, `updated_at`, `cancelled_by`, `cancel_reason`
     - _Requirements: 8.3_
 
-  - [~] 1.4 Create Alembic migration for new models
+  - [x] 1.4 Create Alembic migration for new models
     - Generate migration adding `literature_embedding_configurations` and `literature_reindex_jobs` tables
     - Include unique constraint on `company_id` for embedding config
     - Include index on `task_id` and `company_id` for reindex jobs
     - _Requirements: 9.1, 8.3_
 
-  - [~] 1.5 Create Pydantic schemas for search, indexing, and configuration
+  - [x] 1.5 Create Pydantic schemas for search, indexing, and configuration
     - Create `src/backend/src/alcoabase/literature/embedding/schemas/__init__.py`
     - Create `search.py`: `HybridSearchRequestSchema` (query 1–1000 chars, partition_filter, semantic_weight 0.0–1.0, rrf_k, page, page_size 1–100, literature_boost 0.1–10.0, internal_boost 0.1–10.0, date_range, source_id, authors, publication_type, include_internal), `HybridSearchResultSchema`, `HybridSearchResponseSchema`
     - Create `indexing.py`: `ReindexRequestSchema` (state filter, record_ids), `ReindexProgressSchema`, `IndexStatusSchema`
     - Create `configuration.py`: `EmbeddingConfigurationSchema` (with Field validators for ranges), `EmbeddingConfigurationUpdateSchema`
     - _Requirements: 10.1, 10.2, 10.4, 10.5, 10.6, 6.5, 6.6_
 
-  - [~] 1.6 Create embedding-specific exception classes
+  - [x] 1.6 Create embedding-specific exception classes
     - Create `src/backend/src/alcoabase/literature/embedding/exceptions.py`
     - Define: `EmbeddingDimensionMismatchError`, `EmbeddingGenerationError`, `IndexingUnavailableError`, `IndexCreationError`, `TenantIsolationError`, `PartitionTagUpdateError`, `ReindexAlreadyActiveError`, `SearchServiceUnavailableError`
     - _Requirements: 12.1, 12.2, 12.6, 12.7_
 
-- [~] 2. Checkpoint - Ensure models and schemas compile
+- [-] 2. Checkpoint - Ensure models and schemas compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Implement ChunkingPipeline service
-  - [~] 3.1 Implement ChunkingPipeline class
+- [x] 3. Implement ChunkingPipeline service
+  - [x] 3.1 Implement ChunkingPipeline class
     - Create `src/backend/src/alcoabase/literature/embedding/services/__init__.py` and `chunking_pipeline.py`
     - Implement `ContentChunk` frozen dataclass with `text`, `chunk_index`, `section_heading`, `source_field`
     - Implement `ChunkingPipeline.__init__` with `chunk_size_tokens`, `chunk_overlap_tokens`, `max_context_tokens` params
@@ -59,34 +59,34 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Reuse `KnowledgeService.chunk_text()` logic for core token splitting with overlap
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 1.3_
 
-  - [~] 3.2 Write property test: Chunking token limit and overlap (Property 1)
+  - [x] 3.2 Write property test: Chunking token limit and overlap (Property 1)
     - **Property 1: Chunking token limit and overlap**
     - Use Hypothesis to generate random text inputs and chunk_size (128–2048), overlap (0–256 where overlap < chunk_size)
     - Assert every chunk has ≤ chunk_size whitespace-delimited tokens
     - Assert consecutive chunks share exactly overlap tokens at boundaries
     - **Validates: Requirements 1.3, 2.1**
 
-  - [~] 3.3 Write property test: Chunking completeness round-trip (Property 2)
+  - [x] 3.3 Write property test: Chunking completeness round-trip (Property 2)
     - **Property 2: Round trip consistency**
     - Use Hypothesis to generate random text inputs
     - Assert concatenation of unique (non-overlapping) portions reconstructs original without omission or reordering
     - **Validates: Requirements 2.7**
 
-  - [~] 3.4 Write property test: Non-empty input produces chunks (Property 3)
+  - [x] 3.4 Write property test: Non-empty input produces chunks (Property 3)
     - **Property 3: Non-empty input produces chunks; whitespace produces none**
     - Generate strings with ≥1 non-whitespace char → assert ≥1 chunk
     - Generate whitespace-only or empty strings → assert 0 chunks
     - **Validates: Requirements 2.6**
 
-  - [~] 3.5 Write property test: Context prepending bounded at 64 tokens (Property 4)
+  - [x] 3.5 Write property test: Context prepending bounded at 64 tokens (Property 4)
     - **Property 4: Context prepending bounded at 64 tokens**
     - Generate random title and section_heading strings
     - Assert prepended context ≤ 64 whitespace-delimited tokens
     - Assert truncation happens at word boundary
     - **Validates: Requirements 2.5**
 
-- [ ] 4. Implement LiteratureIndexManager service
-  - [~] 4.1 Implement LiteratureIndexManager class
+- [x] 4. Implement LiteratureIndexManager service
+  - [x] 4.1 Implement LiteratureIndexManager class
     - Create `src/backend/src/alcoabase/literature/embedding/services/index_manager.py`
     - Implement `IndexedChunk` frozen dataclass
     - Implement `__init__` with opensearch_client, embedding_dimension, shards, replicas, hnsw params
@@ -101,7 +101,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Implement `get_index_stats()` returning health, doc_count, size_bytes, last_indexing_timestamp
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 4.1, 4.2, 4.4, 4.5, 5.6, 5.7, 12.2, 12.4, 12.5, 14.2_
 
-  - [~] 4.2 Write property test: Tenant isolation on indexing and search (Property 5)
+  - [x] 4.2 Write property test: Tenant isolation on indexing and search (Property 5)
     - **Property 5: Tenant isolation on indexing and search**
     - Generate random company_id values
     - Assert index name is exactly `literature-embeddings-{company_id}`
@@ -109,21 +109,21 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Mock OpenSearch client to verify query structure
     - **Validates: Requirements 4.1, 4.2, 4.4, 4.5**
 
-  - [~] 4.3 Write property test: Source-based partition tagging (Property 6)
+  - [x] 4.3 Write property test: Source-based partition tagging (Property 6)
     - **Property 6: Source-based partition tagging**
     - Assert chunks from literature pipeline get `public_literature`
     - Assert chunks from internal uploads get `private_knowledge`
     - **Validates: Requirements 5.1, 5.2**
 
-  - [~] 4.4 Write property test: Deletion scoping by record_id (Property 12)
+  - [x] 4.4 Write property test: Deletion scoping by record_id (Property 12)
     - **Property 12: Deletion scoping by record_id**
     - Generate sets of indexed records with different record_ids
     - Assert deleting one record_id removes only that record's chunks
     - Mock OpenSearch to verify delete-by-query filter
     - **Validates: Requirements 12.5**
 
-- [ ] 5. Implement HybridQueryEngine service
-  - [~] 5.1 Implement HybridQueryEngine class
+- [x] 5. Implement HybridQueryEngine service
+  - [x] 5.1 Implement HybridQueryEngine class
     - Create `src/backend/src/alcoabase/literature/embedding/services/hybrid_query_engine.py`
     - Implement `HybridSearchRequest`, `HybridSearchResult`, `HybridSearchResponse` dataclasses
     - Implement `__init__` with index_manager, inference_client, model_manager, model_name, default_rrf_k
@@ -136,7 +136,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Handle partial results for unified search when one index unreachable
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 10.10_
 
-  - [~] 5.2 Write property test: RRF fusion computation correctness (Property 7)
+  - [x] 5.2 Write property test: RRF fusion computation correctness (Property 7)
     - **Property 7: RRF fusion computation correctness**
     - Generate two ranked lists of document IDs with varying overlap
     - Generate k (1–200) and semantic_weight (0.0–1.0)
@@ -144,14 +144,14 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Assert final list sorted by RRF score descending
     - **Validates: Requirements 6.1, 6.3**
 
-  - [~] 5.3 Write property test: Semantic weight boundary behavior (Property 8)
+  - [x] 5.3 Write property test: Semantic weight boundary behavior (Property 8)
     - **Property 8: Semantic weight boundary behavior**
     - Generate two ranked lists
     - Assert semantic_weight=0.0 → ranking determined entirely by BM25 ranks
     - Assert semantic_weight=1.0 → ranking determined entirely by kNN ranks
     - **Validates: Requirements 6.4**
 
-  - [~] 5.4 Write property test: Pagination correctness (Property 9)
+  - [x] 5.4 Write property test: Pagination correctness (Property 9)
     - **Property 9: Pagination correctness**
     - Generate ranked list of N items, page p, page_size s
     - Assert returned results are slice `[(p-1)*s : p*s]`
@@ -161,8 +161,8 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
 - [~] 6. Checkpoint - Ensure all service tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Implement EmbeddingService orchestrator
-  - [~] 7.1 Implement EmbeddingService class
+- [x] 7. Implement EmbeddingService orchestrator
+  - [x] 7.1 Implement EmbeddingService class
     - Create `src/backend/src/alcoabase/literature/embedding/services/embedding_service.py`
     - Implement `__init__` with session_factory, inference_client, model_manager, index_manager, chunking_pipeline
     - Implement `generate_and_index_embeddings()`: load record + config → chunk → batch embed (32/batch) → validate dimensions → delete existing → bulk index → transition state → audit log
@@ -175,7 +175,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Respect `auto_embed_on_ingest`, `embed_abstract_only`, `max_chunks_per_document` from EmbeddingConfiguration
     - _Requirements: 1.1, 1.2, 1.4, 1.5, 1.6, 1.7, 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7, 8.8, 8.9, 8.10, 9.2, 9.3, 9.4, 9.5, 9.6, 12.1, 12.4, 12.6, 12.7, 12.8_
 
-  - [~] 7.2 Write property test: Embedding batch size correctness (Property 10)
+  - [x] 7.2 Write property test: Embedding batch size correctness (Property 10)
     - **Property 10: Embedding batch size correctness**
     - Generate N content chunks (1–500)
     - Assert InferenceClient is called exactly `ceil(N/32)` times
@@ -183,29 +183,29 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Assert concatenated results maintain original ordering
     - **Validates: Requirements 1.4**
 
-  - [~] 7.3 Write property test: Embedding dimension validation (Property 13)
+  - [x] 7.3 Write property test: Embedding dimension validation (Property 13)
     - **Property 13: Embedding dimension validation**
     - Generate embedding vectors with incorrect dimensions
     - Assert EmbeddingService rejects the batch
     - Assert record transitions to `failed` with `embedding_dimension_mismatch`
     - **Validates: Requirements 1.5, 12.7**
 
-  - [~] 7.4 Write property test: Max chunks truncation (Property 17)
+  - [x] 7.4 Write property test: Max chunks truncation (Property 17)
     - **Property 17: Max chunks truncation**
     - Generate content producing N chunks where N > configured max_chunks_per_document M
     - Assert exactly M chunks are indexed (first M in document order)
     - Assert truncation is recorded in audit trail
     - **Validates: Requirements 9.6**
 
-  - [~] 7.5 Write property test: Idempotent indexing (Property 11)
+  - [x] 7.5 Write property test: Idempotent indexing (Property 11)
     - **Property 11: Idempotent indexing**
     - Index a record, then re-index (delete + re-insert)
     - Assert identical chunk count, texts, and vectors as fresh indexing
     - Mock OpenSearch to verify delete-then-insert sequence
     - **Validates: Requirements 8.4, 12.4**
 
-- [ ] 8. Implement API routers
-  - [~] 8.1 Implement literature_search_router
+- [x] 8. Implement API routers
+  - [x] 8.1 Implement literature_search_router
     - Create `src/backend/src/alcoabase/api/literature_search_router.py`
     - `POST /api/literature/search/hybrid`: validate request body, require `member` role, execute hybrid search, return `HybridSearchResponseSchema`
     - `POST /api/literature/search/unified`: same params + `include_internal`, require `member` role, execute unified search
@@ -214,7 +214,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Reject empty/whitespace queries with HTTP 422
     - _Requirements: 10.1, 10.2, 10.8, 10.9, 10.10, 4.7, 6.9_
 
-  - [~] 8.2 Implement literature_index_router
+  - [x] 8.2 Implement literature_index_router
     - Create `src/backend/src/alcoabase/api/literature_index_router.py`
     - `GET /api/literature/index/status`: require `member` role, return `IndexStatusSchema`
     - `POST /api/literature/index/reindex`: require `system_admin` role, require `X-Change-Reason`, return HTTP 202 with task_id
@@ -224,13 +224,13 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Require `X-Company-Id` header on all endpoints
     - _Requirements: 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 9.7, 9.8, 9.9, 8.7_
 
-  - [~] 8.3 Register routers in central router.py
+  - [x] 8.3 Register routers in central router.py
     - Add `literature_search_router` and `literature_index_router` to `src/backend/src/alcoabase/api/router.py`
     - Verify route prefix is `/api/literature`
     - _Requirements: 10.1, 10.2, 10.3_
 
-- [ ] 9. Implement Celery tasks
-  - [~] 9.1 Implement literature_embedding_tasks.py
+- [x] 9. Implement Celery tasks
+  - [x] 9.1 Implement literature_embedding_tasks.py
     - Create `src/backend/src/alcoabase/tasks/literature_embedding_tasks.py`
     - Implement `generate_embeddings` task: queue=`literature_ingestion`, priority=5, max_retries=3, soft_time_limit=600s, exponential backoff (30s, 120s, 600s), acks_late=True
     - Implement `reindex_batch` task: queue=`literature_ingestion`, priority=7, max_retries=0, soft_time_limit=600s, acks_late=True
@@ -238,15 +238,15 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Register tasks with celery_app
     - _Requirements: 1.8, 8.2, 8.9, 12.1, 12.6_
 
-  - [~] 9.2 Extend Ingestion_Pipeline_Service with embedding dispatch
+  - [x] 9.2 Extend Ingestion_Pipeline_Service with embedding dispatch
     - Modify existing `src/backend/src/alcoabase/tasks/literature_ingestion_tasks.py` (or the Ingestion_Pipeline_Service)
     - On `sanitized` state transition, check company's `auto_embed_on_ingest` flag
     - If True, dispatch `generate_embeddings.delay(record_id=..., company_id=...)`
     - If False, do nothing (manual trigger via API)
     - _Requirements: 1.1, 1.8, 9.2, 9.3_
 
-- [ ] 10. Implement audit trail integration
-  - [~] 10.1 Add embedding/indexing audit log entries
+- [x] 10. Implement audit trail integration
+  - [x] 10.1 Add embedding/indexing audit log entries
     - Extend audit logging to record embedding generation events (ingestion_record_id, company_id, user_id, chunk_count, dimension, model_name, duration_ms, triggering_event, timestamp)
     - Record indexing events (ingestion_record_id, company_id, index_name, chunks_indexed, duration_ms, partition_tag, timestamp)
     - Record re-indexing initiation (company_id, user_id, total_records, reason, task_id, timestamp)
@@ -258,8 +258,8 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
 - [~] 11. Checkpoint - Ensure all components compile and unit tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 12. Write unit tests for services and routers
-  - [~] 12.1 Write unit tests for EmbeddingService
+- [x] 12. Write unit tests for services and routers
+  - [x] 12.1 Write unit tests for EmbeddingService
     - Test state transitions: `sanitized → indexed`, `sanitized → failed`
     - Test retry logic with exponential backoff timing
     - Test idempotent indexing (delete-then-insert)
@@ -268,7 +268,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Mock InferenceClient, OpenSearch, and database session
     - _Requirements: 1.1, 1.6, 1.7, 8.1, 8.4, 8.8, 8.10_
 
-  - [~] 12.2 Write unit tests for HybridQueryEngine
+  - [x] 12.2 Write unit tests for HybridQueryEngine
     - Test graceful degradation (BM25-only fallback when vLLM down)
     - Test unified search partial results
     - Test query validation (empty query rejection)
@@ -277,7 +277,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Mock InferenceClient and LiteratureIndexManager
     - _Requirements: 6.8, 6.9, 6.10, 7.7, 7.8_
 
-  - [~] 12.3 Write unit tests for API routers
+  - [x] 12.3 Write unit tests for API routers
     - Test all endpoint response codes (200, 202, 400, 403, 422, 503)
     - Test X-Change-Reason requirement on mutation endpoints
     - Test X-Company-Id requirement
@@ -286,15 +286,15 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Use FastAPI TestClient with mocked dependencies
     - _Requirements: 10.7, 10.8, 10.9, 4.3, 4.7, 9.8, 9.9_
 
-  - [~] 12.4 Write property test: Configuration range validation (Property 16)
+  - [x] 12.4 Write property test: Configuration range validation (Property 16)
     - **Property 16: Configuration range validation**
     - Generate config values outside valid ranges
     - Assert HTTP 422 rejection for out-of-range values
     - Assert acceptance for in-range values
     - **Validates: Requirements 9.9**
 
-- [ ] 13. Write integration tests
-  - [~] 13.1 Write integration tests for embedding pipeline
+- [x] 13. Write integration tests
+  - [x] 13.1 Write integration tests for embedding pipeline
     - Test end-to-end: StructuredContent → chunks → embeddings → indexed → searchable
     - Test hybrid search accuracy (BM25 + kNN merge)
     - Test unified search across both indices
@@ -304,7 +304,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Requires Docker OpenSearch and Redis fixtures
     - _Requirements: 1.1, 3.1, 4.1, 4.2, 5.6, 6.1, 7.1_
 
-  - [~] 13.2 Write integration tests for round-trip and self-retrieval (Properties 14, 15)
+  - [x] 13.2 Write integration tests for round-trip and self-retrieval (Properties 14, 15)
     - **Property 14: Embedding vector round-trip precision**
     - **Property 15: Self-retrieval property**
     - Generate embedding, store in OpenSearch, retrieve and compare element-by-element (tolerance < 1e-6)

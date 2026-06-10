@@ -145,3 +145,202 @@ class TestGetSettings:
         s1 = get_settings()
         s2 = get_settings()
         assert s1 is s2
+
+
+class TestPhase93EmbeddingSettings:
+    """Verify Phase 9.3 embedding and hybrid indexing defaults and validation."""
+
+    def test_literature_index_shards_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_index_shards == 1
+
+    def test_literature_index_replicas_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_index_replicas == 1
+
+    def test_literature_hnsw_ef_construction_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_hnsw_ef_construction == 256
+
+    def test_literature_hnsw_m_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_hnsw_m == 16
+
+    def test_literature_rrf_k_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_rrf_k == 60
+
+    def test_literature_embedding_queue_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_embedding_queue == "literature_ingestion"
+
+    def test_reindex_batch_size_default(self) -> None:
+        settings = Settings()
+        assert settings.reindex_batch_size == 50
+
+    def test_literature_index_shards_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_INDEX_SHARDS": "3"}):
+            settings = Settings()
+        assert settings.literature_index_shards == 3
+
+    def test_literature_index_replicas_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_INDEX_REPLICAS": "2"}):
+            settings = Settings()
+        assert settings.literature_index_replicas == 2
+
+    def test_literature_hnsw_ef_construction_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_HNSW_EF_CONSTRUCTION": "512"}):
+            settings = Settings()
+        assert settings.literature_hnsw_ef_construction == 512
+
+    def test_literature_hnsw_m_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_HNSW_M": "32"}):
+            settings = Settings()
+        assert settings.literature_hnsw_m == 32
+
+    def test_literature_rrf_k_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_RRF_K": "100"}):
+            settings = Settings()
+        assert settings.literature_rrf_k == 100
+
+    def test_literature_embedding_queue_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_EMBEDDING_QUEUE": "embedding_q"}):
+            settings = Settings()
+        assert settings.literature_embedding_queue == "embedding_q"
+
+    def test_reindex_batch_size_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_REINDEX_BATCH_SIZE": "100"}):
+            settings = Settings()
+        assert settings.reindex_batch_size == 100
+
+    def test_literature_index_shards_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_INDEX_SHARDS": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_hnsw_m_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_HNSW_M": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_rrf_k_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_RRF_K": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_reindex_batch_size_rejects_below_minimum(self) -> None:
+        with patch.dict(os.environ, {"ALC_REINDEX_BATCH_SIZE": "5"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_reindex_batch_size_rejects_above_maximum(self) -> None:
+        with patch.dict(os.environ, {"ALC_REINDEX_BATCH_SIZE": "300"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_embedding_queue_rejects_empty(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_EMBEDDING_QUEUE": ""}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_index_shards_rejects_non_integer(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_INDEX_SHARDS": "abc"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+
+class TestRedactOpensearchUrl:
+    """Verify OpenSearch URL credential redaction."""
+
+    def test_redacts_user_and_password(self) -> None:
+        from alcoabase.config import _redact_opensearch_url
+
+        url = "http://admin:secret@localhost:9200"
+        result = _redact_opensearch_url(url)
+        assert "admin" not in result
+        assert "secret" not in result
+        assert "[REDACTED]@localhost:9200" in result
+
+    def test_preserves_url_without_credentials(self) -> None:
+        from alcoabase.config import _redact_opensearch_url
+
+        url = "http://localhost:9200"
+        result = _redact_opensearch_url(url)
+        assert result == url
+
+    def test_preserves_scheme_and_path(self) -> None:
+        from alcoabase.config import _redact_opensearch_url
+
+        url = "https://user:pass@opensearch.internal:9200/path"
+        result = _redact_opensearch_url(url)
+        assert result.startswith("https://")
+        assert "9200" in result
+        assert "/path" in result
+        assert "user" not in result
+        assert "pass" not in result
+
+
+class TestValidateEmbeddingConfig:
+    """Verify startup validation for embedding configuration."""
+
+    def test_passes_with_valid_config(self) -> None:
+        from alcoabase.config import validate_embedding_config
+
+        settings = Settings()
+        # Defaults are valid (opensearch_url and model_embedding_name have defaults)
+        validate_embedding_config(settings)
+
+    def test_fails_with_empty_opensearch_url(self) -> None:
+        from alcoabase.config import validate_embedding_config
+
+        with patch.dict(os.environ, {"OPENSEARCH_URL": ""}):
+            settings = Settings()
+        with pytest.raises(SystemExit):
+            validate_embedding_config(settings)
+
+    def test_fails_with_empty_model_embedding_name(self) -> None:
+        from alcoabase.config import validate_embedding_config
+
+        with patch.dict(os.environ, {"MODEL_EMBEDDING_NAME": ""}):
+            settings = Settings()
+        with pytest.raises(SystemExit):
+            validate_embedding_config(settings)
+
+
+class TestLogEmbeddingConfig:
+    """Verify config logging outputs correct information."""
+
+    def test_logs_all_settings(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        from alcoabase.config import log_embedding_config
+
+        settings = Settings()
+        with caplog.at_level(logging.INFO, logger="alcoabase.config"):
+            log_embedding_config(settings)
+
+        assert "Phase 9.3 Embedding & Hybrid Indexing configuration:" in caplog.text
+        assert "OPENSEARCH_URL:" in caplog.text
+        assert "MODEL_EMBEDDING_NAME:" in caplog.text
+        assert "MODEL_EMBEDDING_DIMENSION:" in caplog.text
+        assert "ALC_LITERATURE_INDEX_SHARDS:" in caplog.text
+        assert "ALC_LITERATURE_INDEX_REPLICAS:" in caplog.text
+        assert "ALC_LITERATURE_HNSW_EF_CONSTRUCTION:" in caplog.text
+        assert "ALC_LITERATURE_HNSW_M:" in caplog.text
+        assert "ALC_LITERATURE_RRF_K:" in caplog.text
+        assert "ALC_LITERATURE_EMBEDDING_QUEUE:" in caplog.text
+        assert "ALC_REINDEX_BATCH_SIZE:" in caplog.text
+
+    def test_redacts_credentials_in_log(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        from alcoabase.config import log_embedding_config
+
+        with patch.dict(os.environ, {"OPENSEARCH_URL": "http://admin:secret@os:9200"}):
+            settings = Settings()
+        with caplog.at_level(logging.INFO, logger="alcoabase.config"):
+            log_embedding_config(settings)
+
+        assert "secret" not in caplog.text
+        assert "admin" not in caplog.text
+        assert "[REDACTED]" in caplog.text

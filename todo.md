@@ -218,7 +218,7 @@ Please write for every item in this list a short user guide after your implement
   **Dual-Stage Ingestion:** Implement an asynchronous pipeline that fetches metadata and abstracts first, followed by an automated full-text retrieval worker utilizing DOI and OpenAccess resolution (e.g., Unpaywall API integration).
   **Sanitization & PDF Conversion:** Downloaded full-text files (HTML, XML, or PDF) are automatically sanitized, standardized into a structured format, and piped into the Dual-UUID extraction layer (2.5) to maintain parity with internal document structures.
 
-- [~] **9.3 High-Dimensional Embedding Generation & Hybrid Indexing**
+- [x] **9.3 High-Dimensional Embedding Generation & Hybrid Indexing**
   **Vector & Keyword Indexing:** Route ingested abstracts and full-text documents through the vLLM Service Layer (4.3) to generate high-dimensional semantic embeddings alongside classic BM25 keyword indices.
   **Isolated Corporate Vector Spaces:** Ensure literature embeddings are strictly partitioned within the multi-tenancy framework (1.1). Metadata tags are appended automatically to partition public literature from private, proprietary company knowledge while allowing unified hybrid querying.
 
@@ -406,6 +406,11 @@ Please write for every item in this list a short user guide after your implement
 
 ---
 
+
+
+## Phase 12 - Enhancements
+
+- [ ] **12.1 Migrate to DSPy?**
 
 
 ## Notes

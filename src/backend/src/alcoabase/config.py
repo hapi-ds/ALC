@@ -373,6 +373,54 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Literature Embedding & Hybrid Indexing (Phase 9.3)
+    # ─────────────────────────────────────────────────────────────────────
+
+    literature_index_shards: int = Field(
+        default=1,
+        ge=1,
+        description="Number of primary shards for literature embedding indices.",
+        alias="ALC_LITERATURE_INDEX_SHARDS",
+    )
+    literature_index_replicas: int = Field(
+        default=1,
+        ge=1,
+        description="Number of replica shards for literature embedding indices.",
+        alias="ALC_LITERATURE_INDEX_REPLICAS",
+    )
+    literature_hnsw_ef_construction: int = Field(
+        default=256,
+        ge=1,
+        description="HNSW ef_construction parameter for kNN vector indexing.",
+        alias="ALC_LITERATURE_HNSW_EF_CONSTRUCTION",
+    )
+    literature_hnsw_m: int = Field(
+        default=16,
+        ge=1,
+        description="HNSW m parameter (number of bi-directional links per node).",
+        alias="ALC_LITERATURE_HNSW_M",
+    )
+    literature_rrf_k: int = Field(
+        default=60,
+        ge=1,
+        description="Default reciprocal rank fusion k parameter for hybrid search.",
+        alias="ALC_LITERATURE_RRF_K",
+    )
+    literature_embedding_queue: str = Field(
+        default="literature_ingestion",
+        min_length=1,
+        description="Celery queue name for embedding generation tasks.",
+        alias="ALC_LITERATURE_EMBEDDING_QUEUE",
+    )
+    reindex_batch_size: int = Field(
+        default=50,
+        ge=10,
+        le=200,
+        description="Number of records per batch during re-indexing operations.",
+        alias="ALC_REINDEX_BATCH_SIZE",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # ALC Corporate Seed
     # ─────────────────────────────────────────────────────────────────────
 
@@ -394,3 +442,110 @@ def get_settings() -> Settings:
         Settings: The application configuration instance.
     """
     return Settings()
+
+
+def _redact_opensearch_url(url: str) -> str:
+    """Redact credentials from an OpenSearch URL for safe logging.
+
+    Replaces username:password in URLs like ``http://user:pass@host:9200``
+    with ``[REDACTED]``.
+
+    Args:
+        url: The raw OpenSearch connection URL.
+
+    Returns:
+        URL with credentials replaced by ``[REDACTED]``, or the original
+        URL if no credentials are present.
+    """
+    from urllib.parse import urlparse, urlunparse
+
+    parsed = urlparse(url)
+    if parsed.username or parsed.password:
+        # Replace netloc with redacted credentials
+        redacted_netloc = f"[REDACTED]@{parsed.hostname}"
+        if parsed.port:
+            redacted_netloc += f":{parsed.port}"
+        return urlunparse(parsed._replace(netloc=redacted_netloc))
+    return url
+
+
+def validate_embedding_config(settings: Settings | None = None) -> None:
+    """Validate embedding-related configuration at startup.
+
+    Checks that required environment variables for the embedding pipeline
+    are present and within acceptable ranges. Refuses to start if critical
+    configuration is missing.
+
+    This should be called during application startup when the literature
+    embedding feature is active.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+
+    Raises:
+        SystemExit: If required configuration is missing or invalid.
+    """
+    import logging
+    import sys
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    errors: list[str] = []
+
+    # Check required variables: ALC_OPENSEARCH_URL (mapped to opensearch_url)
+    # The opensearch_url field has a default, but for embedding we require
+    # it to be explicitly configured (non-empty).
+    if not settings.opensearch_url:
+        errors.append(
+            "ALC_OPENSEARCH_URL (or OPENSEARCH_URL) is required for embedding "
+            "pipeline but is not set."
+        )
+
+    # Check required variable: MODEL_EMBEDDING_NAME
+    if not settings.model_embedding_name:
+        errors.append(
+            "MODEL_EMBEDDING_NAME is required for embedding pipeline but is not set."
+        )
+
+    if errors:
+        for error in errors:
+            logger.error(error)
+            print(error, file=sys.stderr)
+        raise SystemExit(1)
+
+
+def log_embedding_config(settings: Settings | None = None) -> None:
+    """Log resolved embedding configuration values at INFO level.
+
+    Redacts credentials from the OpenSearch URL before logging.
+    Called during startup after successful validation.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    redacted_url = _redact_opensearch_url(settings.opensearch_url)
+
+    logger.info("Phase 9.3 Embedding & Hybrid Indexing configuration:")
+    logger.info("  OPENSEARCH_URL: %s", redacted_url)
+    logger.info("  MODEL_EMBEDDING_NAME: %s", settings.model_embedding_name)
+    logger.info("  MODEL_EMBEDDING_DIMENSION: %d", settings.model_embedding_dimension)
+    logger.info("  ALC_LITERATURE_INDEX_SHARDS: %d", settings.literature_index_shards)
+    logger.info("  ALC_LITERATURE_INDEX_REPLICAS: %d", settings.literature_index_replicas)
+    logger.info(
+        "  ALC_LITERATURE_HNSW_EF_CONSTRUCTION: %d",
+        settings.literature_hnsw_ef_construction,
+    )
+    logger.info("  ALC_LITERATURE_HNSW_M: %d", settings.literature_hnsw_m)
+    logger.info("  ALC_LITERATURE_RRF_K: %d", settings.literature_rrf_k)
+    logger.info("  ALC_LITERATURE_EMBEDDING_QUEUE: %s", settings.literature_embedding_queue)
+    logger.info("  ALC_REINDEX_BATCH_SIZE: %d", settings.reindex_batch_size)
