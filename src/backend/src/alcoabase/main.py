@@ -84,8 +84,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Initialize literature gateway services
     await _initialize_literature_gateway(app)
 
+    # Initialize ingestion pipeline services (depends on literature gateway)
+    await _initialize_ingestion_pipeline(app)
+
     yield
     # --- Shutdown ---
+    # Shutdown ingestion pipeline (release S3 client and Redis)
+    await _shutdown_ingestion_pipeline(app)
+
     # Stop literature health check task
     await _shutdown_literature_gateway(app)
 
@@ -337,6 +343,212 @@ async def _shutdown_literature_gateway(app: FastAPI) -> None:
             pass
         _literature_health_check_task = None
         logger.info("Literature health check task stopped.")
+
+
+# ---------------------------------------------------------------------------
+# Ingestion Pipeline lifecycle helpers
+# ---------------------------------------------------------------------------
+
+# Module-level references for cleanup on shutdown
+_ingestion_s3_client = None
+_ingestion_redis_client = None
+
+
+async def _initialize_ingestion_pipeline(app: FastAPI) -> None:
+    """Initialize the ingestion pipeline services during startup.
+
+    When ``ALC_LITERATURE_ENABLED=True`` (literature gateway active):
+        1. Creates an aioboto3 S3 client for MinIO.
+        2. Creates a Redis async client.
+        3. Ensures the literature bucket exists (creates if missing).
+        4. Initializes StorageManager with MinIO client and Redis.
+        5. Initializes UnpaywallAdapter with Phase 9.1 services.
+        6. Initializes SanitizationPipeline with format-specific sanitizers.
+        7. Initializes IngestionPipelineService with all dependencies.
+        8. Stores services on app.state for dependency injection.
+
+    Reuses Phase 9.1 services (RateLimiter, CircuitBreaker, ProxyManager,
+    AuditLogger) already stored on app.state by _initialize_literature_gateway.
+
+    When literature gateway is not active, ingestion pipeline is skipped.
+
+    Args:
+        app: The FastAPI application instance.
+    """
+    global _ingestion_s3_client, _ingestion_redis_client
+
+    from alcoabase.config import get_settings
+
+    settings = get_settings()
+
+    if not settings.literature_enabled:
+        logger.info(
+            "Ingestion pipeline disabled (literature gateway not active). "
+            "Skipping initialization."
+        )
+        return
+
+    # Verify Phase 9.1 services are available on app.state
+    rate_limiter = getattr(app.state, "literature_rate_limiter", None)
+    circuit_breaker = getattr(app.state, "literature_circuit_breaker", None)
+    proxy_manager = getattr(app.state, "literature_proxy_manager", None)
+    audit_logger = getattr(app.state, "literature_audit_logger", None)
+
+    if not all([rate_limiter, circuit_breaker, proxy_manager, audit_logger]):
+        logger.warning(
+            "Phase 9.1 services not fully initialized on app.state. "
+            "Skipping ingestion pipeline initialization."
+        )
+        return
+
+    # ── Step 1: Create aioboto3 S3 client for MinIO ──────────────────────
+    import aioboto3
+
+    protocol = "https" if settings.minio_use_ssl else "http"
+    endpoint_url = f"{protocol}://{settings.minio_endpoint}"
+
+    boto_session = aioboto3.Session()
+    s3_client_ctx = boto_session.client(
+        "s3",
+        endpoint_url=endpoint_url,
+        aws_access_key_id=settings.minio_access_key,
+        aws_secret_access_key=settings.minio_secret_key,
+        region_name="us-east-1",
+    )
+    s3_client = await s3_client_ctx.__aenter__()
+    _ingestion_s3_client = (s3_client, s3_client_ctx)
+    logger.info("Ingestion pipeline S3 client created (endpoint: %s).", endpoint_url)
+
+    # ── Step 2: Create Redis async client ─────────────────────────────────
+    import redis.asyncio as aioredis
+
+    redis_client = aioredis.from_url(settings.redis_url)
+    _ingestion_redis_client = redis_client
+    logger.info("Ingestion pipeline Redis client created.")
+
+    # ── Step 3: Ensure MinIO bucket exists ────────────────────────────────
+    bucket_name = settings.ingestion_literature_bucket
+    try:
+        await s3_client.head_bucket(Bucket=bucket_name)
+        logger.info("MinIO bucket '%s' already exists.", bucket_name)
+    except Exception:
+        try:
+            await s3_client.create_bucket(Bucket=bucket_name)
+            logger.info("MinIO bucket '%s' created.", bucket_name)
+        except Exception as e:
+            logger.warning(
+                "Failed to create MinIO bucket '%s': %s. "
+                "Ingestion pipeline will proceed but storage operations may fail.",
+                bucket_name,
+                e,
+            )
+
+    # ── Step 4: Initialize StorageManager ─────────────────────────────────
+    from alcoabase import database
+    from alcoabase.literature.ingestion.services.storage_manager import StorageManager
+
+    session_factory = database._session_factory
+    if session_factory is None:
+        logger.warning(
+            "Database session factory not available for ingestion pipeline. "
+            "Skipping initialization."
+        )
+        return
+
+    storage_manager = StorageManager(
+        bucket_name=bucket_name,
+        s3_client=s3_client,
+        redis_client=redis_client,
+        session_factory=session_factory,
+    )
+    logger.info("Ingestion StorageManager initialized (bucket: %s).", bucket_name)
+
+    # ── Step 5: Initialize UnpaywallAdapter ───────────────────────────────
+    from alcoabase.literature.ingestion.adapters.unpaywall_adapter import (
+        UnpaywallAdapter,
+    )
+
+    unpaywall_adapter = UnpaywallAdapter(
+        base_url=settings.ingestion_unpaywall_api_url,
+        rate_limiter=rate_limiter,
+        circuit_breaker=circuit_breaker,
+        proxy_manager=proxy_manager,
+        audit_logger=audit_logger,
+        user_agent=settings.ingestion_user_agent,
+    )
+    logger.info("Ingestion UnpaywallAdapter initialized.")
+
+    # ── Step 6: Initialize SanitizationPipeline ───────────────────────────
+    from alcoabase.literature.ingestion.services.sanitization.html_sanitizer import (
+        HTMLSanitizer,
+    )
+    from alcoabase.literature.ingestion.services.sanitization.pdf_sanitizer import (
+        PDFSanitizer,
+    )
+    from alcoabase.literature.ingestion.services.sanitization.pipeline import (
+        SanitizationPipeline,
+    )
+    from alcoabase.literature.ingestion.services.sanitization.xml_sanitizer import (
+        XMLJATSSanitizer,
+    )
+
+    sanitization_pipeline = SanitizationPipeline(
+        pdf_sanitizer=PDFSanitizer(),
+        html_sanitizer=HTMLSanitizer(),
+        xml_sanitizer=XMLJATSSanitizer(),
+    )
+    logger.info("Ingestion SanitizationPipeline initialized.")
+
+    # ── Step 7: Initialize IngestionPipelineService ───────────────────────
+    from alcoabase.literature.ingestion.services.ingestion_service import (
+        IngestionPipelineService,
+    )
+
+    ingestion_service = IngestionPipelineService(
+        session_factory=session_factory,
+        storage_manager=storage_manager,
+        unpaywall_adapter=unpaywall_adapter,
+        sanitization_pipeline=sanitization_pipeline,
+        audit_logger=audit_logger,
+        rate_limiter=rate_limiter,
+        circuit_breaker=circuit_breaker,
+    )
+    logger.info("Ingestion IngestionPipelineService initialized.")
+
+    # ── Step 8: Store services on app.state ───────────────────────────────
+    app.state.ingestion_pipeline_service = ingestion_service
+    app.state.ingestion_storage_manager = storage_manager
+    app.state.ingestion_unpaywall_adapter = unpaywall_adapter
+
+    logger.info("Ingestion pipeline fully initialized and stored on app.state.")
+
+
+async def _shutdown_ingestion_pipeline(app: FastAPI) -> None:
+    """Shutdown the ingestion pipeline and release resources.
+
+    Closes the S3 client context manager and Redis client connection.
+
+    Args:
+        app: The FastAPI application instance.
+    """
+    global _ingestion_s3_client, _ingestion_redis_client
+
+    if _ingestion_s3_client is not None:
+        s3_client, s3_client_ctx = _ingestion_s3_client
+        try:
+            await s3_client_ctx.__aexit__(None, None, None)
+        except Exception as e:
+            logger.warning("Error closing ingestion S3 client: %s", e)
+        _ingestion_s3_client = None
+        logger.info("Ingestion S3 client closed.")
+
+    if _ingestion_redis_client is not None:
+        try:
+            await _ingestion_redis_client.aclose()
+        except Exception as e:
+            logger.warning("Error closing ingestion Redis client: %s", e)
+        _ingestion_redis_client = None
+        logger.info("Ingestion Redis client closed.")
 
 
 async def _periodic_health_check(

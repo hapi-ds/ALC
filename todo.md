@@ -210,11 +210,11 @@ Please write for every item in this list a short user guide after your implement
 
 ## Phase 9 — Extended Web and Literature Search
 
-- [~] **9.1 Literature Search Engine & External API Gateways**
+- [x] **9.1 Literature Search Engine & External API Gateways**
   **Multi-Source Integration:** Establish secure, multi-tenant API integrations with major scientific and medical literature databases (e.g., PubMed/MEDLINE, Crossref, arXiv, and open-access publisher APIs).
   **Scoped Search Configurations:** Allow individual companies (1.1) to configure their own API keys, rate limits, and priority search indices based on their regulatory vertical (e.g., prioritizing PubMed for Pharma/MedTec, and IEEE/arXiv for technical suppliers).
 
-- [ ] **9.2 Automated Ingestion Pipeline (Abstracts & Full-Text)**
+- [~] **9.2 Automated Ingestion Pipeline (Abstracts & Full-Text)**
   **Dual-Stage Ingestion:** Implement an asynchronous pipeline that fetches metadata and abstracts first, followed by an automated full-text retrieval worker utilizing DOI and OpenAccess resolution (e.g., Unpaywall API integration).
   **Sanitization & PDF Conversion:** Downloaded full-text files (HTML, XML, or PDF) are automatically sanitized, standardized into a structured format, and piped into the Dual-UUID extraction layer (2.5) to maintain parity with internal document structures.
 

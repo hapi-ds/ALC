@@ -328,6 +328,51 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Literature Ingestion Pipeline (Phase 9.2)
+    # ─────────────────────────────────────────────────────────────────────
+
+    ingestion_unpaywall_api_url: str = Field(
+        default="https://api.unpaywall.org",
+        description="Base URL for the Unpaywall API used for DOI resolution.",
+        alias="ALC_UNPAYWALL_API_URL",
+    )
+    ingestion_literature_bucket: str = Field(
+        default="alcoabase-literature",
+        description="MinIO bucket name for literature file storage.",
+        alias="ALC_LITERATURE_BUCKET",
+    )
+    ingestion_max_file_size_mb: int = Field(
+        default=100,
+        description="Maximum allowed file size in MB for literature downloads.",
+        alias="ALC_LITERATURE_MAX_FILE_SIZE_MB",
+    )
+    ingestion_retention_days: int = Field(
+        default=365,
+        description="Default retention period in days for downloaded full-text files.",
+        alias="ALC_LITERATURE_RETENTION_DAYS",
+    )
+    ingestion_storage_quota_mb: int = Field(
+        default=10240,
+        description="Default storage quota in MB per company for literature files.",
+        alias="ALC_LITERATURE_STORAGE_QUOTA_MB",
+    )
+    ingestion_queue_name: str = Field(
+        default="literature_ingestion",
+        description="Celery queue name for ingestion pipeline tasks.",
+        alias="ALC_LITERATURE_QUEUE_NAME",
+    )
+    ingestion_cleanup_cron: str = Field(
+        default="0 2 * * *",
+        description="Cron expression for the retention cleanup periodic task (default: daily at 02:00 UTC).",
+        alias="ALC_LITERATURE_CLEANUP_CRON",
+    )
+    ingestion_user_agent: str = Field(
+        default="AlcoaBase/1.0 (Literature Ingestion)",
+        description="User-Agent header value for outbound HTTP requests to Unpaywall and publishers.",
+        alias="ALC_LITERATURE_USER_AGENT",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # ALC Corporate Seed
     # ─────────────────────────────────────────────────────────────────────
 
