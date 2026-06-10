@@ -53,6 +53,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Programmatic generation of comprehensive User Guide (12 sections, 28+ procedures) and Technical Admin Guide (12 sections, 25+ procedures). Includes step-by-step procedures with screenshot placeholders, cross-references to URS requirements and AI Guidelines, inter-guide links, and a Related Governance Documents section. Supports versioning on re-execution.
 * 🔬 **Literature Search Engine & External API Gateways**
   Secure, multi-tenant gateway to external scientific literature databases (PubMed, Crossref, arXiv). Plugin/adapter architecture for adding new sources without code changes. Per-company API key management with AES-256-GCM encryption at rest. Hierarchical rate limiting (system-wide and per-company), circuit breaker resilience, full audit trail of all outbound API calls, proxy/firewall routing, and async search dispatch for long-running queries.
+* 📥 **Automated Literature Ingestion Pipeline**
+  Dual-stage asynchronous pipeline consuming literature search results: metadata and abstracts are stored immediately, while full-text retrieval proceeds in the background via Unpaywall DOI resolution. Downloads (PDF, HTML, XML/JATS) are sanitized into a unified StructuredContent schema. Per-company storage quotas with warning/rejection thresholds, configurable retention policies with automatic cleanup, Redis-based concurrency control, SHA-256 integrity verification, and complete audit trail for regulatory traceability.
 
 ---
 
@@ -122,6 +124,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 8.4 | Cross-Sector AI Regulatory Guidelines | ✅ Complete |
 | 8.5 | Documentation Suite: User & Admin Guides | ✅ Complete |
 | 9.1 | Literature Search Engine & External API Gateways | ✅ Complete |
+| 9.2 | Automated Ingestion Pipeline | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -156,6 +159,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Cross-Sector AI Guidelines](docs/cross-sector-ai-guidelines-guide.md) | AI usage policy generation, risk tier integration, sector-specific modules (Pharma/MedTech/IVD), governance workflow |
 | [Documentation Suite](docs/documentation-suite-guide.md) | User Guide & Admin Guide generation, cross-references, versioning, governance integration |
 | [Literature Search Engine](docs/literature-search-guide.md) | External literature search (PubMed, Crossref, arXiv), API key management, rate limiting, audit trail |
+| [Literature Ingestion Pipeline](docs/literature-ingestion-guide.md) | Automated full-text retrieval via Unpaywall, PDF/HTML/XML sanitization, storage quotas, retention policies |
 
 ---
 
