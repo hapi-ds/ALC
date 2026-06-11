@@ -380,6 +380,11 @@ class IngestionPipelineService:
             target_state.value,
             triggering_event,
         )
+
+        # Phase 9.4: Dispatch cross-reference and auto-screening tasks on indexed
+        if target_state == IngestionState.INDEXED:
+            await self._dispatch_phase94_tasks(record_id, company_id)
+
         return True
 
     async def retry_failed_record(
@@ -709,3 +714,75 @@ class IngestionPipelineService:
             },
             queue="literature_ingestion",
         )
+
+    async def _dispatch_phase94_tasks(
+        self,
+        record_id: int,
+        company_id: int,
+    ) -> None:
+        """Dispatch Phase 9.4 tasks when a record transitions to indexed.
+
+        Checks the company's ScreeningConfiguration to determine which
+        tasks to fire:
+        - If contradiction_detection_enabled: dispatch execute_cross_reference
+        - If auto_screen_on_index: dispatch auto_screen_on_index
+
+        Both dispatches are fire-and-forget and do not block the pipeline.
+        If no ScreeningConfiguration exists, defaults are used:
+        contradiction_detection_enabled=True, auto_screen_on_index=False.
+
+        Args:
+            record_id: The IngestionRecord that reached indexed state.
+            company_id: Tenant scope.
+
+        References:
+            - Requirements 5.1, 11.2, 11.3
+        """
+        from sqlalchemy import select
+
+        from alcoabase.literature.review.models.screening_config import (
+            ScreeningConfiguration,
+        )
+        from alcoabase.tasks.literature_screening_tasks import (
+            auto_screen_on_index,
+            execute_cross_reference,
+        )
+
+        # Load company screening configuration (or use defaults)
+        contradiction_detection_enabled = True
+        auto_screen_on_index_enabled = False
+
+        async with self._session_factory() as session:
+            stmt = select(ScreeningConfiguration).where(
+                ScreeningConfiguration.company_id == company_id
+            )
+            result = await session.execute(stmt)
+            config = result.scalar_one_or_none()
+
+            if config is not None:
+                contradiction_detection_enabled = config.contradiction_detection_enabled
+                auto_screen_on_index_enabled = config.auto_screen_on_index
+
+        # Dispatch cross-reference task if contradiction detection is enabled
+        if contradiction_detection_enabled:
+            execute_cross_reference.delay(
+                record_id=record_id,
+                company_id=company_id,
+            )
+            logger.info(
+                "Dispatched execute_cross_reference for record %d (company %d).",
+                record_id,
+                company_id,
+            )
+
+        # Dispatch auto-screen task if auto-screening is enabled
+        if auto_screen_on_index_enabled:
+            auto_screen_on_index.delay(
+                record_id=record_id,
+                company_id=company_id,
+            )
+            logger.info(
+                "Dispatched auto_screen_on_index for record %d (company %d).",
+                record_id,
+                company_id,
+            )

@@ -421,6 +421,58 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Literature Screening & Contradiction Detection (Phase 9.4)
+    # ─────────────────────────────────────────────────────────────────────
+
+    literature_screening_queue: str = Field(
+        default="ai_operations",
+        min_length=1,
+        description="Celery queue name for literature screening tasks.",
+        alias="ALC_LITERATURE_SCREENING_QUEUE",
+    )
+    literature_contradiction_queue: str = Field(
+        default="ai_operations",
+        min_length=1,
+        description="Celery queue name for contradiction detection cross-reference tasks.",
+        alias="ALC_LITERATURE_CONTRADICTION_QUEUE",
+    )
+    contradiction_similarity_threshold: float = Field(
+        default=0.6,
+        ge=0.0,
+        le=1.0,
+        description="Minimum cosine similarity threshold for matching internal documents during contradiction detection.",
+        alias="ALC_CONTRADICTION_SIMILARITY_THRESHOLD",
+    )
+    contradiction_max_candidates: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Maximum number of internal document candidates to retrieve for contradiction analysis.",
+        alias="ALC_CONTRADICTION_MAX_CANDIDATES",
+    )
+    contradiction_confidence_threshold: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="Minimum confidence score to create a Contradiction Alert from analysis results.",
+        alias="ALC_CONTRADICTION_CONFIDENCE_THRESHOLD",
+    )
+    screening_task_timeout: int = Field(
+        default=1800,
+        ge=60,
+        le=7200,
+        description="Soft time limit in seconds for screening Celery tasks.",
+        alias="ALC_SCREENING_TASK_TIMEOUT",
+    )
+    screening_max_concurrent: int = Field(
+        default=5,
+        ge=1,
+        le=20,
+        description="Maximum number of concurrent screening tasks per company.",
+        alias="ALC_SCREENING_MAX_CONCURRENT",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # ALC Corporate Seed
     # ─────────────────────────────────────────────────────────────────────
 
@@ -549,3 +601,129 @@ def log_embedding_config(settings: Settings | None = None) -> None:
     logger.info("  ALC_LITERATURE_RRF_K: %d", settings.literature_rrf_k)
     logger.info("  ALC_LITERATURE_EMBEDDING_QUEUE: %s", settings.literature_embedding_queue)
     logger.info("  ALC_REINDEX_BATCH_SIZE: %d", settings.reindex_batch_size)
+
+
+def validate_screening_config(settings: Settings | None = None) -> None:
+    """Validate literature screening and contradiction detection configuration at startup.
+
+    Checks that Phase 9.4 environment variables are present and within
+    acceptable ranges. Refuses to start if critical configuration is
+    missing or invalid.
+
+    This should be called during application startup when the literature
+    screening or contradiction detection features are active.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+
+    Raises:
+        SystemExit: If required configuration is missing or invalid.
+    """
+    import logging
+    import sys
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    errors: list[str] = []
+
+    # Validate queue names are non-empty
+    if not settings.literature_screening_queue:
+        errors.append(
+            "ALC_LITERATURE_SCREENING_QUEUE is required for literature screening "
+            "but is empty or not set."
+        )
+
+    if not settings.literature_contradiction_queue:
+        errors.append(
+            "ALC_LITERATURE_CONTRADICTION_QUEUE is required for contradiction "
+            "detection but is empty or not set."
+        )
+
+    # Validate numeric ranges (Pydantic already enforces these via Field
+    # constraints, but we add explicit checks here to provide clearer
+    # startup error messages if environment variables contain non-numeric
+    # or out-of-range values that bypass Pydantic parsing.)
+    if not (0.0 <= settings.contradiction_similarity_threshold <= 1.0):
+        errors.append(
+            f"ALC_CONTRADICTION_SIMILARITY_THRESHOLD must be between 0.0 and 1.0, "
+            f"got {settings.contradiction_similarity_threshold}."
+        )
+
+    if not (1 <= settings.contradiction_max_candidates <= 50):
+        errors.append(
+            f"ALC_CONTRADICTION_MAX_CANDIDATES must be between 1 and 50, "
+            f"got {settings.contradiction_max_candidates}."
+        )
+
+    if not (0.0 <= settings.contradiction_confidence_threshold <= 1.0):
+        errors.append(
+            f"ALC_CONTRADICTION_CONFIDENCE_THRESHOLD must be between 0.0 and 1.0, "
+            f"got {settings.contradiction_confidence_threshold}."
+        )
+
+    if not (60 <= settings.screening_task_timeout <= 7200):
+        errors.append(
+            f"ALC_SCREENING_TASK_TIMEOUT must be between 60 and 7200 seconds, "
+            f"got {settings.screening_task_timeout}."
+        )
+
+    if not (1 <= settings.screening_max_concurrent <= 20):
+        errors.append(
+            f"ALC_SCREENING_MAX_CONCURRENT must be between 1 and 20, "
+            f"got {settings.screening_max_concurrent}."
+        )
+
+    if errors:
+        for error in errors:
+            logger.error(error)
+            print(error, file=sys.stderr)
+        raise SystemExit(1)
+
+
+def log_screening_config(settings: Settings | None = None) -> None:
+    """Log resolved literature screening configuration values at INFO level.
+
+    Called during startup after successful validation.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    logger.info("Phase 9.4 Literature Screening & Contradiction Detection configuration:")
+    logger.info(
+        "  ALC_LITERATURE_SCREENING_QUEUE: %s",
+        settings.literature_screening_queue,
+    )
+    logger.info(
+        "  ALC_LITERATURE_CONTRADICTION_QUEUE: %s",
+        settings.literature_contradiction_queue,
+    )
+    logger.info(
+        "  ALC_CONTRADICTION_SIMILARITY_THRESHOLD: %.2f",
+        settings.contradiction_similarity_threshold,
+    )
+    logger.info(
+        "  ALC_CONTRADICTION_MAX_CANDIDATES: %d",
+        settings.contradiction_max_candidates,
+    )
+    logger.info(
+        "  ALC_CONTRADICTION_CONFIDENCE_THRESHOLD: %.2f",
+        settings.contradiction_confidence_threshold,
+    )
+    logger.info(
+        "  ALC_SCREENING_TASK_TIMEOUT: %d",
+        settings.screening_task_timeout,
+    )
+    logger.info(
+        "  ALC_SCREENING_MAX_CONCURRENT: %d",
+        settings.screening_max_concurrent,
+    )

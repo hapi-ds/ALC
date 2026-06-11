@@ -222,7 +222,7 @@ Please write for every item in this list a short user guide after your implement
   **Vector & Keyword Indexing:** Route ingested abstracts and full-text documents through the vLLM Service Layer (4.3) to generate high-dimensional semantic embeddings alongside classic BM25 keyword indices.
   **Isolated Corporate Vector Spaces:** Ensure literature embeddings are strictly partitioned within the multi-tenancy framework (1.1). Metadata tags are appended automatically to partition public literature from private, proprietary company knowledge while allowing unified hybrid querying.
 
-- [~] **9.4 AI-Powered Literature Review & Synthesis Agents**
+- [x] **9.4 AI-Powered Literature Review & Synthesis Agents**
   **Literature Screener Archetype:** Introduce a new "Literature Screener Agent" to the Modular Agent Registry (5.1). This agent scans ingested papers against user-defined inclusion/exclusion criteria to automate systematic literature reviews (SLRs).
   **Contradiction & Novelty Flagging:** The Master Auditor Agent (5.2) is extended to cross-reference newly ingested literature against internal SOPs, URS documents, and validation plans, automatically flagging external scientific findings that contradict internal corporate data or processes.
 

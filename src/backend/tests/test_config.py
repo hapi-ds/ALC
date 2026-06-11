@@ -344,3 +344,189 @@ class TestLogEmbeddingConfig:
         assert "secret" not in caplog.text
         assert "admin" not in caplog.text
         assert "[REDACTED]" in caplog.text
+
+
+class TestPhase94ScreeningSettings:
+    """Verify Phase 9.4 literature screening & contradiction detection defaults and validation."""
+
+    def test_literature_screening_queue_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_screening_queue == "ai_operations"
+
+    def test_literature_contradiction_queue_default(self) -> None:
+        settings = Settings()
+        assert settings.literature_contradiction_queue == "ai_operations"
+
+    def test_contradiction_similarity_threshold_default(self) -> None:
+        settings = Settings()
+        assert settings.contradiction_similarity_threshold == 0.6
+
+    def test_contradiction_max_candidates_default(self) -> None:
+        settings = Settings()
+        assert settings.contradiction_max_candidates == 10
+
+    def test_contradiction_confidence_threshold_default(self) -> None:
+        settings = Settings()
+        assert settings.contradiction_confidence_threshold == 0.7
+
+    def test_screening_task_timeout_default(self) -> None:
+        settings = Settings()
+        assert settings.screening_task_timeout == 1800
+
+    def test_screening_max_concurrent_default(self) -> None:
+        settings = Settings()
+        assert settings.screening_max_concurrent == 5
+
+    def test_literature_screening_queue_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_SCREENING_QUEUE": "custom_queue"}):
+            settings = Settings()
+        assert settings.literature_screening_queue == "custom_queue"
+
+    def test_literature_contradiction_queue_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_CONTRADICTION_QUEUE": "contra_queue"}):
+            settings = Settings()
+        assert settings.literature_contradiction_queue == "contra_queue"
+
+    def test_contradiction_similarity_threshold_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_SIMILARITY_THRESHOLD": "0.75"}):
+            settings = Settings()
+        assert settings.contradiction_similarity_threshold == 0.75
+
+    def test_contradiction_max_candidates_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_MAX_CANDIDATES": "25"}):
+            settings = Settings()
+        assert settings.contradiction_max_candidates == 25
+
+    def test_contradiction_confidence_threshold_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_CONFIDENCE_THRESHOLD": "0.85"}):
+            settings = Settings()
+        assert settings.contradiction_confidence_threshold == 0.85
+
+    def test_screening_task_timeout_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_TASK_TIMEOUT": "3600"}):
+            settings = Settings()
+        assert settings.screening_task_timeout == 3600
+
+    def test_screening_max_concurrent_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_MAX_CONCURRENT": "10"}):
+            settings = Settings()
+        assert settings.screening_max_concurrent == 10
+
+    # Validation: reject out-of-range values
+
+    def test_contradiction_similarity_threshold_rejects_above_one(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_SIMILARITY_THRESHOLD": "1.5"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_contradiction_similarity_threshold_rejects_negative(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_SIMILARITY_THRESHOLD": "-0.1"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_contradiction_max_candidates_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_MAX_CANDIDATES": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_contradiction_max_candidates_rejects_above_fifty(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_MAX_CANDIDATES": "51"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_contradiction_confidence_threshold_rejects_above_one(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_CONFIDENCE_THRESHOLD": "1.1"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_task_timeout_rejects_below_sixty(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_TASK_TIMEOUT": "30"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_task_timeout_rejects_above_seven_thousand_two_hundred(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_TASK_TIMEOUT": "8000"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_max_concurrent_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_MAX_CONCURRENT": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_max_concurrent_rejects_above_twenty(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_MAX_CONCURRENT": "21"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_screening_queue_rejects_empty(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_SCREENING_QUEUE": ""}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_literature_contradiction_queue_rejects_empty(self) -> None:
+        with patch.dict(os.environ, {"ALC_LITERATURE_CONTRADICTION_QUEUE": ""}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_contradiction_similarity_threshold_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_CONTRADICTION_SIMILARITY_THRESHOLD": "abc"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_task_timeout_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_TASK_TIMEOUT": "not_a_number"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_screening_max_concurrent_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_SCREENING_MAX_CONCURRENT": "xyz"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+
+class TestValidateScreeningConfig:
+    """Verify startup validation for screening configuration."""
+
+    def test_passes_with_valid_defaults(self) -> None:
+        from alcoabase.config import validate_screening_config
+
+        settings = Settings()
+        validate_screening_config(settings)
+
+    def test_passes_with_custom_valid_values(self) -> None:
+        from alcoabase.config import validate_screening_config
+
+        env = {
+            "ALC_LITERATURE_SCREENING_QUEUE": "my_queue",
+            "ALC_CONTRADICTION_SIMILARITY_THRESHOLD": "0.8",
+            "ALC_CONTRADICTION_MAX_CANDIDATES": "20",
+            "ALC_CONTRADICTION_CONFIDENCE_THRESHOLD": "0.9",
+            "ALC_SCREENING_TASK_TIMEOUT": "600",
+            "ALC_SCREENING_MAX_CONCURRENT": "10",
+        }
+        with patch.dict(os.environ, env):
+            settings = Settings()
+        validate_screening_config(settings)
+
+
+class TestLogScreeningConfig:
+    """Verify screening config logging outputs correct information."""
+
+    def test_logs_all_settings(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        from alcoabase.config import log_screening_config
+
+        settings = Settings()
+        with caplog.at_level(logging.INFO, logger="alcoabase.config"):
+            log_screening_config(settings)
+
+        assert "Phase 9.4 Literature Screening & Contradiction Detection configuration:" in caplog.text
+        assert "ALC_LITERATURE_SCREENING_QUEUE:" in caplog.text
+        assert "ALC_LITERATURE_CONTRADICTION_QUEUE:" in caplog.text
+        assert "ALC_CONTRADICTION_SIMILARITY_THRESHOLD:" in caplog.text
+        assert "ALC_CONTRADICTION_MAX_CANDIDATES:" in caplog.text
+        assert "ALC_CONTRADICTION_CONFIDENCE_THRESHOLD:" in caplog.text
+        assert "ALC_SCREENING_TASK_TIMEOUT:" in caplog.text
+        assert "ALC_SCREENING_MAX_CONCURRENT:" in caplog.text

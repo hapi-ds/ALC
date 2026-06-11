@@ -493,3 +493,139 @@ class TestQuotaEnforcement:
 
         assert warning is True
         assert exceeded is True
+
+
+# ─── Phase 9.4 Dispatch Tests ────────────────────────────────────────────────
+
+
+class TestPhase94Dispatch:
+    """Test Phase 9.4 task dispatch on indexed state transition.
+
+    Requirements: 5.1, 11.2, 11.3
+    """
+
+    @pytest.mark.asyncio
+    async def test_indexed_transition_dispatches_cross_reference_by_default(
+        self, service: IngestionPipelineService, mock_session: AsyncMock
+    ) -> None:
+        """Transition to INDEXED dispatches execute_cross_reference when no config exists."""
+        mock_record = MagicMock()
+        mock_record.company_id = 1
+        mock_record.state = IngestionState.SANITIZED.value
+        mock_record.state_history = []
+        mock_session.get.return_value = mock_record
+
+        with patch(
+            "alcoabase.tasks.literature_screening_tasks.execute_cross_reference"
+        ) as mock_cross_ref, patch(
+            "alcoabase.tasks.literature_screening_tasks.auto_screen_on_index"
+        ) as mock_auto_screen:
+            result = await service.transition_state(
+                record_id=10,
+                target_state=IngestionState.INDEXED,
+                company_id=1,
+                triggering_event="embedding_complete",
+            )
+
+        assert result is True
+        mock_cross_ref.delay.assert_called_once_with(record_id=10, company_id=1)
+        mock_auto_screen.delay.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_indexed_transition_dispatches_both_when_config_enabled(
+        self, service: IngestionPipelineService, mock_session: AsyncMock
+    ) -> None:
+        """Both tasks dispatched when company config has both flags enabled."""
+        mock_record = MagicMock()
+        mock_record.company_id = 1
+        mock_record.state = IngestionState.SANITIZED.value
+        mock_record.state_history = []
+
+        # Mock config with both flags enabled
+        mock_config = MagicMock()
+        mock_config.contradiction_detection_enabled = True
+        mock_config.auto_screen_on_index = True
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_config
+
+        # First call to session.get returns the record, execute returns config
+        mock_session.get.return_value = mock_record
+        mock_session.execute.return_value = mock_result
+
+        with patch(
+            "alcoabase.tasks.literature_screening_tasks.execute_cross_reference"
+        ) as mock_cross_ref, patch(
+            "alcoabase.tasks.literature_screening_tasks.auto_screen_on_index"
+        ) as mock_auto_screen:
+            result = await service.transition_state(
+                record_id=10,
+                target_state=IngestionState.INDEXED,
+                company_id=1,
+                triggering_event="embedding_complete",
+            )
+
+        assert result is True
+        mock_cross_ref.delay.assert_called_once_with(record_id=10, company_id=1)
+        mock_auto_screen.delay.assert_called_once_with(record_id=10, company_id=1)
+
+    @pytest.mark.asyncio
+    async def test_indexed_transition_no_dispatch_when_both_disabled(
+        self, service: IngestionPipelineService, mock_session: AsyncMock
+    ) -> None:
+        """No tasks dispatched when company config has both flags disabled."""
+        mock_record = MagicMock()
+        mock_record.company_id = 1
+        mock_record.state = IngestionState.SANITIZED.value
+        mock_record.state_history = []
+
+        # Mock config with both flags disabled
+        mock_config = MagicMock()
+        mock_config.contradiction_detection_enabled = False
+        mock_config.auto_screen_on_index = False
+
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = mock_config
+
+        mock_session.get.return_value = mock_record
+        mock_session.execute.return_value = mock_result
+
+        with patch(
+            "alcoabase.tasks.literature_screening_tasks.execute_cross_reference"
+        ) as mock_cross_ref, patch(
+            "alcoabase.tasks.literature_screening_tasks.auto_screen_on_index"
+        ) as mock_auto_screen:
+            result = await service.transition_state(
+                record_id=10,
+                target_state=IngestionState.INDEXED,
+                company_id=1,
+                triggering_event="embedding_complete",
+            )
+
+        assert result is True
+        mock_cross_ref.delay.assert_not_called()
+        mock_auto_screen.delay.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_non_indexed_transition_does_not_dispatch(
+        self, service: IngestionPipelineService, mock_session: AsyncMock
+    ) -> None:
+        """Non-indexed transitions do NOT dispatch Phase 9.4 tasks."""
+        mock_record = MagicMock()
+        mock_record.company_id = 1
+        mock_record.state = IngestionState.METADATA_ONLY.value
+        mock_record.state_history = []
+        mock_session.get.return_value = mock_record
+
+        with patch(
+            "alcoabase.literature.ingestion.services.ingestion_service.IngestionPipelineService._dispatch_phase94_tasks"
+        ) as mock_dispatch:
+            result = await service.transition_state(
+                record_id=10,
+                target_state=IngestionState.ABSTRACT_INDEXED,
+                company_id=1,
+                triggering_event="metadata_processed",
+            )
+
+        assert result is True
+        mock_dispatch.assert_not_called()

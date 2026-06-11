@@ -63,22 +63,26 @@ def service(schema_validator: SchemaValidator, archetypes_dir: Path) -> AgentReg
 class TestListArchetypes:
     """Tests for AgentRegistryService.list_archetypes()."""
 
-    def test_loads_all_six_archetypes(self, service: AgentRegistryService) -> None:
-        """All 6 predefined archetypes are loaded from the directory."""
+    def test_loads_all_archetypes(self, service: AgentRegistryService) -> None:
+        """All predefined archetypes are loaded from the directory."""
         archetypes = service.list_archetypes()
-        assert len(archetypes) == 6
+        assert len(archetypes) == 10
 
     def test_archetype_names_match_expected(self, service: AgentRegistryService) -> None:
         """Loaded archetypes have the expected archetype identifiers."""
         archetypes = service.list_archetypes()
         names = {a["archetype"] for a in archetypes}
         expected = {
-            "Regulatory Compliance Auditor",
+            "Change Impact Analyst",
             "Data Integrity Specialist",
+            "Educational Specialist",
+            "Literature Screener",
+            "Master Auditor",
             "Process Safety Reviewer",
+            "Regulatory Compliance Auditor",
             "Statistical Methods Auditor",
             "Technical Writer",
-            "Educational Specialist",
+            "Traceability Analyst",
         }
         assert names == expected
 
@@ -151,7 +155,7 @@ class TestCreateFromArchetype:
                 "Nonexistent Archetype", "Test Agent", None, 1, 1
             )
         assert "Nonexistent Archetype" in str(exc_info.value)
-        assert len(exc_info.value.available) == 6
+        assert len(exc_info.value.available) == 10
 
     @pytest.mark.asyncio
     async def test_creates_agent_from_archetype_no_overrides(
