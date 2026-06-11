@@ -12,7 +12,7 @@ References:
 
 # Feature: Step_9-3_high-dimensional-embedding-hybrid-indexing
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import hypothesis.strategies as st
 import pytest

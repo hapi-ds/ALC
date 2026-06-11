@@ -55,6 +55,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Secure, multi-tenant gateway to external scientific literature databases (PubMed, Crossref, arXiv). Plugin/adapter architecture for adding new sources without code changes. Per-company API key management with AES-256-GCM encryption at rest. Hierarchical rate limiting (system-wide and per-company), circuit breaker resilience, full audit trail of all outbound API calls, proxy/firewall routing, and async search dispatch for long-running queries.
 * 📥 **Automated Literature Ingestion Pipeline**
   Dual-stage asynchronous pipeline consuming literature search results: metadata and abstracts are stored immediately, while full-text retrieval proceeds in the background via Unpaywall DOI resolution. Downloads (PDF, HTML, XML/JATS) are sanitized into a unified StructuredContent schema. Per-company storage quotas with warning/rejection thresholds, configurable retention policies with automatic cleanup, Redis-based concurrency control, SHA-256 integrity verification, and complete audit trail for regulatory traceability.
+* 🔎 **High-Dimensional Embedding & Hybrid Search**
+  Automatic semantic embedding generation from ingested literature using vLLM, indexed alongside BM25 keyword fields in per-company OpenSearch indices. Hybrid search combines keyword matching with kNN semantic similarity via reciprocal rank fusion (RRF). Unified search spans both public literature and private internal documents. Per-company configurable chunking, batch re-indexing on model changes, graceful BM25-only degradation, and partition tagging for provenance filtering.
 
 ---
 
@@ -125,6 +127,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 8.5 | Documentation Suite: User & Admin Guides | ✅ Complete |
 | 9.1 | Literature Search Engine & External API Gateways | ✅ Complete |
 | 9.2 | Automated Ingestion Pipeline | ✅ Complete |
+| 9.3 | High-Dimensional Embedding & Hybrid Search | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -160,6 +163,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Documentation Suite](docs/documentation-suite-guide.md) | User Guide & Admin Guide generation, cross-references, versioning, governance integration |
 | [Literature Search Engine](docs/literature-search-guide.md) | External literature search (PubMed, Crossref, arXiv), API key management, rate limiting, audit trail |
 | [Literature Ingestion Pipeline](docs/literature-ingestion-guide.md) | Automated full-text retrieval via Unpaywall, PDF/HTML/XML sanitization, storage quotas, retention policies |
+| [Literature Embedding & Hybrid Search](docs/literature-embedding-hybrid-search-guide.md) | Semantic embedding generation, hybrid BM25+kNN search, unified cross-index search, per-company vector spaces, partition tagging |
 
 ---
 

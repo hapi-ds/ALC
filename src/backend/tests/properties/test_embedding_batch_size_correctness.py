@@ -124,7 +124,7 @@ async def test_embedding_batch_call_count(n: int) -> None:
         mock_settings.return_value = MagicMock(
             model_embedding_name="test-model",
         )
-        result = await service._generate_embeddings_with_retry(
+        await service._generate_embeddings_with_retry(
             chunks=chunks,
             record_id=1,
             company_id=1,

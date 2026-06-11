@@ -18,7 +18,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import hypothesis.strategies as st
-import pytest
 from hypothesis import assume, given, settings
 
 from alcoabase.literature.embedding.services.hybrid_query_engine import (

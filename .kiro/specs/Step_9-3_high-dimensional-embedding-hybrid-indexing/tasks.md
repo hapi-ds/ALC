@@ -43,7 +43,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Define: `EmbeddingDimensionMismatchError`, `EmbeddingGenerationError`, `IndexingUnavailableError`, `IndexCreationError`, `TenantIsolationError`, `PartitionTagUpdateError`, `ReindexAlreadyActiveError`, `SearchServiceUnavailableError`
     - _Requirements: 12.1, 12.2, 12.6, 12.7_
 
-- [-] 2. Checkpoint - Ensure models and schemas compile
+- [x] 2. Checkpoint - Ensure models and schemas compile
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 3. Implement ChunkingPipeline service
@@ -158,7 +158,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Assert total_count equals N
     - **Validates: Requirements 6.5**
 
-- [~] 6. Checkpoint - Ensure all service tests pass
+- [x] 6. Checkpoint - Ensure all service tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 7. Implement EmbeddingService orchestrator
@@ -255,7 +255,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Never log embedding vectors, full query text, or document content
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
 
-- [~] 11. Checkpoint - Ensure all components compile and unit tests pass
+- [x] 11. Checkpoint - Ensure all components compile and unit tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 12. Write unit tests for services and routers
@@ -312,7 +312,7 @@ This plan implements the embedding generation pipeline, hybrid search engine, an
     - Requires Docker OpenSearch + vLLM (or mock)
     - **Validates: Requirements 14.1, 14.3**
 
-- [~] 14. Final checkpoint - Ensure all tests pass
+- [x] 14. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

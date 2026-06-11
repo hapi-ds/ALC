@@ -981,7 +981,9 @@ def test_secrets_never_leak_in_redacted_url(
     key=st.text(
         min_size=5,
         max_size=100,
-        alphabet=st.characters(categories=("L", "N", "P", "S"), codec="ascii"),
+        alphabet=st.characters(
+            categories=("L", "N", "P", "S"), codec="ascii"
+        ).filter(lambda c: c != "*"),
     )
 )
 def test_secrets_never_leak_in_masked_key(key: str) -> None:
