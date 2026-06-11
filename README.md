@@ -57,6 +57,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Dual-stage asynchronous pipeline consuming literature search results: metadata and abstracts are stored immediately, while full-text retrieval proceeds in the background via Unpaywall DOI resolution. Downloads (PDF, HTML, XML/JATS) are sanitized into a unified StructuredContent schema. Per-company storage quotas with warning/rejection thresholds, configurable retention policies with automatic cleanup, Redis-based concurrency control, SHA-256 integrity verification, and complete audit trail for regulatory traceability.
 * 🔎 **High-Dimensional Embedding & Hybrid Search**
   Automatic semantic embedding generation from ingested literature using vLLM, indexed alongside BM25 keyword fields in per-company OpenSearch indices. Hybrid search combines keyword matching with kNN semantic similarity via reciprocal rank fusion (RRF). Unified search spans both public literature and private internal documents. Per-company configurable chunking, batch re-indexing on model changes, graceful BM25-only degradation, and partition tagging for provenance filtering.
+* 🔬 **AI-Powered Literature Review & Synthesis Agents**
+  Automates systematic literature reviews (SLRs) with an AI screener agent that evaluates papers against PICO criteria and custom inclusion/exclusion rules. Produces structured screening decisions with confidence scores, rationale, and matched criteria references. Supports full SLR lifecycle with PRISMA flow statistics, human override workflows, inter-rater reliability (Cohen's kappa), and regulatory-compliant report generation. Contradiction detection automatically cross-references newly indexed literature against internal SOPs and validation plans, creating severity-classified alerts (critical/major/minor) with automatic escalation for critical findings. Novelty flagging identifies papers covering topics not yet addressed by internal documentation.
 
 ---
 
@@ -128,6 +130,7 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 9.1 | Literature Search Engine & External API Gateways | ✅ Complete |
 | 9.2 | Automated Ingestion Pipeline | ✅ Complete |
 | 9.3 | High-Dimensional Embedding & Hybrid Search | ✅ Complete |
+| 9.4 | AI-Powered Literature Review & Synthesis Agents | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -164,6 +167,7 @@ User guides for each major feature are available in the [`docs/`](docs/) directo
 | [Literature Search Engine](docs/literature-search-guide.md) | External literature search (PubMed, Crossref, arXiv), API key management, rate limiting, audit trail |
 | [Literature Ingestion Pipeline](docs/literature-ingestion-guide.md) | Automated full-text retrieval via Unpaywall, PDF/HTML/XML sanitization, storage quotas, retention policies |
 | [Literature Embedding & Hybrid Search](docs/literature-embedding-hybrid-search-guide.md) | Semantic embedding generation, hybrid BM25+kNN search, unified cross-index search, per-company vector spaces, partition tagging |
+| [Literature Review & Synthesis Agents](docs/literature-review-synthesis-guide.md) | AI-powered SLR screening, PICO criteria, contradiction detection, novelty flagging, PRISMA statistics, inter-rater reliability |
 
 ---
 
