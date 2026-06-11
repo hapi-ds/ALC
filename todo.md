@@ -226,7 +226,7 @@ Please write for every item in this list a short user guide after your implement
   **Literature Screener Archetype:** Introduce a new "Literature Screener Agent" to the Modular Agent Registry (5.1). This agent scans ingested papers against user-defined inclusion/exclusion criteria to automate systematic literature reviews (SLRs).
   **Contradiction & Novelty Flagging:** The Master Auditor Agent (5.2) is extended to cross-reference newly ingested literature against internal SOPs, URS documents, and validation plans, automatically flagging external scientific findings that contradict internal corporate data or processes.
 
-- [ ] **9.5 Regulatory Medical Device Vigilance & Post-Market Surveillance (PMS)**
+- [x] **9.5 Regulatory Medical Device Vigilance & Post-Market Surveillance (PMS)**
   **"Always-On" Vigilance Monitors:** Implement a continuous background worker that executes automated, scheduled literature searches for adverse events, product issues, or equivalent material updates related to the company’s product portfolio.
   **GxP Alerting & Signal Detection:** If an agent flags a high-severity risk or adverse event trend in the literature, the system triggers Risk-Based Pathing (3.1), bypassing standard flows to immediately alert the Doc-Admin (6.1) and generate a mandatory Change Impact Analysis task (5.5).
 
