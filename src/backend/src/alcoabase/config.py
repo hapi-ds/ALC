@@ -473,6 +473,71 @@ class Settings(BaseSettings):
     )
 
     # ─────────────────────────────────────────────────────────────────────
+    # Medical Device Vigilance & Post-Market Surveillance (Phase 9.5)
+    # ─────────────────────────────────────────────────────────────────────
+
+    vigilance_search_queue: str = Field(
+        default="literature_ingestion",
+        min_length=1,
+        description="Celery queue name for vigilance search execution tasks.",
+        alias="ALC_VIGILANCE_SEARCH_QUEUE",
+    )
+    vigilance_signal_queue: str = Field(
+        default="ai_operations",
+        min_length=1,
+        description="Celery queue name for signal detection tasks.",
+        alias="ALC_VIGILANCE_SIGNAL_QUEUE",
+    )
+    vigilance_signal_confidence_threshold: float = Field(
+        default=0.7,
+        ge=0.1,
+        le=1.0,
+        description=(
+            "Default signal detection confidence threshold. "
+            "Only signals with confidence >= this value are persisted."
+        ),
+        alias="ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD",
+    )
+    vigilance_max_concurrent_detections: int = Field(
+        default=5,
+        ge=1,
+        le=50,
+        description="Maximum number of concurrent signal detection tasks per company.",
+        alias="ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS",
+    )
+    vigilance_search_timeout: int = Field(
+        default=3600,
+        ge=300,
+        description=(
+            "Vigilance search execution timeout in seconds (minimum 300, "
+            "representing 5 minutes). Default is 3600 (60 minutes)."
+        ),
+        alias="ALC_VIGILANCE_SEARCH_TIMEOUT",
+    )
+    vigilance_signal_batch_size: int = Field(
+        default=10,
+        ge=1,
+        le=50,
+        description="Number of ingestion records per signal detection batch.",
+        alias="ALC_VIGILANCE_SIGNAL_BATCH_SIZE",
+    )
+    vigilance_escalation_retries: int = Field(
+        default=3,
+        ge=1,
+        le=10,
+        description="Number of retry attempts for escalation notification delivery.",
+        alias="ALC_VIGILANCE_ESCALATION_RETRIES",
+    )
+    vigilance_auto_report_enabled: bool = Field(
+        default=True,
+        description=(
+            "Enable automatic periodic safety report generation. "
+            "When True, reports are generated on the configured schedule."
+        ),
+        alias="ALC_VIGILANCE_AUTO_REPORT_ENABLED",
+    )
+
+    # ─────────────────────────────────────────────────────────────────────
     # ALC Corporate Seed
     # ─────────────────────────────────────────────────────────────────────
 
@@ -726,4 +791,134 @@ def log_screening_config(settings: Settings | None = None) -> None:
     logger.info(
         "  ALC_SCREENING_MAX_CONCURRENT: %d",
         settings.screening_max_concurrent,
+    )
+
+
+def validate_vigilance_config(settings: Settings | None = None) -> None:
+    """Validate Phase 9.5 vigilance monitoring configuration at startup.
+
+    Checks that environment variables for medical device vigilance and
+    post-market surveillance are present and within acceptable ranges.
+    Refuses to start if critical configuration is missing or invalid.
+
+    This should be called during application startup when the vigilance
+    monitoring feature is active.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+
+    Raises:
+        SystemExit: If required configuration is missing or invalid.
+    """
+    import logging
+    import sys
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    errors: list[str] = []
+
+    # Validate queue names are non-empty
+    if not settings.vigilance_search_queue:
+        errors.append(
+            "ALC_VIGILANCE_SEARCH_QUEUE is required for vigilance monitoring "
+            "but is empty or not set."
+        )
+
+    if not settings.vigilance_signal_queue:
+        errors.append(
+            "ALC_VIGILANCE_SIGNAL_QUEUE is required for signal detection "
+            "but is empty or not set."
+        )
+
+    # Validate numeric ranges (Pydantic already enforces these via Field
+    # constraints, but we add explicit checks here to provide clearer
+    # startup error messages if environment variables contain non-numeric
+    # or out-of-range values that bypass Pydantic parsing.)
+    if not (0.1 <= settings.vigilance_signal_confidence_threshold <= 1.0):
+        errors.append(
+            f"ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD must be between 0.1 and 1.0, "
+            f"got {settings.vigilance_signal_confidence_threshold}."
+        )
+
+    if not (1 <= settings.vigilance_max_concurrent_detections <= 50):
+        errors.append(
+            f"ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS must be between 1 and 50, "
+            f"got {settings.vigilance_max_concurrent_detections}."
+        )
+
+    if settings.vigilance_search_timeout < 300:
+        errors.append(
+            f"ALC_VIGILANCE_SEARCH_TIMEOUT must be 300 or greater, "
+            f"got {settings.vigilance_search_timeout}."
+        )
+
+    if not (1 <= settings.vigilance_signal_batch_size <= 50):
+        errors.append(
+            f"ALC_VIGILANCE_SIGNAL_BATCH_SIZE must be between 1 and 50, "
+            f"got {settings.vigilance_signal_batch_size}."
+        )
+
+    if not (1 <= settings.vigilance_escalation_retries <= 10):
+        errors.append(
+            f"ALC_VIGILANCE_ESCALATION_RETRIES must be between 1 and 10, "
+            f"got {settings.vigilance_escalation_retries}."
+        )
+
+    if errors:
+        for error in errors:
+            logger.error(error)
+            print(error, file=sys.stderr)
+        raise SystemExit(1)
+
+
+def log_vigilance_config(settings: Settings | None = None) -> None:
+    """Log resolved Phase 9.5 vigilance configuration values at INFO level.
+
+    Called during startup after successful validation.
+
+    Args:
+        settings: Optional Settings instance (uses get_settings() if None).
+    """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    if settings is None:
+        settings = get_settings()
+
+    logger.info("Phase 9.5 Medical Device Vigilance & PMS configuration:")
+    logger.info(
+        "  ALC_VIGILANCE_SEARCH_QUEUE: %s",
+        settings.vigilance_search_queue,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_SIGNAL_QUEUE: %s",
+        settings.vigilance_signal_queue,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD: %.2f",
+        settings.vigilance_signal_confidence_threshold,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS: %d",
+        settings.vigilance_max_concurrent_detections,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_SEARCH_TIMEOUT: %d",
+        settings.vigilance_search_timeout,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_SIGNAL_BATCH_SIZE: %d",
+        settings.vigilance_signal_batch_size,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_ESCALATION_RETRIES: %d",
+        settings.vigilance_escalation_retries,
+    )
+    logger.info(
+        "  ALC_VIGILANCE_AUTO_REPORT_ENABLED: %s",
+        settings.vigilance_auto_report_enabled,
     )

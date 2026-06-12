@@ -66,7 +66,7 @@ class TestListArchetypes:
     def test_loads_all_archetypes(self, service: AgentRegistryService) -> None:
         """All predefined archetypes are loaded from the directory."""
         archetypes = service.list_archetypes()
-        assert len(archetypes) == 10
+        assert len(archetypes) == 11
 
     def test_archetype_names_match_expected(self, service: AgentRegistryService) -> None:
         """Loaded archetypes have the expected archetype identifiers."""
@@ -83,6 +83,7 @@ class TestListArchetypes:
             "Statistical Methods Auditor",
             "Technical Writer",
             "Traceability Analyst",
+            "Vigilance Analyst",
         }
         assert names == expected
 
@@ -155,7 +156,7 @@ class TestCreateFromArchetype:
                 "Nonexistent Archetype", "Test Agent", None, 1, 1
             )
         assert "Nonexistent Archetype" in str(exc_info.value)
-        assert len(exc_info.value.available) == 10
+        assert len(exc_info.value.available) == 11
 
     @pytest.mark.asyncio
     async def test_creates_agent_from_archetype_no_overrides(

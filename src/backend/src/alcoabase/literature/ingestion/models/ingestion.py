@@ -172,6 +172,13 @@ class IngestionRecord(Base, AuditMixin):
         Integer, nullable=True
     )
 
+    # Phase 9.5: Vigilance search execution linkage (nullable FK)
+    vigilance_execution_id: Mapped[int | None] = mapped_column(
+        ForeignKey("vigilance_search_executions.id"),
+        nullable=True,
+        index=True,
+    )
+
     # Retention fields
     retention_expiry_date: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

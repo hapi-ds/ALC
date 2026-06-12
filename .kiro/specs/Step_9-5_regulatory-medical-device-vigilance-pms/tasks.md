@@ -6,15 +6,15 @@ This plan implements the medical device vigilance monitoring system including pr
 
 ## Tasks
 
-- [ ] 1. Configuration, models, schemas, exceptions, and migration
-  - [ ] 1.1 Extend config.py with Phase 9.5 environment settings
+- [x] 1. Configuration, models, schemas, exceptions, and migration
+  - [x] 1.1 Extend config.py with Phase 9.5 environment settings
     - Add `vigilance_search_queue`, `vigilance_signal_queue`, `vigilance_signal_confidence_threshold`, `vigilance_max_concurrent_detections`, `vigilance_search_timeout`, `vigilance_signal_batch_size`, `vigilance_escalation_retries`, `vigilance_auto_report_enabled` fields to the Settings class in `src/backend/src/alcoabase/config.py`
     - Use Pydantic Field with aliases matching `ALC_VIGILANCE_SEARCH_QUEUE`, `ALC_VIGILANCE_SIGNAL_QUEUE`, `ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD`, `ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS`, `ALC_VIGILANCE_SEARCH_TIMEOUT`, `ALC_VIGILANCE_SIGNAL_BATCH_SIZE`, `ALC_VIGILANCE_ESCALATION_RETRIES`, `ALC_VIGILANCE_AUTO_REPORT_ENABLED`
     - Add startup validation: refuse to start if numeric env vars contain non-numeric or out-of-range values (confidence 0.1–1.0, max_concurrent 1–50, timeout ≥300, batch_size 1–50, retries 1–10)
     - Log resolved config values at INFO on startup
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 14.9, 14.10_
 
-  - [ ] 1.2 Create SQLAlchemy models for Phase 9.5
+  - [x] 1.2 Create SQLAlchemy models for Phase 9.5
     - Create `src/backend/src/alcoabase/literature/vigilance/__init__.py`, `models/__init__.py`
     - Create `medical_product.py`: `MedicalProduct` model with name (String 300), udi (String 128, nullable, unique per company), device_class (String 10), gmdn_code (String 20, nullable), intended_purpose (Text), manufacturer_name (String 300, nullable), predicate_devices (ARRAY String 300, nullable), risk_class_justification (Text, nullable), status (String 20, default "active"), AuditMixin, `__versioned__ = {}`
     - Create `vigilance_search_profile.py`: `VigilanceSearchProfile` model with product_id FK, name (String 200), search_terms (ARRAY String 500), mesh_terms (ARRAY String 200, nullable), adverse_event_keywords (ARRAY String 500), device_identifiers (ARRAY String 200, nullable), exclusion_terms (ARRAY String 500, nullable), source_ids (ARRAY String 100, nullable), schedule_cron (String 100), status (String 20, default "active"), AuditMixin, `__versioned__ = {}`
@@ -24,7 +24,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Create `periodic_safety_report.py`: `PeriodicSafetyReport` model with product_id FK, company_id FK, period_start (Date), period_end (Date), generated_at, report_content (JSONB), status (String 20, default "generated"), version (Integer, default 1), status_history (JSONB, default list), AuditMixin, `__versioned__ = {}`
     - _Requirements: 2.1, 3.1, 4.4, 5.3, 6.4, 7.7, 8.5_
 
-  - [ ] 1.3 Create Pydantic schemas for Phase 9.5
+  - [x] 1.3 Create Pydantic schemas for Phase 9.5
     - Create `src/backend/src/alcoabase/literature/vigilance/schemas/__init__.py`
     - Create `product.py`: `MedicalProductCreateSchema`, `MedicalProductUpdateSchema`, `MedicalProductResponseSchema` with field validators (name 1–300 chars, device_class enum, intended_purpose max 5000, udi 1–128, gmdn_code 1–20, predicate_devices max 10 entries each 1–300 chars, risk_class_justification max 3000)
     - Create `profile.py`: `VigilanceSearchProfileCreateSchema`, `VigilanceSearchProfileUpdateSchema`, `VigilanceSearchProfileResponseSchema` with validators (name 1–200, search_terms 1–50 entries each 1–500, mesh_terms 0–30 each 1–200, adverse_event_keywords 1–50 each 1–500, device_identifiers 0–20 each 1–200, exclusion_terms 0–30 each 1–500, schedule_cron 5-field cron validator)
@@ -34,23 +34,23 @@ This plan implements the medical device vigilance monitoring system including pr
     - Create `configuration.py`: `VigilanceConfigurationSchema`, `VigilanceConfigurationUpdateSchema` with range validators (report_generation_day 1–28, report_period enum)
     - _Requirements: 2.1, 2.6, 3.1, 3.6, 6.4, 8.5, 9.1, 9.6, 10.1, 10.3, 11.1, 11.3_
 
-  - [ ] 1.4 Create Alembic migration for Phase 9.5 tables
+  - [x] 1.4 Create Alembic migration for Phase 9.5 tables
     - Generate migration adding `vigilance_medical_products`, `vigilance_search_profiles`, `vigilance_search_executions`, `vigilance_signals`, `vigilance_configurations`, `vigilance_periodic_safety_reports` tables
     - Include unique constraint on (`company_id`, `udi`) for medical_products WHERE udi IS NOT NULL
     - Include unique constraint on `company_id` for vigilance_configurations
     - Include indexes on `company_id`, `product_id`, `profile_id`, `ingestion_record_id`, `status`, `severity`, `disposition` columns as appropriate
     - _Requirements: 2.1, 2.2, 3.1, 4.4, 5.3, 7.7, 8.5_
 
-  - [ ] 1.5 Create vigilance-specific exception classes
+  - [x] 1.5 Create vigilance-specific exception classes
     - Create `src/backend/src/alcoabase/literature/vigilance/exceptions.py`
     - Define: `DuplicateUDIError`, `ProductNotFoundError`, `ProfileNotFoundError`, `SignalNotFoundError`, `ReportNotFoundError`, `InvalidDispositionTransitionError`, `InvalidReportStatusTransitionError`, `InvalidCronExpressionError`, `DuplicateExecutionError`, `ExecutionTimeoutError`, `GatewayUnavailableError`, `ConfigurationRangeError`, `InferenceConnectionError`
     - _Requirements: 2.2, 3.2, 6.4, 8.6, 13.1, 13.3, 13.4, 13.6, 14.9_
 
-- [ ] 2. Checkpoint - Ensure models and schemas compile
+- [x] 2. Checkpoint - Ensure models and schemas compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Vigilance Analyst Agent archetype definition
-  - [ ] 3.1 Create vigilance-analyst.yaml agent archetype
+- [x] 3. Vigilance Analyst Agent archetype definition
+  - [x] 3.1 Create vigilance-analyst.yaml agent archetype
     - Create `agents/archetypes/vigilance-analyst.yaml` following agent-definition-v2 JSON schema
     - Set `schema_version: "2.0"`, `archetype: "Vigilance Analyst"`, `agent_type: "review"`
     - Define `personality_profile` with tone "methodical and regulatory-focused", verbosity "detailed", strictness 0.95, domain_focus ["medical-device-vigilance", "adverse-event-assessment", "post-market-surveillance", "regulatory-reporting", "signal-detection"], communication_style describing structured safety signal assessments with regulatory citations
@@ -61,8 +61,8 @@ This plan implements the medical device vigilance monitoring system including pr
     - Verify hot-reload compatibility with existing watchfiles mechanism in AgentRegistryService
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
 
-- [ ] 4. Implement core services (ProductPortfolioService, VigilanceSearchProfileService, VigilanceMonitorService)
-  - [ ] 4.1 Implement ProductPortfolioService class
+- [x] 4. Implement core services (ProductPortfolioService, VigilanceSearchProfileService, VigilanceMonitorService)
+  - [x] 4.1 Implement ProductPortfolioService class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/__init__.py` and `product_portfolio_service.py`
     - Implement `create_product()`: validate required fields (name, device_class, intended_purpose), validate device_class enum, validate field lengths, check UDI uniqueness within company, persist, record audit trail
     - Implement `update_product()`: validate field lengths, check UDI uniqueness on change, on status change to discontinued/recalled suspend associated profiles, record audit trail
@@ -72,7 +72,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Validate role requirements: `document_admin` or `system_admin` for mutations
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [ ] 4.2 Implement VigilanceSearchProfileService class
+  - [x] 4.2 Implement VigilanceSearchProfileService class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/vigilance_search_profile_service.py`
     - Implement `create_profile()`: validate cron expression (5-field), validate search_terms non-empty and adverse_event_keywords non-empty, validate array lengths, check product exists in company, auto-pause if product is discontinued/recalled, persist, record audit trail
     - Implement `update_profile()`: validate same constraints, record audit trail
@@ -85,7 +85,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Validate role requirements: `document_admin` or `system_admin` for mutations
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-  - [ ] 4.3 Implement VigilanceMonitorService class
+  - [x] 4.3 Implement VigilanceMonitorService class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/vigilance_monitor_service.py`
     - Implement `execute_search()`: check idempotency → load profile + product → construct query → execute via LiteratureGatewayService → filter exclusion terms → deduplicate → ingest via IngestionPipelineService → create VigilanceSearchExecution record → audit log
     - Implement `construct_search_query()`: Boolean AND/OR logic — (search_terms OR mesh_terms OR device_identifiers) AND adverse_event_keywords
@@ -95,11 +95,11 @@ This plan implements the medical device vigilance monitoring system including pr
     - Handle execution timeout (60 minutes), partial_failure status, retries (3x exponential backoff: 5min, 15min, 60min)
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 13.1, 13.2, 13.4, 13.5, 13.6_
 
-- [ ] 5. Checkpoint - Ensure core services compile
+- [x] 5. Checkpoint - Ensure core services compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 6. Implement signal detection and escalation services
-  - [ ] 6.1 Implement VigilanceSignalAnalyzer class
+- [x] 6. Implement signal detection and escalation services
+  - [x] 6.1 Implement VigilanceSignalAnalyzer class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/vigilance_signal_analyzer.py`
     - Implement `SignalAnalysisResult` frozen dataclass with signal_detected, severity, evidence_summary, affected_product_aspects, regulatory_references, recommended_actions, confidence, analysis_duration_ms
     - Implement `__init__` with session_factory, InferenceClient, AgentRegistryService, model_name, confidence_threshold (default 0.7), batch_size (default 10)
@@ -110,7 +110,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Implement `_get_agent_config()`: load archetype from AgentRegistryService, fallback to built-in defaults (temperature 0.05, max_tokens 6144, top_p 0.90)
     - _Requirements: 1.3, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 6.1_
 
-  - [ ] 6.2 Implement VigilanceEscalationService class
+  - [x] 6.2 Implement VigilanceEscalationService class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/vigilance_escalation_service.py`
     - Implement `__init__` with session_factory, ImpactAnalysisService, ContradictionDetectionService, SLRReviewService, escalation_retries (default 3)
     - Implement `escalate_signal()`: execute 4 independent sub-tasks in parallel (impact analysis, contradiction detection, notification, SLR inclusion), collect results, record full escalation chain in audit trail
@@ -121,8 +121,8 @@ This plan implements the medical device vigilance monitoring system including pr
     - Each sub-task has independent retry logic; failure in one does NOT block others
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 13.8_
 
-- [ ] 7. Implement PeriodicReportService
-  - [ ] 7.1 Implement PeriodicReportService class
+- [x] 7. Implement PeriodicReportService
+  - [x] 7.1 Implement PeriodicReportService class
     - Create `src/backend/src/alcoabase/literature/vigilance/services/periodic_report_service.py`
     - Implement `generate_report()`: query all VigilanceSearchExecutions + VigilanceSignals in period → build sections (product metadata, period dates, search executions, signals, search strategy, disposition matrix, statistical summary, regulatory compliance) → persist as PeriodicSafetyReport with status "generated"
     - Implement `advance_status()`: validate transition (generated→reviewed→approved→submitted), require document_admin/system_admin, record user_id + timestamp + comment in status_history, audit log
@@ -133,11 +133,11 @@ This plan implements the medical device vigilance monitoring system including pr
     - Handle empty period: generate report with "No searches executed" section
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-- [ ] 8. Checkpoint - Ensure all services compile
+- [x] 8. Checkpoint - Ensure all services compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Implement API routers
-  - [ ] 9.1 Implement vigilance_product_router
+- [x] 9. Implement API routers
+  - [x] 9.1 Implement vigilance_product_router
     - Create `src/backend/src/alcoabase/api/vigilance_product_router.py`
     - `POST /api/vigilance/products`: require `document_admin` or `system_admin`, require `X-Change-Reason`, validate body, return HTTP 201
     - `GET /api/vigilance/products`: require `member`, paginated list with status/device_class filters
@@ -151,7 +151,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Require `X-Company-Id` header on all endpoints; return HTTP 404 for cross-tenant access
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 9.9, 9.10, 9.11_
 
-  - [ ] 9.2 Implement vigilance_signal_router
+  - [x] 9.2 Implement vigilance_signal_router
     - Create `src/backend/src/alcoabase/api/vigilance_signal_router.py`
     - `GET /api/vigilance/signals`: require `member`, paginated, filter by severity/disposition/product_id/profile_id, ordered by severity desc then detection_timestamp desc
     - `GET /api/vigilance/signals/{signal_id}`: require `member`, full details with literature metadata, product metadata, disposition history, linked impact reports, linked contradiction alerts
@@ -162,7 +162,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Require `X-Company-Id` header; return HTTP 404 for cross-tenant access
     - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9_
 
-  - [ ] 9.3 Implement vigilance_report_router
+  - [x] 9.3 Implement vigilance_report_router
     - Create `src/backend/src/alcoabase/api/vigilance_report_router.py`
     - `GET /api/vigilance/reports`: require `member`, paginated, filter by product_id/status/period, ordered by generated_at desc
     - `GET /api/vigilance/reports/{report_id}`: require `member`, full report content
@@ -171,13 +171,13 @@ This plan implements the medical device vigilance monitoring system including pr
     - Require `X-Company-Id` header; return HTTP 404 for cross-tenant access
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7_
 
-  - [ ] 9.4 Register routers in central router.py
+  - [x] 9.4 Register routers in central router.py
     - Add `vigilance_product_router`, `vigilance_signal_router`, `vigilance_report_router` to `src/backend/src/alcoabase/api/router.py`
     - Verify route prefixes are `/api/vigilance/products`, `/api/vigilance/signals`, `/api/vigilance/executions`, `/api/vigilance/reports`
     - _Requirements: 9.1, 10.1, 11.1_
 
-- [ ] 10. Implement Celery tasks and ingestion pipeline integration
-  - [ ] 10.1 Implement vigilance_tasks.py
+- [x] 10. Implement Celery tasks and ingestion pipeline integration
+  - [x] 10.1 Implement vigilance_tasks.py
     - Create `src/backend/src/alcoabase/tasks/vigilance_tasks.py`
     - Implement `execute_vigilance_search` task: queue=`literature_ingestion`, priority=5, max_retries=3, soft_time_limit=3600s, acks_late=True, exponential backoff (5min, 15min, 60min)
       - Load VigilanceSearchProfile, instantiate VigilanceMonitorService
@@ -198,15 +198,15 @@ This plan implements the medical device vigilance monitoring system including pr
     - Register all tasks with celery_app
     - _Requirements: 4.1, 4.6, 4.8, 5.1, 5.7, 7.1, 8.1, 13.1, 13.2, 13.3, 13.4, 13.5, 13.7_
 
-  - [ ] 10.2 Extend IngestionPipelineService with Phase 9.5 dispatch
+  - [x] 10.2 Extend IngestionPipelineService with Phase 9.5 dispatch
     - Modify existing ingestion pipeline `indexed` state transition handler
     - On `indexed` state transition for records linked to a VigilanceSearchExecution, dispatch `execute_signal_detection.delay(record_ids=[...], product_id=..., profile_id=..., execution_id=..., company_id=...)`
     - Batch records per configured `vigilance_signal_batch_size` (default 10)
     - Only dispatch when the record has a vigilance_execution_id linkage
     - _Requirements: 5.1, 5.7_
 
-- [ ] 11. Implement audit trail integration
-  - [ ] 11.1 Add vigilance audit log entries
+- [x] 11. Implement audit trail integration
+  - [x] 11.1 Add vigilance audit log entries
     - Extend audit logging to record:
       - Search execution events (execution_id, profile_id, product_id, company_id, sources_queried, total_results_found, results_ingested, execution_duration_ms, status, timestamp)
       - Signal creation events (signal_id, ingestion_record_id, product_id, profile_id, company_id, severity, confidence, detection_duration_ms, timestamp)
@@ -219,71 +219,71 @@ This plan implements the medical device vigilance monitoring system including pr
     - All entries are append-only (ALCOA+ Original and Enduring)
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6, 12.7, 12.8, 13.7_
 
-- [ ] 12. Checkpoint - Ensure all components compile and pass
+- [x] 12. Checkpoint - Ensure all components compile and pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 13. Write property-based tests (20 properties from design)
-  - [ ]* 13.1 Write property test: Medical Product serialization round-trip (Property 1)
+- [x] 13. Write property-based tests (20 properties from design)
+  - [x] 13.1 Write property test: Medical Product serialization round-trip (Property 1)
     - **Property 1: Medical Product serialization round-trip**
     - Use Hypothesis to generate valid MedicalProduct objects with random device_class from valid enum set, name (1–300 chars), intended_purpose (1–5000 chars), optional udi (1–128 chars), optional predicate_devices (0–10 entries each 1–300 chars), optional gmdn_code (1–20 chars)
     - Serialize to JSON via MedicalProductResponseSchema, deserialize back via Pydantic, assert identical field values including array order preservation
     - **Validates: Requirements 2.1, 15.2**
 
-  - [ ]* 13.2 Write property test: Vigilance Search Profile serialization round-trip (Property 2)
+  - [x] 13.2 Write property test: Vigilance Search Profile serialization round-trip (Property 2)
     - **Property 2: Vigilance Search Profile serialization round-trip**
     - Use Hypothesis to generate valid profiles with search_terms (1–50 entries each 1–500 chars), adverse_event_keywords (1–50 entries each 1–500 chars), mesh_terms (0–30 entries), device_identifiers (0–20 entries), exclusion_terms (0–30 entries), valid 5-field cron expression
     - Serialize to JSON via VigilanceSearchProfileResponseSchema, deserialize back, assert identical field values and array ordering preserved
     - **Validates: Requirements 3.1, 15.3**
 
-  - [ ]* 13.3 Write property test: Vigilance Signal persistence round-trip (Property 3)
+  - [x] 13.3 Write property test: Vigilance Signal persistence round-trip (Property 3)
     - **Property 3: Vigilance Signal persistence round-trip**
     - Use Hypothesis to generate signals with valid severity (critical/major/minor), confidence (0.0–1.0), evidence_summary (0–3000 chars), affected_product_aspects (0–10 entries), regulatory_references (0–10 entries), recommended_actions (0–5 entries)
     - Serialize to model, persist (mocked), retrieve by ID, assert identical fields (confidence within 1e-6)
     - **Validates: Requirements 5.3, 15.1**
 
-  - [ ]* 13.4 Write property test: Signal creation threshold logic (Property 4)
+  - [x] 13.4 Write property test: Signal creation threshold logic (Property 4)
     - **Property 4: Signal creation threshold logic**
     - Use Hypothesis to generate analysis results with signal_detected (boolean) and confidence (0.0–1.0)
     - Assert VigilanceSignal record created if and only if signal_detected is True AND confidence >= threshold (0.7)
     - Assert no signal for results below threshold or with signal_detected=False
     - **Validates: Requirements 5.3, 5.4**
 
-  - [ ]* 13.5 Write property test: Malformed LLM response produces uncertain fallback (Property 5)
+  - [x] 13.5 Write property test: Malformed LLM response produces uncertain fallback (Property 5)
     - **Property 5: Malformed LLM response produces uncertain fallback**
     - Use Hypothesis to generate random non-conforming strings (missing signal_detected field, severity not in valid enum, confidence outside 0.0–1.0, missing evidence_summary, unparseable JSON, random bytes)
     - Assert `_parse_response()` returns None for all malformed inputs
     - Assert that analyze_record with a malformed response marks as "uncertain" and flags for manual review
     - **Validates: Requirements 5.5**
 
-  - [ ]* 13.6 Write property test: Search query Boolean construction (Property 6)
+  - [x] 13.6 Write property test: Search query Boolean construction (Property 6)
     - **Property 6: Search query Boolean construction**
     - Use Hypothesis to generate random non-empty search_terms, mesh_terms, adverse_event_keywords, device_identifiers
     - Assert constructed query has structure: (search_terms OR mesh_terms OR device_identifiers) AND adverse_event_keywords
     - Verify all provided terms appear in their correct clause
     - **Validates: Requirements 4.1**
 
-  - [ ]* 13.7 Write property test: Exclusion term filtering completeness (Property 7)
+  - [x] 13.7 Write property test: Exclusion term filtering completeness (Property 7)
     - **Property 7: Exclusion term filtering completeness**
     - Use Hypothesis to generate random results (with title/abstract) and random exclusion terms
     - Assert filtered set contains zero results matching any exclusion term (case-insensitive substring)
     - Assert filtered set retains all results not matching any exclusion term
     - **Validates: Requirements 4.3**
 
-  - [ ]* 13.8 Write property test: Search execution count invariant (Property 8)
+  - [x] 13.8 Write property test: Search execution count invariant (Property 8)
     - **Property 8: Search execution count invariant**
     - Use Hypothesis to generate random count tuples (total_results_found, results_after_exclusion, results_ingested, results_duplicate)
     - Assert invariant: total_results_found >= results_after_exclusion >= results_ingested + results_duplicate
     - Assert results_after_exclusion == results_ingested + results_duplicate
     - **Validates: Requirements 4.4, 15.5**
 
-  - [ ]* 13.9 Write property test: Deduplication correctness (Property 9)
+  - [x] 13.9 Write property test: Deduplication correctness (Property 9)
     - **Property 9: Deduplication correctness**
     - Use Hypothesis to generate result sets with known duplicates (matching DOI or source_id + external_id)
     - Assert non-duplicate set contains zero records matching existing records
     - Assert duplicate_count == total minus non_duplicate count
     - **Validates: Requirements 4.7**
 
-  - [ ]* 13.10 Write property test: Signal disposition state machine (Property 10)
+  - [x] 13.10 Write property test: Signal disposition state machine (Property 10)
     - **Property 10: Signal disposition state machine**
     - Use Hypothesis to generate random (current_disposition, target_disposition) pairs from all possible values
     - Assert transition succeeds only for valid paths: under_review→confirmed, under_review→dismissed, under_review→escalated, confirmed→escalated
@@ -291,7 +291,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Assert dismissed requires non-empty dismissal_reason, confirmed requires non-empty confirmation_note
     - **Validates: Requirements 6.4**
 
-  - [ ]* 13.11 Write property test: Report status lifecycle state machine (Property 11)
+  - [x] 13.11 Write property test: Report status lifecycle state machine (Property 11)
     - **Property 11: Report status lifecycle state machine**
     - Use Hypothesis to generate random (current_status, target_status) pairs
     - Assert transition succeeds only for: generated→reviewed→approved→submitted
@@ -299,34 +299,34 @@ This plan implements the medical device vigilance monitoring system including pr
     - Assert each transition records user_id and timestamp
     - **Validates: Requirements 8.6**
 
-  - [ ]* 13.12 Write property test: Disposition matrix completeness invariant (Property 12)
+  - [x] 13.12 Write property test: Disposition matrix completeness invariant (Property 12)
     - **Property 12: Disposition matrix completeness invariant**
     - Use Hypothesis to generate random execution/signal data for a report period
     - Assert sum(no_signal + signal_dismissed + signal_confirmed + signal_escalated) == total_results_ingested
     - Every ingested result classified exactly once
     - **Validates: Requirements 8.4, 15.4**
 
-  - [ ]* 13.13 Write property test: Report statistical monotonic invariant (Property 13)
+  - [x] 13.13 Write property test: Report statistical monotonic invariant (Property 13)
     - **Property 13: Report statistical monotonic invariant**
     - Use Hypothesis to generate random count data for report executions
     - Assert total_results_found >= results_after_exclusion >= results_ingested across all executions
     - **Validates: Requirements 15.4**
 
-  - [ ]* 13.14 Write property test: Critical signal escalation triggers (Property 14)
+  - [x] 13.14 Write property test: Critical signal escalation triggers (Property 14)
     - **Property 14: Critical signal escalation triggers**
     - Use Hypothesis to generate signals with varying severity (critical/major/minor) and company config (auto_escalate True/False)
     - Assert ImpactAnalysisService + ContradictionDetectionService invoked only for severity "critical" AND auto_escalate=True
     - Assert no invocation for "major" or "minor" or when auto_escalate=False
     - **Validates: Requirements 7.1, 7.3**
 
-  - [ ]* 13.15 Write property test: Open signals aggregate count correctness (Property 15)
+  - [x] 13.15 Write property test: Open signals aggregate count correctness (Property 15)
     - **Property 15: Open signals aggregate count correctness**
     - Use Hypothesis to generate sets of VigilanceSignals with varying dispositions and severities
     - Assert summary counts per product per severity equal actual count where disposition is "under_review" or "confirmed"
     - Assert "dismissed" and "escalated" signals not counted as open
     - **Validates: Requirements 6.6**
 
-  - [ ]* 13.16 Write property test: Signal detection batch computation (Property 16)
+  - [x] 13.16 Write property test: Signal detection batch computation (Property 16)
     - **Property 16: Signal detection batch computation**
     - Use Hypothesis to generate N (1–500) record IDs and batch_size B (1–50)
     - Assert system dispatches exactly ceil(N / B) batch tasks
@@ -334,36 +334,36 @@ This plan implements the medical device vigilance monitoring system including pr
     - Assert union of all batch record IDs equals original set without duplicates or omissions
     - **Validates: Requirements 5.7**
 
-  - [ ]* 13.17 Write property test: Idempotent vigilance search execution (Property 17)
+  - [x] 13.17 Write property test: Idempotent vigilance search execution (Property 17)
     - **Property 17: Idempotent vigilance search execution**
     - Use Hypothesis to generate concurrent execution scenarios for same profile
     - Assert only one execution per profile may be in "running" status at any time
     - Assert duplicate attempts are skipped with informational log
     - **Validates: Requirements 13.4**
 
-  - [ ]* 13.18 Write property test: Configuration range enforcement (Property 18)
+  - [x] 13.18 Write property test: Configuration range enforcement (Property 18)
     - **Property 18: Configuration range enforcement**
     - Use Hypothesis to generate config values outside valid ranges (confidence outside 0.1–1.0, max_concurrent outside 1–50, timeout < 300, batch_size outside 1–50)
     - Assert rejection/startup failure for out-of-range values
     - Generate in-range values and assert acceptance
     - **Validates: Requirements 14.3, 14.4, 14.5, 14.6**
 
-  - [ ]* 13.19 Write property test: Required field validation for Medical Products (Property 19)
+  - [x] 13.19 Write property test: Required field validation for Medical Products (Property 19)
     - **Property 19: Required field validation for Medical Products**
     - Use Hypothesis to generate product creation requests with various combinations of present/absent required fields
     - Assert rejection (HTTP 422) when name is empty/missing, device_class is invalid/missing, or intended_purpose is empty/missing
     - Assert acceptance when all three required fields are present and valid
     - **Validates: Requirements 2.6**
 
-  - [ ]* 13.20 Write property test: Required array validation for Search Profiles (Property 20)
+  - [x] 13.20 Write property test: Required array validation for Search Profiles (Property 20)
     - **Property 20: Required array validation for Search Profiles**
     - Use Hypothesis to generate profile creation requests with various combinations of empty/non-empty search_terms and adverse_event_keywords
     - Assert rejection (HTTP 422) when either search_terms or adverse_event_keywords is empty
     - Assert acceptance when both contain at least one entry
     - **Validates: Requirements 3.6**
 
-- [ ] 14. Write unit tests for services and routers
-  - [ ]* 14.1 Write unit tests for ProductPortfolioService
+- [x] 14. Write unit tests for services and routers
+  - [x] 14.1 Write unit tests for ProductPortfolioService
     - Test create_product with valid fields (all required + optional)
     - Test create_product rejection when required fields missing (HTTP 422)
     - Test create_product rejection with duplicate UDI in same company (HTTP 409)
@@ -376,7 +376,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock database session
     - _Requirements: 2.1, 2.2, 2.3, 2.5, 2.6_
 
-  - [ ]* 14.2 Write unit tests for VigilanceSearchProfileService
+  - [x] 14.2 Write unit tests for VigilanceSearchProfileService
     - Test create_profile with valid cron expression and arrays
     - Test create_profile rejection with invalid cron (HTTP 422)
     - Test create_profile rejection with empty search_terms or adverse_event_keywords (HTTP 422)
@@ -390,7 +390,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock database session and Celery
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
 
-  - [ ]* 14.3 Write unit tests for VigilanceMonitorService
+  - [x] 14.3 Write unit tests for VigilanceMonitorService
     - Test execute_search end-to-end with mocked gateway and pipeline
     - Test construct_search_query Boolean logic (AND/OR structure)
     - Test filter_exclusion_terms with matching/non-matching terms
@@ -402,7 +402,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock LiteratureGatewayService, IngestionPipelineService, database session
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 13.1, 13.4, 13.6_
 
-  - [ ]* 14.4 Write unit tests for VigilanceSignalAnalyzer
+  - [x] 14.4 Write unit tests for VigilanceSignalAnalyzer
     - Test _construct_prompt contains product name, device_class, intended_purpose, MDR severity criteria, expected JSON schema
     - Test _parse_response with valid JSON (correct SignalAnalysisResult)
     - Test _parse_response with malformed JSON (returns None)
@@ -415,7 +415,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock InferenceClient and AgentRegistryService
     - _Requirements: 1.3, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-  - [ ]* 14.5 Write unit tests for VigilanceEscalationService
+  - [x] 14.5 Write unit tests for VigilanceEscalationService
     - Test escalate_signal dispatches all 4 sub-tasks for critical signal with auto_escalate=True
     - Test escalate_signal skips when auto_escalate=False
     - Test _invoke_impact_analysis creates task, retries on failure
@@ -427,7 +427,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock ImpactAnalysisService, ContradictionDetectionService, SLRReviewService
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 13.8_
 
-  - [ ]* 14.6 Write unit tests for PeriodicReportService
+  - [x] 14.6 Write unit tests for PeriodicReportService
     - Test generate_report includes all 8 sections
     - Test generate_report with empty period (no executions) includes "No searches executed" section
     - Test _build_disposition_matrix sum invariant (sum == total_results_ingested)
@@ -440,7 +440,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Mock database session
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7_
 
-  - [ ]* 14.7 Write unit tests for API routers
+  - [x] 14.7 Write unit tests for API routers
     - Test all product endpoints (201, 200, 400, 403, 409, 422)
     - Test all profile endpoints (201, 200, 202, 400, 403, 404, 422)
     - Test all signal endpoints (200, 400, 403, 404)
@@ -454,8 +454,8 @@ This plan implements the medical device vigilance monitoring system including pr
     - Use FastAPI TestClient with mocked dependencies
     - _Requirements: 9.10, 9.11, 10.7, 10.8, 10.9, 11.5, 11.6, 11.7_
 
-- [ ] 15. Write integration tests
-  - [ ]* 15.1 Write integration tests for vigilance search pipeline
+- [x] 15. Write integration tests
+  - [x] 15.1 Write integration tests for vigilance search pipeline
     - Test end-to-end: Create product → Create profile → Execute search → Verify execution record with correct counts
     - Test deduplication: Execute same search twice → Verify duplicates counted
     - Test exclusion filtering: Configure exclusion terms → Execute → Verify matching results excluded
@@ -466,7 +466,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Requires Docker PostgreSQL and Redis fixtures
     - _Requirements: 4.1, 4.3, 4.5, 4.7, 4.8, 13.4, 13.6_
 
-  - [ ]* 15.2 Write integration tests for signal detection and escalation pipeline
+  - [x] 15.2 Write integration tests for signal detection and escalation pipeline
     - Test end-to-end: Index record (vigilance-linked) → Signal detection → Verify signal created
     - Test batch processing: Multiple records from same execution → Verify batch dispatch
     - Test critical escalation: Create critical signal → Verify impact analysis + contradiction + notification + SLR inclusion
@@ -476,7 +476,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Requires Docker PostgreSQL, Redis, and mocked vLLM
     - _Requirements: 5.1, 5.3, 5.5, 5.6, 5.7, 6.2, 6.3, 7.1, 7.3, 13.3_
 
-  - [ ]* 15.3 Write integration tests for periodic reports and product lifecycle
+  - [x] 15.3 Write integration tests for periodic reports and product lifecycle
     - Test report generation: Execute searches over period → Generate report → Verify all sections and disposition matrix invariant
     - Test report status lifecycle: generated → reviewed → approved → submitted with audit trail
     - Test product lifecycle: Create → Update → Discontinue → Verify profiles suspended
@@ -486,7 +486,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Requires Docker PostgreSQL and Redis fixtures
     - _Requirements: 2.2, 2.3, 8.1, 8.4, 8.6, 8.7_
 
-  - [ ]* 15.4 Write integration tests for API access control
+  - [x] 15.4 Write integration tests for API access control
     - Test all endpoints with correct and incorrect roles
     - Test cross-tenant access returns 404
     - Test X-Change-Reason enforcement on all mutations
@@ -496,7 +496,7 @@ This plan implements the medical device vigilance monitoring system including pr
     - Test configuration range validation for env vars
     - _Requirements: 2.5, 3.7, 6.5, 9.10, 9.11, 10.7, 10.8, 10.9, 11.5, 11.6_
 
-- [ ] 16. Final checkpoint - Ensure all tests pass
+- [x] 16. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

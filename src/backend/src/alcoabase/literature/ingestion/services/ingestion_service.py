@@ -384,6 +384,8 @@ class IngestionPipelineService:
         # Phase 9.4: Dispatch cross-reference and auto-screening tasks on indexed
         if target_state == IngestionState.INDEXED:
             await self._dispatch_phase94_tasks(record_id, company_id)
+            # Phase 9.5: Dispatch vigilance signal detection for vigilance-linked records
+            await self._dispatch_phase95_vigilance_tasks(record_id, company_id)
 
         return True
 
@@ -785,4 +787,117 @@ class IngestionPipelineService:
                 "Dispatched auto_screen_on_index for record %d (company %d).",
                 record_id,
                 company_id,
+            )
+
+    async def _dispatch_phase95_vigilance_tasks(
+        self,
+        record_id: int,
+        company_id: int,
+    ) -> None:
+        """Dispatch Phase 9.5 signal detection when a vigilance-linked record is indexed.
+
+        Checks whether the record has a vigilance_execution_id linkage. If so,
+        loads the associated profile and product metadata, batches records per
+        `vigilance_signal_batch_size`, and dispatches execute_signal_detection
+        tasks on the ai_operations queue.
+
+        Only dispatches for records actually linked to a VigilanceSearchExecution
+        (not regular ingestion records).
+
+        Args:
+            record_id: The IngestionRecord that reached indexed state.
+            company_id: Tenant scope.
+
+        References:
+            - Requirements 5.1, 5.7
+        """
+        from sqlalchemy import select
+
+        from alcoabase.config import get_settings
+        from alcoabase.literature.ingestion.models.ingestion import (
+            IngestionRecord,
+        )
+        from alcoabase.literature.vigilance.models.vigilance_search_execution import (
+            VigilanceSearchExecution,
+        )
+        from alcoabase.tasks.vigilance_tasks import execute_signal_detection
+
+        async with self._session_factory() as session:
+            # Load the record and check for vigilance linkage
+            record = await session.get(IngestionRecord, record_id)
+            if record is None or record.vigilance_execution_id is None:
+                return
+
+            execution_id = record.vigilance_execution_id
+
+            # Load the execution to get profile_id
+            execution = await session.get(
+                VigilanceSearchExecution, execution_id
+            )
+            if execution is None:
+                logger.warning(
+                    "VigilanceSearchExecution %d not found for record %d. "
+                    "Skipping signal detection dispatch.",
+                    execution_id,
+                    record_id,
+                )
+                return
+
+            profile_id = execution.profile_id
+
+            # Load profile to get product_id
+            from alcoabase.literature.vigilance.models.vigilance_search_profile import (
+                VigilanceSearchProfile,
+            )
+
+            profile = await session.get(VigilanceSearchProfile, profile_id)
+            if profile is None:
+                logger.warning(
+                    "VigilanceSearchProfile %d not found for execution %d. "
+                    "Skipping signal detection dispatch.",
+                    profile_id,
+                    execution_id,
+                )
+                return
+
+            product_id = profile.product_id
+
+            # Collect all indexed records for this execution that haven't
+            # been dispatched yet. Batching groups records from the same
+            # execution to send them together.
+            settings = get_settings()
+            batch_size = settings.vigilance_signal_batch_size
+
+            stmt = select(IngestionRecord.id).where(
+                IngestionRecord.company_id == company_id,
+                IngestionRecord.vigilance_execution_id == execution_id,
+                IngestionRecord.state == "indexed",
+            )
+            result = await session.execute(stmt)
+            indexed_record_ids = [row[0] for row in result.fetchall()]
+
+        # Dispatch in batches
+        if not indexed_record_ids:
+            return
+
+        for i in range(0, len(indexed_record_ids), batch_size):
+            batch = indexed_record_ids[i : i + batch_size]
+            execute_signal_detection.apply_async(
+                kwargs={
+                    "record_ids": batch,
+                    "product_id": product_id,
+                    "profile_id": profile_id,
+                    "execution_id": execution_id,
+                    "company_id": company_id,
+                },
+                queue=settings.vigilance_signal_queue,
+            )
+            logger.info(
+                "Dispatched execute_signal_detection for %d records "
+                "(execution_id=%d, product_id=%d, company_id=%d, batch %d).",
+                len(batch),
+                execution_id,
+                product_id,
+                company_id,
+                (i // batch_size) + 1,
             )

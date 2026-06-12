@@ -64,6 +64,12 @@ from alcoabase.api.literature_contradiction_router import (
     router as literature_contradiction_router,
 )
 from alcoabase.api.traceability import router as traceability_router
+from alcoabase.api.vigilance_signal_router import router as vigilance_signal_router
+from alcoabase.api.vigilance_product_router import (
+    profile_router as vigilance_profile_router,
+    router as vigilance_product_router,
+)
+from alcoabase.api.vigilance_report_router import router as vigilance_report_router
 
 # ---------------------------------------------------------------------------
 # Main API router — all domain routers are included under /api
@@ -122,5 +128,9 @@ api_router.include_router(literature_screening_router)
 api_router.include_router(literature_review_router)
 api_router.include_router(literature_contradiction_router)
 api_router.include_router(ingestion_router)
+api_router.include_router(vigilance_product_router)
+api_router.include_router(vigilance_profile_router)
+api_router.include_router(vigilance_signal_router)
+api_router.include_router(vigilance_report_router)
 api_router.include_router(setup_router, prefix="/v1/setup")
 api_router.include_router(auth_router, prefix="/v1/auth")

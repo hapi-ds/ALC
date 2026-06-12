@@ -530,3 +530,219 @@ class TestLogScreeningConfig:
         assert "ALC_CONTRADICTION_CONFIDENCE_THRESHOLD:" in caplog.text
         assert "ALC_SCREENING_TASK_TIMEOUT:" in caplog.text
         assert "ALC_SCREENING_MAX_CONCURRENT:" in caplog.text
+
+
+class TestPhase95VigilanceSettings:
+    """Verify Phase 9.5 Medical Device Vigilance & PMS defaults and validation."""
+
+    def test_vigilance_search_queue_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_search_queue == "literature_ingestion"
+
+    def test_vigilance_signal_queue_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_signal_queue == "ai_operations"
+
+    def test_vigilance_signal_confidence_threshold_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_signal_confidence_threshold == 0.7
+
+    def test_vigilance_max_concurrent_detections_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_max_concurrent_detections == 5
+
+    def test_vigilance_search_timeout_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_search_timeout == 3600
+
+    def test_vigilance_signal_batch_size_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_signal_batch_size == 10
+
+    def test_vigilance_escalation_retries_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_escalation_retries == 3
+
+    def test_vigilance_auto_report_enabled_default(self) -> None:
+        settings = Settings()
+        assert settings.vigilance_auto_report_enabled is True
+
+    # Environment variable overrides
+
+    def test_vigilance_search_queue_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SEARCH_QUEUE": "custom_vig_queue"}):
+            settings = Settings()
+        assert settings.vigilance_search_queue == "custom_vig_queue"
+
+    def test_vigilance_signal_queue_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_QUEUE": "signal_q"}):
+            settings = Settings()
+        assert settings.vigilance_signal_queue == "signal_q"
+
+    def test_vigilance_signal_confidence_threshold_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD": "0.85"}):
+            settings = Settings()
+        assert settings.vigilance_signal_confidence_threshold == 0.85
+
+    def test_vigilance_max_concurrent_detections_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS": "25"}):
+            settings = Settings()
+        assert settings.vigilance_max_concurrent_detections == 25
+
+    def test_vigilance_search_timeout_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SEARCH_TIMEOUT": "7200"}):
+            settings = Settings()
+        assert settings.vigilance_search_timeout == 7200
+
+    def test_vigilance_signal_batch_size_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_BATCH_SIZE": "25"}):
+            settings = Settings()
+        assert settings.vigilance_signal_batch_size == 25
+
+    def test_vigilance_escalation_retries_env_override(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_ESCALATION_RETRIES": "5"}):
+            settings = Settings()
+        assert settings.vigilance_escalation_retries == 5
+
+    def test_vigilance_auto_report_enabled_env_override_false(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_AUTO_REPORT_ENABLED": "false"}):
+            settings = Settings()
+        assert settings.vigilance_auto_report_enabled is False
+
+    def test_vigilance_auto_report_enabled_env_override_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_AUTO_REPORT_ENABLED": "0"}):
+            settings = Settings()
+        assert settings.vigilance_auto_report_enabled is False
+
+    # Validation: reject out-of-range values
+
+    def test_vigilance_signal_confidence_threshold_rejects_below_minimum(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD": "0.05"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_signal_confidence_threshold_rejects_above_one(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD": "1.5"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_max_concurrent_detections_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_max_concurrent_detections_rejects_above_fifty(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS": "51"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_search_timeout_rejects_below_three_hundred(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SEARCH_TIMEOUT": "299"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_signal_batch_size_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_BATCH_SIZE": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_signal_batch_size_rejects_above_fifty(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_BATCH_SIZE": "51"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_escalation_retries_rejects_zero(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_ESCALATION_RETRIES": "0"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_escalation_retries_rejects_above_ten(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_ESCALATION_RETRIES": "11"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_search_queue_rejects_empty(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SEARCH_QUEUE": ""}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_signal_queue_rejects_empty(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_QUEUE": ""}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    # Validation: reject non-numeric values
+
+    def test_vigilance_signal_confidence_threshold_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD": "abc"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_max_concurrent_detections_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS": "xyz"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_search_timeout_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SEARCH_TIMEOUT": "not_a_number"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_signal_batch_size_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_SIGNAL_BATCH_SIZE": "many"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+    def test_vigilance_escalation_retries_rejects_non_numeric(self) -> None:
+        with patch.dict(os.environ, {"ALC_VIGILANCE_ESCALATION_RETRIES": "lots"}):
+            with pytest.raises(ValidationError):
+                Settings()
+
+
+class TestValidateVigilanceConfig:
+    """Verify startup validation for vigilance configuration."""
+
+    def test_passes_with_valid_defaults(self) -> None:
+        from alcoabase.config import validate_vigilance_config
+
+        settings = Settings()
+        validate_vigilance_config(settings)
+
+    def test_passes_with_custom_valid_values(self) -> None:
+        from alcoabase.config import validate_vigilance_config
+
+        env = {
+            "ALC_VIGILANCE_SEARCH_QUEUE": "vig_search",
+            "ALC_VIGILANCE_SIGNAL_QUEUE": "vig_signal",
+            "ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD": "0.9",
+            "ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS": "10",
+            "ALC_VIGILANCE_SEARCH_TIMEOUT": "600",
+            "ALC_VIGILANCE_SIGNAL_BATCH_SIZE": "20",
+            "ALC_VIGILANCE_ESCALATION_RETRIES": "5",
+        }
+        with patch.dict(os.environ, env):
+            settings = Settings()
+        validate_vigilance_config(settings)
+
+
+class TestLogVigilanceConfig:
+    """Verify vigilance config logging outputs correct information."""
+
+    def test_logs_all_settings(self, caplog: pytest.LogCaptureFixture) -> None:
+        import logging
+
+        from alcoabase.config import log_vigilance_config
+
+        settings = Settings()
+        with caplog.at_level(logging.INFO, logger="alcoabase.config"):
+            log_vigilance_config(settings)
+
+        assert "Phase 9.5 Medical Device Vigilance & PMS configuration:" in caplog.text
+        assert "ALC_VIGILANCE_SEARCH_QUEUE:" in caplog.text
+        assert "ALC_VIGILANCE_SIGNAL_QUEUE:" in caplog.text
+        assert "ALC_VIGILANCE_SIGNAL_CONFIDENCE_THRESHOLD:" in caplog.text
+        assert "ALC_VIGILANCE_MAX_CONCURRENT_DETECTIONS:" in caplog.text
+        assert "ALC_VIGILANCE_SEARCH_TIMEOUT:" in caplog.text
+        assert "ALC_VIGILANCE_SIGNAL_BATCH_SIZE:" in caplog.text
+        assert "ALC_VIGILANCE_ESCALATION_RETRIES:" in caplog.text
+        assert "ALC_VIGILANCE_AUTO_REPORT_ENABLED:" in caplog.text
