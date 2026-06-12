@@ -52,6 +52,7 @@ from alcoabase.api.system_config import router as system_config_router
 from alcoabase.api.risk_framework import router as risk_framework_router
 from alcoabase.api.ingestion_router import router as ingestion_router
 from alcoabase.api.literature_router import router as literature_router
+from alcoabase.api.literature_search import router as literature_search_citation_router
 from alcoabase.api.literature_search_router import router as literature_search_router
 from alcoabase.api.literature_index_router import router as literature_index_router
 from alcoabase.api.literature_screening_router import (
@@ -123,6 +124,7 @@ api_router.include_router(admin_documentation_router)
 api_router.include_router(risk_framework_router)
 api_router.include_router(literature_router)
 api_router.include_router(literature_search_router)
+api_router.include_router(literature_search_citation_router)
 api_router.include_router(literature_index_router)
 api_router.include_router(literature_screening_router)
 api_router.include_router(literature_review_router)

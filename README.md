@@ -59,6 +59,8 @@ Designed specifically for highly regulated environments (e.g., Pharma, Biotech, 
   Automatic semantic embedding generation from ingested literature using vLLM, indexed alongside BM25 keyword fields in per-company OpenSearch indices. Hybrid search combines keyword matching with kNN semantic similarity via reciprocal rank fusion (RRF). Unified search spans both public literature and private internal documents. Per-company configurable chunking, batch re-indexing on model changes, graceful BM25-only degradation, and partition tagging for provenance filtering.
 * 🔬 **AI-Powered Literature Review & Synthesis Agents**
   Automates systematic literature reviews (SLRs) with an AI screener agent that evaluates papers against PICO criteria and custom inclusion/exclusion rules. Produces structured screening decisions with confidence scores, rationale, and matched criteria references. Supports full SLR lifecycle with PRISMA flow statistics, human override workflows, inter-rater reliability (Cohen's kappa), and regulatory-compliant report generation. Contradiction detection automatically cross-references newly indexed literature against internal SOPs and validation plans, creating severity-classified alerts (critical/major/minor) with automatic escalation for critical findings. Novelty flagging identifies papers covering topics not yet addressed by internal documentation.
+* 📚 **Literature Search Dashboard & Citation Management**
+  A dedicated faceted search interface connecting all literature infrastructure into a user-friendly workflow. Execute hybrid BM25+kNN searches with journal, source, date, MeSH, and device class filters. One-click internalization converts public papers into governed internal Documents with full lifecycle tracking. Organize internalized papers into Citation Collections for regulatory submissions (MDR clinical evaluations, PMS reports). Link papers to URS requirements or test cases for traceability evidence chains. Export results as CSV or PDF with optional PRISMA flow diagrams. Every search execution, internalization, and citation action is logged immutably for FDA/EMA audit compliance.
 * 🏥 **Medical Device Vigilance & Post-Market Surveillance**
   Continuous, automated vigilance monitoring for medical device companies. Register products with regulatory metadata (UDI, device class, intended purpose), define targeted search profiles with Boolean query construction and cron-based scheduling, and let the system automatically detect safety signals using a specialized "Vigilance Analyst" AI agent. Signals are severity-classified (critical/major/minor) per MDR Article 87 criteria. Critical signals trigger parallel escalation: impact analysis, contradiction detection, admin notification, and SLR inclusion. Auto-generated Periodic Safety Reports document all activity with disposition matrices, regulatory compliance sections, and a status lifecycle (generated → reviewed → approved → submitted) for MDR/IVDR submissions.
 
@@ -133,6 +135,8 @@ AlcoaBase cleanly separates structured, compliance-critical data from unstructur
 | 9.2 | Automated Ingestion Pipeline | ✅ Complete |
 | 9.3 | High-Dimensional Embedding & Hybrid Search | ✅ Complete |
 | 9.4 | AI-Powered Literature Review & Synthesis Agents | ✅ Complete |
+| 9.5 | Medical Device Vigilance & Post-Market Surveillance | ✅ Complete |
+| 9.6 | Literature Search, Citation UI & Audit Trail Mapping | ✅ Complete |
 
 See the full roadmap in [`todo.md`](todo.md).
 
@@ -140,36 +144,19 @@ See the full roadmap in [`todo.md`](todo.md).
 
 ## 📖 Documentation
 
-User guides for each major feature are available in the [`docs/`](docs/) directory:
+Comprehensive user guides for all platform features are available in the [`docs/`](docs/) directory, organized by domain with a master index:
 
-| Guide | Description |
-|-------|-------------|
-| [Setup Wizard](docs/setup-wizard-guide.md) | First-run initialization: admin account, company, AI mode |
-| [Document Upload](docs/document-upload-guide.md) | Uploading documents via web UI and bulk CLI tool |
-| [Workflow Editor](docs/workflow-editor-guide.md) | Designing BPMN document lifecycle workflows |
-| [Workflow Execution](docs/workflow-execution-guide.md) | Executing state transitions, gate indicators, and audit history |
-| [Training Management](docs/training-management-guide.md) | Training tasks, content viewer, records, gate enforcement, admin view |
-| [Comprehension Quiz](docs/quiz-comprehension-guide.md) | Quiz taking, scoring, pass/fail, dual gate verification, audit trail |
-| [Electronic Signatures](docs/electronic-signatures-guide.md) | PAdES signing, re-authentication, verification, certificate configuration |
-| [AI Inference](docs/ai-inference-guide.md) | vLLM integration: RAG queries, embeddings, OCR, health monitoring, mock mode |
-| [Search & Knowledge Base](docs/search-knowledge-guide.md) | Hybrid search, RAG knowledge chat, document indexing, visual content |
-| [Agent Management](docs/agent-management-guide.md) | Agent registry, archetypes, personality profiles, tuning parameters, hot-reload |
-| [Multi-Agent Auditing](docs/multi-agent-auditing-guide.md) | Parallel review pipeline, audit profiles, compliance scorecards, anomaly detection |
-| [AI Training Ecosystem](docs/ai-training-ecosystem-guide.md) | AI planner, material generation, question generation, virtual audits, dynamic feedback |
-| [AI Document Generator](docs/ai-document-generator-guide.md) | Template-based document generation, provenance audit trail, cross-references, review workflow |
-| [Change Impact Analysis](docs/change-impact-analysis-guide.md) | Dependency graph, automatic impact detection, gap analysis, notifications, training task resets |
-| [Traceability & Gap Discovery](docs/traceability-gap-discovery-guide.md) | Automated traceability matrices, three-pass matching, orphan detection, coverage metrics, stale link alerts |
-| [Admin Dashboard — User Management](docs/admin-dashboard-user-management-guide.md) | RBAC roles, user CRUD, permission templates, company memberships, audit-compliant lifecycle management |
-| [Admin Dashboard — System Configuration](docs/admin-system-configuration-guide.md) | AI hardware settings, storage quotas, backup scheduling, health monitoring, service status, configuration rollback |
-| [Audit Trail Viewer](docs/audit-trail-viewer-guide.md) | Centralized audit log viewer with filtering, search, PDF export, immutability enforcement, and meta-auditing |
-| [AI Risk & Compliance Framework](docs/ai-risk-compliance-framework-guide.md) | Risk tier classification, HITL checkpoints, control gate enforcement, operation logging, company risk profiles |
-| [ALC Corporate Environment](docs/alc-corporate-environment-guide.md) | Corporate tenant seeding, user pool provisioning, regulatory baseline, governance folders, risk profile, agent activations, governance workflow |
-| [Cross-Sector AI Guidelines](docs/cross-sector-ai-guidelines-guide.md) | AI usage policy generation, risk tier integration, sector-specific modules (Pharma/MedTech/IVD), governance workflow |
-| [Documentation Suite](docs/documentation-suite-guide.md) | User Guide & Admin Guide generation, cross-references, versioning, governance integration |
-| [Literature Search Engine](docs/literature-search-guide.md) | External literature search (PubMed, Crossref, arXiv), API key management, rate limiting, audit trail |
-| [Literature Ingestion Pipeline](docs/literature-ingestion-guide.md) | Automated full-text retrieval via Unpaywall, PDF/HTML/XML sanitization, storage quotas, retention policies |
-| [Literature Embedding & Hybrid Search](docs/literature-embedding-hybrid-search-guide.md) | Semantic embedding generation, hybrid BM25+kNN search, unified cross-index search, per-company vector spaces, partition tagging |
-| [Literature Review & Synthesis Agents](docs/literature-review-synthesis-guide.md) | AI-powered SLR screening, PICO criteria, contradiction detection, novelty flagging, PRISMA statistics, inter-rater reliability |
+**→ [Documentation Index](docs/INDEX.md)** — Start here for a structured overview of all 28 guides.
+
+| Section | Guides |
+|---------|--------|
+| **Getting Started** | [Setup Wizard](docs/setup-wizard-guide.md) · [Document Upload](docs/document-upload-guide.md) |
+| **Document Lifecycle** | [Workflow Editor](docs/workflow-editor-guide.md) · [Workflow Execution](docs/workflow-execution-guide.md) · [Electronic Signatures](docs/electronic-signatures-guide.md) · [Training](docs/training-management-guide.md) · [Quiz](docs/quiz-comprehension-guide.md) |
+| **Search & Knowledge** | [Search & RAG](docs/search-knowledge-guide.md) · [AI Inference](docs/ai-inference-guide.md) |
+| **AI Intelligence** | [Agents](docs/agent-management-guide.md) · [Multi-Agent Auditing](docs/multi-agent-auditing-guide.md) · [Document Generator](docs/ai-document-generator-guide.md) · [Training Ecosystem](docs/ai-training-ecosystem-guide.md) · [Impact Analysis](docs/change-impact-analysis-guide.md) · [Traceability](docs/traceability-gap-discovery-guide.md) |
+| **Literature Research** | [Search Engine](docs/literature-search-guide.md) · [Ingestion](docs/literature-ingestion-guide.md) · [Embedding & Search](docs/literature-embedding-hybrid-search-guide.md) · [Review Agents](docs/literature-review-synthesis-guide.md) · [Vigilance & PMS](docs/medical-device-vigilance-pms-guide.md) · [Citation UI](docs/literature-search-citation-ui-guide.md) |
+| **Administration** | [User Management](docs/admin-dashboard-user-management-guide.md) · [System Config](docs/admin-system-configuration-guide.md) · [Audit Trail](docs/audit-trail-viewer-guide.md) · [AI Risk Framework](docs/ai-risk-compliance-framework-guide.md) |
+| **Corporate Governance** | [Corporate Environment](docs/alc-corporate-environment-guide.md) · [AI Guidelines](docs/cross-sector-ai-guidelines-guide.md) · [Documentation Suite](docs/documentation-suite-guide.md) |
 
 ---
 

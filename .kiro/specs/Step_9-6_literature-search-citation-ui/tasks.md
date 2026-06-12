@@ -6,8 +6,8 @@ This plan implements the user-facing literature search dashboard and backend API
 
 ## Tasks
 
-- [ ] 1. Database models, schemas, exceptions, and migration
-  - [ ] 1.1 Create SQLAlchemy models for Phase 9.6
+- [x] 1. Database models, schemas, exceptions, and migration
+  - [x] 1.1 Create SQLAlchemy models for Phase 9.6
     - Create `src/backend/src/alcoabase/literature/search/__init__.py`, `models/__init__.py`
     - Create `models/saved_search.py`: `SavedSearch` model with name (String 200, NOT NULL), description (Text, nullable), query_text (Text, NOT NULL), filters (JSONB, NOT NULL, default {}), search_mode (String 20, NOT NULL, default "hybrid"), include_internal (Boolean, NOT NULL, default False), user_id FK → users.id, company_id FK → companies.id, last_executed_at (TIMESTAMPTZ, nullable), last_result_count (Integer, nullable), status (String 20, NOT NULL, default "active"), created_at, updated_at, AuditMixin, `__versioned__ = {}`
     - Create `models/citation_collection.py`: `CitationCollection` model with name (String 300, NOT NULL), description (Text, nullable), purpose (String 50, NOT NULL), company_id FK, created_by FK → users.id, status (String 20, NOT NULL, default "active"), created_at, updated_at, AuditMixin, `__versioned__ = {}`; `CitationCollectionDocument` junction model with collection_id FK, document_id FK, position (Integer, NOT NULL), added_at (TIMESTAMPTZ, NOT NULL, default now()), added_by FK → users.id; UNIQUE constraint on (collection_id, document_id)
@@ -15,7 +15,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Add indexes: saved_searches (company_id, user_id, status), (company_id, user_id, last_executed_at DESC); citation_collections (company_id, status), (company_id, purpose, status); citation_collection_documents UNIQUE (collection_id, document_id), (collection_id, position); search_execution_logs (company_id, user_id, executed_at DESC), (saved_search_id)
     - _Requirements: 2.2, 3.5, 5.1, 5.2, 5.3_
 
-  - [ ] 1.2 Create Pydantic schemas for Phase 9.6
+  - [x] 1.2 Create Pydantic schemas for Phase 9.6
     - Create `src/backend/src/alcoabase/literature/search/schemas/__init__.py`
     - Create `schemas/query.py`: `LiteratureSearchQueryRequest` (query_text 1–1000 chars, filters object with date_from/date_to ISO optional, journals max 20, sources max 10, publication_types max 10, mesh_terms max 30, device_class max 5; search_mode enum hybrid/keyword/semantic default hybrid; include_internal bool default false; page int default 1; page_size 1–100 default 20), `LiteratureSearchResult`, `PaginatedSearchResponse` with results, pagination, facets, search_execution_id
     - Create `schemas/internalization.py`: `InternalizationRequest` (ingestion_record_id UUID required, document_name optional, document_type default "literature", tags max 20, citation_collection_id optional, traceability_links optional max 20 with target_type enum + target_id), `InternalizedDocumentResponse`
@@ -25,23 +25,23 @@ This plan implements the user-facing literature search dashboard and backend API
     - Create `schemas/export.py`: `ExportRequest` (search_execution_id optional, saved_search_id optional, format enum csv/pdf, include_prisma_flow bool default false)
     - _Requirements: 1.1, 3.1, 4.1, 5.1, 5.4, 6.1, 7.1_
 
-  - [ ] 1.3 Create literature search exception classes
+  - [x] 1.3 Create literature search exception classes
     - Create `src/backend/src/alcoabase/literature/search/exceptions.py`
     - Define: `SearchUnavailableError`, `DuplicateInternalizationError`, `IngestionRecordNotFoundError`, `InsufficientPermissionsError`, `SavedSearchLimitExceededError`, `CollectionCapacityExceededError`, `NonInternalizedDocumentError`, `InvalidTraceabilityTargetError`, `ExportReferenceNotFoundError`
     - _Requirements: 1.9, 1.10, 3.8, 4.3, 4.7, 4.8, 5.9, 5.10, 6.5, 6.6, 7.6, 7.7_
 
-  - [ ] 1.4 Create Alembic migration for Phase 9.6 tables and documents table modification
+  - [x] 1.4 Create Alembic migration for Phase 9.6 tables and documents table modification
     - Generate migration adding `saved_searches`, `citation_collections`, `citation_collection_documents`, `search_execution_logs` tables
     - Add columns to `documents` table: `source_ingestion_record_id` (Integer FK → literature_ingestion_records.id, nullable), `full_text_status` (String 20, nullable, default NULL)
     - Add partial unique index on documents: UNIQUE (company_id, source_ingestion_record_id) WHERE source_ingestion_record_id IS NOT NULL
     - Include all indexes defined in the design
     - _Requirements: 2.2, 3.5, 4.2, 5.1_
 
-- [ ] 2. Checkpoint - Ensure models and schemas compile
+- [x] 2. Checkpoint - Ensure models and schemas compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 3. Implement backend services
-  - [ ] 3.1 Implement LiteratureSearchService class
+- [x] 3. Implement backend services
+  - [x] 3.1 Implement LiteratureSearchService class
     - Create `src/backend/src/alcoabase/literature/search/services/__init__.py` and `literature_search_service.py`
     - Implement `__init__` accepting AsyncSession, HybridQueryEngine, AuditTrailService, TraceabilityMatrixService, storage_client (aioboto3)
     - Implement `execute_search()`: delegate to HybridQueryEngine.unified_search(), enrich results with is_internalized flag (query documents table for source_ingestion_record_id matches), compute facet counts, log SearchExecutionLog record, call AuditTrailService (async-safe with Celery fallback on failure)
@@ -62,7 +62,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Implement `delete_traceability_link()`: remove link, audit log
     - _Requirements: 1.1–1.10, 2.1–2.5, 3.1–3.8, 4.1–4.10, 5.1–5.11, 6.1–6.9, 8.1–8.6_
 
-  - [ ] 3.2 Implement ExportService class
+  - [x] 3.2 Implement ExportService class
     - Create `src/backend/src/alcoabase/literature/search/services/export_service.py`
     - Implement `__init__` accepting AsyncSession
     - Implement `generate_csv_export()`: retrieve search execution results, build CSV in-memory with columns (title, authors semicolon-separated, publication_date, journal, source, publication_type, doi, abstract first 300 chars, relevance_score, provenance, mesh_terms semicolon-separated), return StreamingResponse
@@ -72,8 +72,8 @@ This plan implements the user-facing literature search dashboard and backend API
     - Record audit event on export generation
     - _Requirements: 7.1–7.8_
 
-- [ ] 4. Implement API router
-  - [ ] 4.1 Create literature_search router with all endpoints
+- [x] 4. Implement API router
+  - [x] 4.1 Create literature_search router with all endpoints
     - Create `src/backend/src/alcoabase/api/literature_search.py`
     - `POST /api/literature-search/query`: require member+ role, X-Company-Id, X-Change-Reason; validate body; call LiteratureSearchService.execute_search; return 200
     - `POST /api/literature-search/saved-searches`: require member+ role, X-Company-Id, X-Change-Reason; call create_saved_search; return 201
@@ -94,36 +94,36 @@ This plan implements the user-facing literature search dashboard and backend API
     - `POST /api/literature-search/export`: require member+, X-Company-Id, X-Change-Reason; call ExportService; return file download StreamingResponse
     - _Requirements: 1.1, 3.1–3.4, 4.1, 5.1–5.7, 6.1–6.4, 7.1, 8.1–8.6_
 
-  - [ ] 4.2 Register literature_search router in central router.py
+  - [x] 4.2 Register literature_search router in central router.py
     - Add `literature_search_router` to `src/backend/src/alcoabase/api/router.py`
     - Verify route prefix is `/api/literature-search`
     - _Requirements: 1.1, 8.1_
 
-- [ ] 5. Implement Celery tasks for audit retry
-  - [ ] 5.1 Create literature_search_tasks.py
+- [x] 5. Implement Celery tasks for audit retry
+  - [x] 5.1 Create literature_search_tasks.py
     - Create `src/backend/src/alcoabase/tasks/literature_search_tasks.py`
     - Implement `retry_audit_log` task: queue=`literature_ingestion`, max_retries=3, retry intervals 1 minute each, acks_late=True
     - Accept audit event payload (user_id, company_id, record_type "literature_search", event_data), attempt to write via AuditTrailService, log warning if all retries exhausted
     - Register task with celery_app
     - _Requirements: 2.5_
 
-- [ ] 6. Checkpoint - Ensure backend compiles and router is registered
+- [x] 6. Checkpoint - Ensure backend compiles and router is registered
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 7. Frontend types, store, and hooks
-  - [ ] 7.1 Create TypeScript type definitions
+- [x] 7. Frontend types, store, and hooks
+  - [x] 7.1 Create TypeScript type definitions
     - Create `src/frontend/src/types/literatureSearch.ts`
     - Define interfaces: `SearchFilters` (date_from, date_to, journals, sources, publication_types, mesh_terms, device_class), `LiteratureSearchResult` (id, title, authors, abstract, publication_date, journal, source, publication_type, mesh_terms, doi, relevance_score, provenance, full_text_available, is_internalized), `PaginationMeta` (total_results, page, page_size, total_pages), `FacetCounts` (journals, sources, publication_types each as {value, count}[]), `SavedSearch` (id, name, description, query_text, filters, search_mode, include_internal, last_executed_at, last_result_count, status, created_at), `CitationCollection` (id, name, description, purpose, status, document_count, created_at, updated_at), `CitationCollectionDetail` (extends CitationCollection with documents array), `TraceabilityLink` (id, document_id, target_type, target_id, rationale, created_at), `SearchHistoryEntry` (id, query_text, search_mode, total_results, executed_at), `InternalizationRequest`, `ExportRequest`
     - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.9_
 
-  - [ ] 7.2 Create Zustand store for literature search state
+  - [x] 7.2 Create Zustand store for literature search state
     - Create `src/frontend/src/stores/literatureSearchStore.ts`
     - Implement state: queryText, searchMode (hybrid/keyword/semantic), includeInternal, filters (SearchFilters), results (LiteratureSearchResult[]), pagination (PaginationMeta | null), facetCounts (FacetCounts | null), isLoading, error, savedSearches, savedSearchesLoading, searchHistory
     - Implement actions: setQueryText, setSearchMode, setIncludeInternal, setFilters, executeSearch (POST /api/literature-search/query), loadSavedSearches (GET /api/literature-search/saved-searches), saveCurrentSearch (POST /api/literature-search/saved-searches), executeSavedSearch (POST .../execute), deleteSavedSearch (DELETE), loadSearchHistory, resetSearch
     - Use apiClient for all API calls with proper headers (X-Company-Id, X-Change-Reason on mutations)
     - _Requirements: 9.2, 9.8, 9.9, 9.10, 9.12_
 
-  - [ ] 7.3 Create useLiteratureSearch hook for API integration
+  - [x] 7.3 Create useLiteratureSearch hook for API integration
     - Create `src/frontend/src/hooks/useLiteratureSearch.ts`
     - Implement `useInternalize()`: POST /api/literature-search/internalize with loading/error state management
     - Implement `useCitationCollections()`: CRUD operations for citation collections
@@ -132,17 +132,17 @@ This plan implements the user-facing literature search dashboard and backend API
     - All hooks use apiClient, handle loading/error states, provide success/error toast feedback
     - _Requirements: 9.7, 10.1–10.5_
 
-- [ ] 8. Checkpoint - Ensure frontend types and store compile
+- [x] 8. Checkpoint - Ensure frontend types and store compile
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 9. Frontend UI components
-  - [ ] 9.1 Create SearchInput and SearchModeSelector components
+- [x] 9. Frontend UI components
+  - [x] 9.1 Create SearchInput and SearchModeSelector components
     - Create `src/frontend/src/components/literature-search/SearchInput.tsx`: text input field with search button, dispatches executeSearch from store on submit, disables submit for empty/whitespace-only queries
     - Create `src/frontend/src/components/literature-search/SearchModeSelector.tsx`: radio group or segmented control for hybrid/keyword/semantic mode selection, toggle for "Include Internal Documents"
     - Use shadcn/ui Input, Button, RadioGroup, Switch components
     - _Requirements: 9.2_
 
-  - [ ] 9.2 Create FacetFilterPanel component
+  - [x] 9.2 Create FacetFilterPanel component
     - Create `src/frontend/src/components/literature-search/FacetFilterPanel.tsx`
     - Implement: date range picker (from/to), journal multi-select with count badges, source multi-select (from available adapters) with count badges, publication type multi-select with count badges, MeSH terms tag-style input with autocomplete, device class multi-select (from Phase 9.5 enum)
     - Display facet count badges next to each option showing matching result count
@@ -150,39 +150,39 @@ This plan implements the user-facing literature search dashboard and backend API
     - Use shadcn/ui DatePicker, Select, MultiSelect, Badge components
     - _Requirements: 9.3, 9.6_
 
-  - [ ] 9.3 Create SearchResultCard and SearchResultsList components
+  - [x] 9.3 Create SearchResultCard and SearchResultsList components
     - Create `src/frontend/src/components/literature-search/SearchResultCard.tsx`: display title (linked), authors (truncated to 3 + "+N more"), publication year, journal, source adapter, relevance score (visual bar), provenance badge ("External" blue / "Internal" green), full-text indicator, internalization status checkmark, "Internalize" button (visible to document_admin/system_admin only)
     - Create `src/frontend/src/components/literature-search/SearchResultsList.tsx`: maps results array to SearchResultCard components, displays loading skeletons during search, empty state message when no results
     - Use shadcn/ui Card, Badge, Button, Skeleton components
     - _Requirements: 9.4, 9.7, 9.11_
 
-  - [ ] 9.4 Create PaginationControls component
+  - [x] 9.4 Create PaginationControls component
     - Create `src/frontend/src/components/literature-search/PaginationControls.tsx`
     - Display page numbers, previous/next buttons, result count summary ("Showing 1–20 of 342 results")
     - Connect to store pagination state, dispatch executeSearch with new page on click
     - Use shadcn/ui Pagination components
     - _Requirements: 9.5_
 
-  - [ ] 9.5 Create InternalizationDialog with CitationCollectionSelector and TraceabilityLinkSelector
+  - [x] 9.5 Create InternalizationDialog with CitationCollectionSelector and TraceabilityLinkSelector
     - Create `src/frontend/src/components/literature-search/InternalizationDialog.tsx`: modal dialog with form fields (document name override, tags input, citation collection selector, traceability link selector), submit button calling POST /api/literature-search/internalize via useInternalize hook
     - Create `src/frontend/src/components/literature-search/CitationCollectionSelector.tsx`: dropdown/combobox listing available citation collections, option to create new
     - Create `src/frontend/src/components/literature-search/TraceabilityLinkSelector.tsx`: multi-select for requirements/test cases from TraceabilityMatrix, each with target_type selector and rationale field
     - Use react-hook-form for form validation, shadcn/ui Dialog, Select, Input, Textarea
     - _Requirements: 9.7, 4.1, 4.4, 4.5_
 
-  - [ ] 9.6 Create SaveSearchDialog and SavedSearchesPanel components
+  - [x] 9.6 Create SaveSearchDialog and SavedSearchesPanel components
     - Create `src/frontend/src/components/literature-search/SaveSearchDialog.tsx`: modal with name (required 1–200), description (optional max 1000), submits via saveCurrentSearch store action
     - Create `src/frontend/src/components/literature-search/SavedSearchesPanel.tsx`: collapsible sidebar/tab listing saved searches with name, last executed date, result count; re-execute and delete buttons per entry
     - Use shadcn/ui Dialog, Input, Textarea, Button, ScrollArea
     - _Requirements: 9.8, 9.9_
 
-  - [ ] 9.7 Create SearchHistoryPanel and ExportMenu components
+  - [x] 9.7 Create SearchHistoryPanel and ExportMenu components
     - Create `src/frontend/src/components/literature-search/SearchHistoryPanel.tsx`: display last 20 search executions with query text, timestamp, result count; click to re-execute
     - Create `src/frontend/src/components/literature-search/ExportMenu.tsx`: dropdown button offering "Export as CSV" and "Export as PDF" (with PRISMA checkbox for PDF), calls useExport hook, shows loading indicator during generation, success/error toast
     - Use shadcn/ui DropdownMenu, Checkbox, Button components
     - _Requirements: 9.10, 10.1–10.5_
 
-  - [ ] 9.8 Create LiteratureSearchPage and wire all components
+  - [x] 9.8 Create LiteratureSearchPage and wire all components
     - Create `src/frontend/src/pages/LiteratureSearchPage.tsx`
     - Compose: SearchInput + SearchModeSelector (top), FacetFilterPanel (sidebar), SearchResultsList (main content), PaginationControls (bottom), SavedSearchesPanel + SearchHistoryPanel (right sidebar or tabs), ExportMenu (top-right), SaveSearchDialog (triggered by button)
     - Register route at `/literature-search` in router config, protected by authentication
@@ -190,153 +190,153 @@ This plan implements the user-facing literature search dashboard and backend API
     - Display loading states (skeleton cards), error states (toast notifications)
     - _Requirements: 9.1, 9.11, 9.12_
 
-- [ ] 10. Checkpoint - Ensure frontend compiles and renders
+- [x] 10. Checkpoint - Ensure frontend compiles and renders
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 11. Write property-based tests (18 properties from design)
-  - [ ]* 11.1 Write property test: Search result schema validity (Property 1)
+- [x] 11. Write property-based tests (18 properties from design)
+  - [x] 11.1 Write property test: Search result schema validity (Property 1)
     - **Property 1: Search result schema validity**
     - Use Hypothesis to generate random search results with varying field values (relevance_score floats, provenance strings, abstract lengths, author arrays)
     - Assert every result has: relevance_score in [0.0, 1.0], provenance in {"external", "internal"}, abstract length ≤ 500, all required fields non-null (id, title, authors, source, publication_type)
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 1.4, 1.5**
 
-  - [ ]* 11.2 Write property test: Pagination metadata correctness (Property 2)
+  - [x] 11.2 Write property test: Pagination metadata correctness (Property 2)
     - **Property 2: Pagination metadata correctness**
     - Use Hypothesis to generate random (total_results, page, page_size) triples with total_results 0–10000, page 1–500, page_size 1–100
     - Assert total_pages == ceil(total_results / page_size), results on current page == min(page_size, total_results - (page-1)*page_size), page ≤ total_pages (or empty when page > total_pages)
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 1.6**
 
-  - [ ]* 11.3 Write property test: Tenant isolation (Property 3)
+  - [x] 11.3 Write property test: Tenant isolation (Property 3)
     - **Property 3: Tenant isolation**
     - Use Hypothesis to generate data for 2+ companies (random saved searches, collections, traceability links), query from company A context
     - Assert zero results belonging to company B appear in any response
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 1.8, 8.1, 8.5**
 
-  - [ ]* 11.4 Write property test: Whitespace query rejection (Property 4)
+  - [x] 11.4 Write property test: Whitespace query rejection (Property 4)
     - **Property 4: Whitespace query rejection**
     - Use Hypothesis `st.text(alphabet=st.characters(whitespace_categories=("Zs", "Zl", "Zp", "Cc")))` to generate whitespace-only strings including empty string
     - Assert submitting as query_text returns HTTP 422 with zero results
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 1.10**
 
-  - [ ]* 11.5 Write property test: Search execution creates audit log (Property 5)
+  - [x] 11.5 Write property test: Search execution creates audit log (Property 5)
     - **Property 5: Search execution creates audit log**
     - Use Hypothesis to generate valid search requests (non-empty query, valid filters)
     - After execution, assert SearchExecutionLog record exists with matching user_id, company_id, query_text, filters, search_mode, include_internal, total_results matching response, execution_duration_ms > 0
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 2.1**
 
-  - [ ]* 11.6 Write property test: Audit log immutability (Property 6)
+  - [x] 11.6 Write property test: Audit log immutability (Property 6)
     - **Property 6: Audit log immutability**
     - Use Hypothesis to generate existing SearchExecutionLog records, attempt UPDATE on any field or DELETE
     - Assert operation raises error and record remains unchanged
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 2.2**
 
-  - [ ]* 11.7 Write property test: Saved search round-trip (Property 7)
+  - [x] 11.7 Write property test: Saved search round-trip (Property 7)
     - **Property 7: Saved search round-trip**
     - Use Hypothesis to generate valid creation payloads (name 1–200 chars, query_text 1–1000 chars, valid filters, search_mode, include_internal)
     - Create then retrieve; assert name, query_text, filters, search_mode, include_internal exactly match input
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 3.1, 3.5**
 
-  - [ ]* 11.8 Write property test: Saved search listing order (Property 8)
+  - [x] 11.8 Write property test: Saved search listing order (Property 8)
     - **Property 8: Saved search listing order**
     - Use Hypothesis to generate sets of saved searches with mixed last_executed_at values (some NULL)
     - Assert listing returns entries ordered by last_executed_at DESC with NULLs at end
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 3.2**
 
-  - [ ]* 11.9 Write property test: Saved search execution updates metadata (Property 9)
+  - [x] 11.9 Write property test: Saved search execution updates metadata (Property 9)
     - **Property 9: Saved search execution updates metadata**
     - Use Hypothesis to generate saved search + random execution scenario
     - After execution, assert last_executed_at within 5 seconds of now and last_result_count == actual results returned
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 3.3, 3.6**
 
-  - [ ]* 11.10 Write property test: Internalization metadata preservation (Property 10)
+  - [x] 11.10 Write property test: Internalization metadata preservation (Property 10)
     - **Property 10: Internalization metadata preservation**
     - Use Hypothesis to generate IngestionRecord field values (title, authors, abstract, publication_date, doi, source_id)
     - After internalization, assert Document has matching title, document_type="literature", source_ingestion_record_id set, current_status="Draft"
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 4.1, 4.2**
 
-  - [ ]* 11.11 Write property test: Duplicate internalization detection (Property 11)
+  - [x] 11.11 Write property test: Duplicate internalization detection (Property 11)
     - **Property 11: Duplicate internalization detection**
     - Use Hypothesis to generate any IngestionRecord already internalized (Document with matching source_ingestion_record_id exists)
     - Assert second attempt returns HTTP 409 with existing Document ID
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 4.3**
 
-  - [ ]* 11.12 Write property test: Citation collection document ordering (Property 12)
+  - [x] 11.12 Write property test: Citation collection document ordering (Property 12)
     - **Property 12: Citation collection document ordering**
     - Use Hypothesis to generate N documents added to a collection in sequence
     - Assert documents appear at positions after previously existing entries, retrieval returns ascending position order
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 5.3, 5.4**
 
-  - [ ]* 11.13 Write property test: Collection removal preserves Document entity (Property 13)
+  - [x] 11.13 Write property test: Collection removal preserves Document entity (Property 13)
     - **Property 13: Collection removal preserves Document entity**
     - Use Hypothesis to generate a document in a collection, remove it
     - Assert Document record still exists in documents table with all data intact; only junction record deleted
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 5.5**
 
-  - [ ]* 11.14 Write property test: Only internalized documents in citation collections (Property 14)
+  - [x] 11.14 Write property test: Only internalized documents in citation collections (Property 14)
     - **Property 14: Only internalized documents in citation collections**
     - Use Hypothesis to generate Documents without source_ingestion_record_id set
     - Assert adding to collection returns HTTP 422 and collection document list unchanged
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 5.9**
 
-  - [ ]* 11.15 Write property test: Only internalized documents for traceability links (Property 15)
+  - [x] 11.15 Write property test: Only internalized documents for traceability links (Property 15)
     - **Property 15: Only internalized documents for traceability links**
     - Use Hypothesis to generate Documents without source_ingestion_record_id
     - Assert creating traceability link returns HTTP 422 and no link created
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 6.5**
 
-  - [ ]* 11.16 Write property test: Traceability link filtering correctness (Property 16)
+  - [x] 11.16 Write property test: Traceability link filtering correctness (Property 16)
     - **Property 16: Traceability link filtering correctness**
     - Use Hypothesis to generate sets of traceability links and filter queries (by document_id or target_id)
     - Assert returned results contain only links matching filter AND contain all matching links (completeness)
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 6.3**
 
-  - [ ]* 11.17 Write property test: CSV export contains all required columns (Property 17)
+  - [x] 11.17 Write property test: CSV export contains all required columns (Property 17)
     - **Property 17: CSV export contains all required columns**
     - Use Hypothesis to generate random result sets with varying field values (including nulls)
     - Assert CSV output contains columns: title, authors, publication_date, journal, source, publication_type, doi, abstract, relevance_score, provenance, mesh_terms; every row has a value for every column (empty string for null)
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 7.2**
 
-  - [ ]* 11.18 Write property test: All mutations create audit events (Property 18)
+  - [x] 11.18 Write property test: All mutations create audit events (Property 18)
     - **Property 18: All mutations create audit events**
     - Use Hypothesis to generate random mutation operations (internalization, collection modification, traceability link creation/deletion)
     - Assert corresponding audit event exists with correct user_id, company_id, action type, timestamp within 5 seconds
     - Location: `src/backend/tests/properties/test_literature_search_properties.py`
     - **Validates: Requirements 4.6, 5.11, 6.8**
 
-- [ ] 12. Write frontend property-based tests
-  - [ ]* 12.1 Write frontend property test: Pagination component correctness (Property 2 frontend)
+- [x] 12. Write frontend property-based tests
+  - [x] 12.1 Write frontend property test: Pagination component correctness (Property 2 frontend)
     - **Property 2 (frontend): Pagination renders correct page numbers**
     - Use fast-check to generate random (total_results, page, page_size) triples
     - Assert PaginationControls renders correct total_pages, disables prev on page 1, disables next on last page, shows correct "Showing X–Y of Z" text
     - Location: `src/frontend/src/__tests__/literatureSearch.property.test.ts`
     - **Validates: Requirements 9.5**
 
-  - [ ]* 12.2 Write frontend property test: Whitespace query rejection (Property 4 frontend)
+  - [x] 12.2 Write frontend property test: Whitespace query rejection (Property 4 frontend)
     - **Property 4 (frontend): Search input rejects whitespace-only strings**
     - Use fast-check to generate whitespace-only strings
     - Assert SearchInput component disables submit button for all such inputs
     - Location: `src/frontend/src/__tests__/literatureSearch.property.test.ts`
     - **Validates: Requirements 9.2**
 
-- [ ] 13. Write unit tests for backend services and router
-  - [ ]* 13.1 Write unit tests for LiteratureSearchService
+- [x] 13. Write unit tests for backend services and router
+  - [x] 13.1 Write unit tests for LiteratureSearchService
     - Test execute_search with valid params (mocked HybridQueryEngine returns results)
     - Test execute_search enriches is_internalized flag correctly
     - Test execute_search records SearchExecutionLog
@@ -359,7 +359,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Mock AsyncSession, HybridQueryEngine, AuditTrailService, TraceabilityMatrixService, storage_client
     - _Requirements: 1.1–1.10, 2.1–2.5, 3.1–3.8, 4.1–4.10, 5.1–5.11, 6.1–6.9_
 
-  - [ ]* 13.2 Write unit tests for ExportService
+  - [x] 13.2 Write unit tests for ExportService
     - Test generate_csv_export produces correct columns and semicolon-separated arrays
     - Test generate_pdf_export includes header, results table, metadata footer
     - Test generate_pdf_export with include_prisma_flow=True includes PRISMA section
@@ -369,7 +369,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Mock AsyncSession, ReportLab
     - _Requirements: 7.1–7.8_
 
-  - [ ]* 13.3 Write unit tests for API router endpoints
+  - [x] 13.3 Write unit tests for API router endpoints
     - Test all 17 endpoints with valid requests (correct status codes: 200, 201)
     - Test X-Change-Reason requirement on all POST/PUT/DELETE (400 if missing)
     - Test X-Company-Id requirement (400 if missing)
@@ -380,8 +380,8 @@ This plan implements the user-facing literature search dashboard and backend API
     - Use FastAPI TestClient with mocked dependencies
     - _Requirements: 8.1–8.6_
 
-- [ ] 14. Write integration tests
-  - [ ]* 14.1 Write integration tests for search and audit pipeline
+- [x] 14. Write integration tests
+  - [x] 14.1 Write integration tests for search and audit pipeline
     - Test full search flow: execute query → verify SearchExecutionLog created with correct fields
     - Test audit service unavailability: search succeeds, audit retried via Celery task
     - Test saved search lifecycle: create → execute → verify metadata updated → archive
@@ -389,7 +389,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Requires Docker PostgreSQL and Redis fixtures
     - _Requirements: 1.1–1.10, 2.1–2.5, 3.1–3.8_
 
-  - [ ]* 14.2 Write integration tests for internalization and traceability
+  - [x] 14.2 Write integration tests for internalization and traceability
     - Test full internalization: IngestionRecord → Document creation → file copy (mocked MinIO) → traceability links → citation collection add
     - Test duplicate internalization detection (HTTP 409)
     - Test MinIO failure graceful handling (Document created, full_text_status="unavailable")
@@ -398,7 +398,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Requires Docker PostgreSQL and mocked MinIO
     - _Requirements: 4.1–4.10, 5.1–5.11, 6.1–6.9_
 
-  - [ ]* 14.3 Write integration tests for export and multi-tenancy
+  - [x] 14.3 Write integration tests for export and multi-tenancy
     - Test CSV export generation with correct columns
     - Test PDF export with and without PRISMA flow
     - Test multi-tenant isolation: company A data invisible to company B
@@ -407,7 +407,7 @@ This plan implements the user-facing literature search dashboard and backend API
     - Requires Docker PostgreSQL
     - _Requirements: 7.1–7.8, 8.1–8.6_
 
-- [ ] 15. Final checkpoint - Ensure all tests pass
+- [x] 15. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

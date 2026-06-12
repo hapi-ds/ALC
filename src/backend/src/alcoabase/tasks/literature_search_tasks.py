@@ -283,6 +283,162 @@ def _build_cancelled_result() -> dict[str, Any]:
     }
 
 
+@celery_app.task(
+    bind=True,
+    name="alcoabase.tasks.literature_search_tasks.retry_audit_log",
+    queue="literature_ingestion",
+    max_retries=3,
+    acks_late=True,
+)
+def retry_audit_log(
+    self,
+    user_id: int,
+    company_id: int,
+    record_type: str = "literature_search",
+    event_data: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Retry writing an audit log event when the primary attempt fails.
+
+    This task is dispatched by LiteratureSearchService._log_audit_event()
+    when the in-process audit write fails. It retries up to 3 times with
+    1-minute intervals before logging a warning and giving up.
+
+    Args:
+        self: Celery task instance (bound).
+        user_id: User who performed the auditable action.
+        company_id: Company context for the audit event.
+        record_type: Audit record type (default "literature_search").
+        event_data: Dict containing action details to record.
+
+    Returns:
+        Dict with status and event details on success.
+    """
+    if event_data is None:
+        event_data = {}
+
+    logger.info(
+        "Attempting audit log retry: user_id=%d, company_id=%d, record_type=%s, "
+        "attempt=%d/%d",
+        user_id,
+        company_id,
+        record_type,
+        self.request.retries + 1,
+        self.max_retries + 1,
+    )
+
+    try:
+        # Use asyncio.run() to invoke the async AuditTrailService write.
+        # The AuditTrailService in this codebase is read-oriented;
+        # audit writes are primarily via SQLAlchemy-Continuum. This task
+        # records a supplementary log entry for literature search events.
+        asyncio.run(
+            _write_audit_event(
+                user_id=user_id,
+                company_id=company_id,
+                record_type=record_type,
+                event_data=event_data,
+            )
+        )
+
+        logger.info(
+            "Audit log retry succeeded: user_id=%d, company_id=%d, action=%s",
+            user_id,
+            company_id,
+            event_data.get("action", "unknown"),
+        )
+
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "company_id": company_id,
+            "record_type": record_type,
+            "event_data": event_data,
+        }
+
+    except Exception as exc:
+        logger.warning(
+            "Audit log retry failed (attempt %d/%d): user_id=%d, error=%s",
+            self.request.retries + 1,
+            self.max_retries + 1,
+            user_id,
+            str(exc),
+        )
+
+        # If retries are exhausted, log a final warning and return failure
+        if self.request.retries >= self.max_retries:
+            logger.warning(
+                "All audit log retries exhausted for user_id=%d, company_id=%d, "
+                "record_type=%s, action=%s. Event data lost.",
+                user_id,
+                company_id,
+                record_type,
+                event_data.get("action", "unknown"),
+            )
+            return {
+                "status": "failed",
+                "user_id": user_id,
+                "company_id": company_id,
+                "record_type": record_type,
+                "event_data": event_data,
+                "error": str(exc),
+            }
+
+        # Retry with 1-minute countdown
+        raise self.retry(countdown=60, exc=exc)
+
+
+async def _write_audit_event(
+    user_id: int,
+    company_id: int,
+    record_type: str,
+    event_data: dict[str, Any],
+) -> None:
+    """Write an audit event to the database via async session.
+
+    Creates a SearchExecutionLog-style supplementary record or logs
+    via the AuditTrailService infrastructure.
+
+    Args:
+        user_id: Acting user ID.
+        company_id: Company context.
+        record_type: Type of audit record.
+        event_data: Event details to persist.
+
+    Raises:
+        RuntimeError: If database is not initialized.
+        Exception: Any database write error.
+    """
+    from alcoabase.database import get_session
+
+    async for session in get_session():
+        from alcoabase.literature.search.models.search_execution_log import (
+            SearchExecutionLog,
+        )
+
+        # For literature_search record_type, attempt to record a supplementary
+        # audit entry. Since the SearchExecutionLog is immutable and structured,
+        # and this is a fallback path, we log the event data as a minimal record.
+        # In production, this integrates with the broader audit infrastructure.
+        log_entry = SearchExecutionLog(
+            user_id=user_id,
+            company_id=company_id,
+            query_text=event_data.get("action", "audit_retry"),
+            filters=event_data,
+            search_mode="audit_retry",
+            include_internal=False,
+            total_results=0,
+            sources_queried=[],
+            execution_duration_ms=0,
+            saved_search_id=None,
+        )
+        session.add(log_entry)
+        await session.commit()
+        return
+
+    msg = "Database session unavailable for audit log write."
+    raise RuntimeError(msg)
+
+
 async def _execute_search_with_cancellation_check(
     task_instance,
     gateway_service,

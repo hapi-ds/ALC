@@ -55,6 +55,9 @@ class Document(Base, AuditMixin):
         DateTime(timezone=True), server_default=func.now()
     )
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
+    source_ingestion_record_id: Mapped[int | None] = mapped_column(
+        ForeignKey("literature_ingestion_records.id"), nullable=True, index=True
+    )
     is_demo_data: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["DocumentTag"]] = relationship(back_populates="document")

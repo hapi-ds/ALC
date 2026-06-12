@@ -28,6 +28,7 @@ import { PermissionTemplateManagementPage } from "@/pages/PermissionTemplateMana
 import { SystemConfigPage } from "@/pages/admin/SystemConfigPage";
 import { AuditTrailPage } from "@/pages/AuditTrailPage";
 import { AIRiskFrameworkPage } from "@/pages/AIRiskFrameworkPage";
+import LiteratureSearchPage from "@/pages/LiteratureSearchPage";
 import { ReportListPage } from "@/pages/ReportListPage";
 import { ReportDataEntryPage } from "@/pages/ReportDataEntryPage";
 import { ReportDetailPage } from "@/pages/ReportDetailPage";
@@ -68,6 +69,7 @@ function AuthenticatedApp() {
         <Route path="training" element={<TrainingPage />} />
         <Route path="training/ecosystem" element={<TrainingEcosystemPage />} />
         <Route path="search" element={<SearchPage />} />
+        <Route path="literature-search" element={<LiteratureSearchPage />} />
         <Route path="knowledge" element={<KnowledgePage />} />
         <Route path="agents" element={<AgentsPage />} />
         <Route path="document-generator" element={<DocumentGeneratorPage />} />
