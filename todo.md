@@ -230,7 +230,7 @@ Please write for every item in this list a short user guide after your implement
   **"Always-On" Vigilance Monitors:** Implement a continuous background worker that executes automated, scheduled literature searches for adverse events, product issues, or equivalent material updates related to the company’s product portfolio.
   **GxP Alerting & Signal Detection:** If an agent flags a high-severity risk or adverse event trend in the literature, the system triggers Risk-Based Pathing (3.1), bypassing standard flows to immediately alert the Doc-Admin (6.1) and generate a mandatory Change Impact Analysis task (5.5).
 
-- [ ] **9.6 Literature Search, Citation UI, & Audit Trail Mapping**
+- [x] **9.6 Literature Search, Citation UI, & Audit Trail Mapping**
   **Faceted Search Dashboard:** A dedicated frontend interface connected to the literature index, allowing users to execute hybrid searches (4.1) across public literature and internal documents simultaneously.
   **One-Click Internalization & Traceability:** Allow users to "internalize" a public paper into the company's document repository. This automatically binds the paper to the Global Traceability Matrix (7.2, 8.3), mapping external scientific evidence directly to internal requirements or validation tests for FDA/EMA submissions. All search criteria, dates, and retrieval actions are logged immutably in the Audit Trail Viewer (6.3).
 
