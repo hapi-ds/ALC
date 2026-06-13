@@ -19,12 +19,13 @@ import logging
 import time
 
 from passlib.context import CryptContext
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from alcoabase.config import get_settings
 from alcoabase.models.agent import AgentDefinition
 from alcoabase.models.company import Company, CompanyAgentActivation, CompanyMembership
+from alcoabase.models.document import Document
 from alcoabase.models.setup_status import SetupStatus
 from alcoabase.models.system_config import SystemConfiguration
 from alcoabase.models.user import Role, User, UserRole
@@ -152,6 +153,17 @@ class ALCSeedService:
             extra={"seed_step": "create_governance_workflow"},
         )
 
+        # Step 9: Upload governance documents
+        docs_uploaded, docs_skipped = await self._upload_governance_documents(
+            company, it_admin
+        )
+        logger.info(
+            "Governance documents step complete: %d uploaded, %d skipped",
+            len(docs_uploaded),
+            len(docs_skipped),
+            extra={"seed_step": "upload_governance_documents"},
+        )
+
         # Assemble the final report
         total_duration_ms = int((time.monotonic() - start_time) * 1000)
         report = SeedReport(
@@ -167,6 +179,8 @@ class ALCSeedService:
             agents_activated=agent_result.agents_activated,
             agents_skipped=agent_result.agents_skipped,
             workflow_created=workflow_created,
+            documents_uploaded=docs_uploaded,
+            documents_skipped=docs_skipped,
             total_duration_ms=total_duration_ms,
         )
 
@@ -734,6 +748,180 @@ class ALCSeedService:
         Returns:
             True if the workflow was newly created, False if it already existed.
         """
-        raise NotImplementedError(
-            "_create_governance_workflow will be implemented in task 3.8"
+        from alcoabase.models.workflow import WorkflowDefinition
+
+        # Check if governance workflow already exists
+        existing = await self._session.execute(
+            select(WorkflowDefinition).where(
+                WorkflowDefinition.company_id == company.id,
+                WorkflowDefinition.name == "ALC Governance Workflow",
+            )
         )
+        if existing.scalar_one_or_none() is not None:
+            return False
+
+        bpmn_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <bpmn:process id="alc-governance" name="ALC Governance Workflow">
+    <bpmn:startEvent id="start" name="Draft"/>
+    <bpmn:task id="review" name="Review"/>
+    <bpmn:task id="approved" name="Approved"/>
+    <bpmn:task id="active" name="Active"/>
+    <bpmn:endEvent id="end" name="Archived"/>
+    <bpmn:sequenceFlow sourceRef="start" targetRef="review"/>
+    <bpmn:sequenceFlow sourceRef="review" targetRef="approved"/>
+    <bpmn:sequenceFlow sourceRef="approved" targetRef="active"/>
+    <bpmn:sequenceFlow sourceRef="active" targetRef="end"/>
+  </bpmn:process>
+</bpmn:definitions>"""
+
+        workflow = WorkflowDefinition(
+            name="ALC Governance Workflow",
+            document_tag="governance",
+            bpmn_xml=bpmn_xml,
+            signature_required_transitions=["Review→Approved"],
+            training_trigger_transitions=["Approved→Active"],
+            is_active=True,
+            created_by=it_admin.id,
+            company_id=company.id,
+            risk_level="high",
+        )
+        self._session.add(workflow)
+        await self._session.flush()
+        return True
+
+    # ─────────────────────────────────────────────────────────────────────
+    # Governance Document Upload
+    # ─────────────────────────────────────────────────────────────────────
+
+    # Static governance documents shipped with the project.
+    # These are uploaded as documents into the ALC corporate company
+    # during the seed, with document_type "governance".
+    GOVERNANCE_DOCUMENTS = [
+        {
+            "title": "User Requirement Specification (URS) — AlcoaBase",
+            "filename": "URS-AlcoaBase-Enhanced.md",
+            "document_type": "urs",
+            "folder_path": "/governance/urs",
+        },
+        {
+            "title": "AI Regulatory Guidelines — Cross-Sector Compliance",
+            "filename": "AI-Regulatory-Guidelines.md",
+            "document_type": "guideline",
+            "folder_path": "/governance/ai-guidelines",
+        },
+        {
+            "title": "AlcoaBase User Guide",
+            "filename": "User-Guide-AlcoaBase.md",
+            "document_type": "user_guide",
+            "folder_path": "/governance/user-guides",
+        },
+        {
+            "title": "AlcoaBase Administrator Guide",
+            "filename": "Admin-Guide-AlcoaBase.md",
+            "document_type": "admin_guide",
+            "folder_path": "/governance/admin-guides",
+        },
+    ]
+
+    async def _upload_governance_documents(
+        self, company: Company, it_admin: User
+    ) -> tuple[list[str], list[str]]:
+        """Upload static governance documents into the ALC corporate company.
+
+        Reads markdown files from docs/governance/ and creates Document
+        records. Skips documents that already exist (matched by title).
+
+        Args:
+            company: The ALC company entity.
+            it_admin: User for created_by attribution.
+
+        Returns:
+            Tuple of (uploaded titles, skipped titles).
+        """
+        import pathlib
+
+        uploaded: list[str] = []
+        skipped: list[str] = []
+
+        # Resolve the governance docs directory relative to the project root
+        # In Docker, the project is at /app; docs/ is at /app/docs/governance/
+        # We also check the workspace root for dev environments.
+        possible_paths = [
+            pathlib.Path("/app/docs/governance"),
+            pathlib.Path(__file__).parents[4] / "docs" / "governance",
+        ]
+
+        docs_dir: pathlib.Path | None = None
+        for p in possible_paths:
+            if p.is_dir():
+                docs_dir = p
+                break
+
+        if docs_dir is None:
+            logger.warning(
+                "Governance docs directory not found. Skipping document upload.",
+                extra={"seed_step": "upload_governance_documents"},
+            )
+            return (uploaded, skipped)
+
+        for doc_def in self.GOVERNANCE_DOCUMENTS:
+            title = doc_def["title"]
+
+            # Check if document already exists
+            existing = await self._session.execute(
+                select(Document).where(
+                    Document.title == title,
+                    Document.company_id == company.id,
+                )
+            )
+            if existing.scalar_one_or_none() is not None:
+                skipped.append(title)
+                continue
+
+            # Read the file content
+            filepath = docs_dir / doc_def["filename"]
+            if not filepath.exists():
+                logger.warning(
+                    "Governance doc file not found: %s",
+                    filepath,
+                    extra={"seed_step": "upload_governance_documents"},
+                )
+                skipped.append(title)
+                continue
+
+            # Create the document record (file storage is handled separately
+            # by the document service on actual upload; here we create the
+            # metadata record so it appears in the system)
+            from datetime import datetime, timezone
+
+            year = datetime.now(timezone.utc).year
+            # Generate a unique UUID by counting ALL existing docs globally
+            count_result = await self._session.execute(
+                select(func.count(Document.id))
+            )
+            next_seq = (count_result.scalar_one() or 0) + 1
+            document_uuid = f"{year}-{next_seq:05d}"
+
+            doc = Document(
+                document_uuid=document_uuid,
+                title=title,
+                folder_path=doc_def["folder_path"],
+                document_type=doc_def["document_type"],
+                current_status="Approved",
+                created_by=it_admin.id,
+                company_id=company.id,
+                is_demo_data=False,
+            )
+            self._session.add(doc)
+            await self._session.flush()
+            uploaded.append(title)
+
+            logger.info(
+                "Governance document created: %s",
+                title,
+                extra={"seed_step": "upload_governance_documents"},
+            )
+
+        await self._session.flush()
+        return (uploaded, skipped)

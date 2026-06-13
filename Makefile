@@ -62,6 +62,25 @@ vllm-cpu: ## Start vLLM in CPU-only mode (slow, requires ≥32 GB RAM)
 vllm-stop: ## Stop vLLM service (any mode)
 	docker compose --profile gpu --profile cpu stop vllm vllm-cpu 2>/dev/null || true
 
+seed-alc: ## Run ALC corporate environment seed (Phase 8.2 — users, governance, agents)
+	@echo "Seeding AI task types and ALC corporate environment..."
+	@TOKEN=$$(curl -s -X POST $(API_URL)/api/v1/auth/login \
+		-H "Content-Type: application/json" \
+		-d '{"username":"$(ADMIN_USERNAME)","password":"$(ADMIN_PASSWORD)"}' | \
+		python3 -c "import sys,json; print(json.load(sys.stdin).get('access_token',''))"); \
+	if [ -z "$$TOKEN" ]; then echo "  ✗ Login failed"; exit 1; fi; \
+	RESP=$$(curl -s -X POST $(API_URL)/api/admin/seed-alc-corporate \
+		-H "Authorization: Bearer $$TOKEN" \
+		-H "X-User-Id: 1" \
+		-H "X-Company-Id: 2" \
+		-H "X-Change-Reason: Phase 8.2 ALC corporate environment seed"); \
+	if echo "$$RESP" | grep -q '"error"'; then \
+		echo "  ✗ Failed:"; echo "$$RESP" | python3 -m json.tool; exit 1; \
+	else \
+		echo "  ✓ ALC corporate environment seeded"; \
+		echo "$$RESP" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'    Users: {len(d.get(\"users\",{}).get(\"created\",[]))} created'); print(f'    Folders: {len(d.get(\"folders\",{}).get(\"created\",[]))} created')"; \
+	fi
+
 vllm-logs: ## Tail vLLM logs
 	docker compose logs -f vllm vllm-cpu 2>/dev/null || docker compose --profile gpu logs -f vllm
 

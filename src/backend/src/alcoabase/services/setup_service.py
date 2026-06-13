@@ -393,6 +393,27 @@ class SetupService:
             await self._seed_demo_data(status.company_id, status.root_admin_id)
             status.demo_data_seeded = True
 
+            # Seed AI task types (required for risk framework and ALC corporate seed)
+            from alcoabase.services.risk_framework_seed import (
+                seed_default_ai_task_types,
+            )
+
+            await seed_default_ai_task_types(self.session)
+
+            # Run ALC corporate environment seed (Phase 8.2)
+            try:
+                from alcoabase.services.alc_seed_service import ALCSeedService
+
+                alc_service = ALCSeedService(self.session)
+                await alc_service.execute()
+            except Exception as e:
+                # Non-fatal — ALC seed is optional for basic setup
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "ALC corporate seed failed (non-fatal): %s", e
+                )
+
         # Mark setup as complete
         status.is_complete = True
         status.completed_at = datetime.now(timezone.utc)

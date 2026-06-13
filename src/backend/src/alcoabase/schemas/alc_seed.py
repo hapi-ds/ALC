@@ -78,6 +78,8 @@ class SeedReport(BaseModel):
     agents_activated: list[str]
     agents_skipped: list[str]
     workflow_created: bool
+    documents_uploaded: list[str] = []
+    documents_skipped: list[str] = []
     total_duration_ms: int
 
 
