@@ -233,6 +233,22 @@ SMOKE_TEST_BASE_URL=http://your-host:8080 uv run pytest tests/smoke/ -v
 
 Smoke tests generate unique slugs per run, so they're safe to execute repeatedly without cleanup.
 
+### Manual Test Protocols & Reports
+
+Structured manual test protocols and execution reports for system-level validation are maintained in:
+
+- **Protocols** (reusable step-by-step procedures): `docs/test-protocols/`
+- **Reports** (executed test results with tester sign-off): `docs/test-reports/`
+
+Each protocol follows a GxP-compliant format with prerequisites, expected results, pass/fail recording, and deviation tracking. Protocols cover Phase 10 of the roadmap (Setup, Documents, Workflows, Training, AI, Admin).
+
+To run a fresh validation cycle:
+
+```bash
+make reset-db && make migrate && make setup
+# Then execute protocols in order: 10.1.1 → 10.1.2 → 10.1.3 → ...
+```
+
 ---
 
 ## ✅ Computer System Validation (CSV)

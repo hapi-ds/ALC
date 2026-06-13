@@ -104,7 +104,7 @@ function extractErrorMessage(error: unknown): string {
   return "An unexpected error occurred";
 }
 
-function buildQueryString(params: Record<string, unknown>): string {
+function buildQueryString(params: Record<string, unknown> | object): string {
   const queryParams = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null) {

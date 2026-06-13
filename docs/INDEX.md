@@ -114,6 +114,24 @@ This section covers the complete literature research pipeline — from querying 
 
 ---
 
+## 8. Manual Testing & Validation
+
+| Document | Location | Purpose |
+|----------|----------|---------|
+| Test Protocols | `docs/test-protocols/` | Reusable step-by-step test procedures (GxP-compliant format) |
+| Test Reports | `docs/test-reports/` | Executed results with pass/fail, tester sign-off, and deviations |
+
+### Available Protocols (Phase 10)
+
+| Protocol | Title |
+|----------|-------|
+| TP-10.1.1 | Docker Services Health |
+| TP-10.1.2 | Setup Wizard — Admin Account |
+| TP-10.1.3 | Setup Wizard — Company Creation & Multi-Tenancy |
+| TP-10.1.4 | Setup Wizard — AI Mode Configuration |
+
+---
+
 ## Regulatory Alignment
 
 AlcoaBase documentation and features are designed to support compliance with:

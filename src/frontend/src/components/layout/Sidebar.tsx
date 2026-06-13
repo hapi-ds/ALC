@@ -21,6 +21,9 @@ import {
   Shield,
   FileKey,
   ScrollText,
+  Database,
+  Brain,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/authStore";
@@ -48,8 +51,11 @@ const navItems = [
 const adminNavItems = [
   { to: "/admin/users", label: "User Management", icon: Users },
   { to: "/admin/roles", label: "Role Management", icon: Shield },
-  { to: "/admin/permission-templates", label: "Permission Templates", icon: FileKey },
+  { to: "/admin/permission-templates", label: "Permissions", icon: FileKey },
+  { to: "/admin/system-config", label: "System Config", icon: Database },
   { to: "/admin/audit-trail", label: "Audit Trail", icon: ScrollText },
+  { to: "/admin/ai-risk-framework", label: "AI Risk Framework", icon: Brain },
+  { to: "/literature-search", label: "Literature Search", icon: BookOpen },
 ];
 
 /** Roles that grant access to the Administration section */

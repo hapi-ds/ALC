@@ -246,7 +246,7 @@ Please write for every item in this list a short user guide after your implement
 - [x] **10.1.2 Setup Wizard — Admin Account**
   Run `make setup`. Create root admin account. Verify login works with created credentials. Confirm setup redirect is cleared.
 
-- [ ] **10.1.3 Setup Wizard — Company Creation**
+- [x] **10.1.3 Setup Wizard — Company Creation**
   Create a second company via setup wizard. Verify it appears in company list. Switch between companies. Verify data isolation.
 
 - [ ] **10.1.4 Setup Wizard — AI Mode Configuration**
@@ -411,6 +411,7 @@ Please write for every item in this list a short user guide after your implement
 ## Phase 12 - Enhancements
 
 - [ ] **12.1 Migrate to DSPy?**
+- [ ] **12.2 Easy setup (make ..?) of companys?**
 
 
 ## Notes

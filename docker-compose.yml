@@ -209,7 +209,7 @@ services:
       dockerfile: Dockerfile
     container_name: alcoabase-celery-worker
     restart: unless-stopped
-    command: ["celery", "-A", "alcoabase.tasks.celery_app", "worker", "--loglevel=info", "--concurrency=2"]
+    command: ["celery", "-A", "alcoabase.tasks.celery_app", "worker", "--beat", "--loglevel=info", "--concurrency=2", "-s", "/tmp/celerybeat-schedule", "-Q", "celery,default,ai_operations,literature_ingestion"]
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - MINIO_ENDPOINT=minio:9000

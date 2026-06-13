@@ -90,5 +90,24 @@ celery_app.conf.beat_schedule = {
     },
 }
 
-# Auto-discover tasks in the tasks package
-celery_app.autodiscover_tasks(["alcoabase.tasks"])
+# Auto-discover tasks: import all task modules explicitly
+# (autodiscover_tasks expects packages with a 'tasks.py' inside, but our
+# task modules are named individually within the alcoabase.tasks package)
+celery_app.conf.update(
+    include=[
+        "alcoabase.tasks.indexing_tasks",
+        "alcoabase.tasks.review_tasks",
+        "alcoabase.tasks.training_tasks",
+        "alcoabase.tasks.risk_framework_tasks",
+        "alcoabase.tasks.system_config_tasks",
+        "alcoabase.tasks.literature_ingestion_tasks",
+        "alcoabase.tasks.literature_search_tasks",
+        "alcoabase.tasks.literature_embedding_tasks",
+        "alcoabase.tasks.literature_screening_tasks",
+        "alcoabase.tasks.vigilance_tasks",
+        "alcoabase.tasks.impact_analysis_tasks",
+        "alcoabase.tasks.traceability_tasks",
+        "alcoabase.tasks.document_generation_tasks",
+        "alcoabase.tasks.audit_export_tasks",
+    ],
+)

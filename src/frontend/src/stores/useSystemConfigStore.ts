@@ -355,8 +355,9 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
     setLoading(set, "backupHistory", true);
     setError(set, "backupHistory", null);
     try {
-      const response = await apiClient.get<{ backups: BackupRecord[] }>("/api/system-config/backups/history");
-      set({ backupHistory: response.backups });
+      const response = await apiClient.get<BackupRecord[] | { backups: BackupRecord[] }>("/api/system-config/backups/history");
+      const backups = Array.isArray(response) ? response : (response.backups ?? []);
+      set({ backupHistory: backups });
     } catch (error) {
       setError(set, "backupHistory", error instanceof Error ? error.message : "Failed to fetch backup history");
     } finally {
@@ -396,8 +397,10 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
     setLoading(set, "healthStatus", true);
     setError(set, "healthStatus", null);
     try {
-      const response = await apiClient.get<{ services: ServiceHealthStatus[] }>("/api/system-config/health/status");
-      set({ healthStatus: response.services });
+      const response = await apiClient.get<ServiceHealthStatus[] | { services: ServiceHealthStatus[] }>("/api/system-config/health/status");
+      // Handle both array response and wrapped { services: [...] } format
+      const services = Array.isArray(response) ? response : (response.services ?? []);
+      set({ healthStatus: services });
     } catch (error) {
       setError(set, "healthStatus", error instanceof Error ? error.message : "Failed to fetch health status");
     } finally {
@@ -456,8 +459,9 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
     setLoading(set, "services", true);
     setError(set, "services", null);
     try {
-      const response = await apiClient.get<{ services: ServiceInfo[] }>("/api/system-config/services");
-      set({ services: response.services });
+      const response = await apiClient.get<ServiceInfo[] | { services: ServiceInfo[] }>("/api/system-config/services");
+      const services = Array.isArray(response) ? response : (response.services ?? []);
+      set({ services });
     } catch (error) {
       setError(set, "services", error instanceof Error ? error.message : "Failed to fetch services");
     } finally {

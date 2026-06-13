@@ -285,11 +285,11 @@ class SetupService:
         self.session.add(company)
         await self.session.flush()
 
-        # Create CompanyMembership for root admin with "admin" role
+        # Create CompanyMembership for root admin with system_admin role
         membership = CompanyMembership(
             user_id=admin_id,
             company_id=company.id,
-            role="admin",
+            role="system_admin",
         )
         self.session.add(membership)
 

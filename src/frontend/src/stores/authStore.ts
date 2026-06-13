@@ -102,10 +102,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       try {
         const me = await apiClient.get<MeResponse>("/api/v1/auth/me");
         const firstCompany = me.companies?.[0];
-        if (firstCompany) {
+        // Use saved company preference if it exists and is valid
+        const savedCompanyId = localStorage.getItem("alcoabase_active_company_id");
+        const savedCompanySlug = localStorage.getItem("alcoabase_active_company_slug");
+        const savedCompany = savedCompanyId
+          ? me.companies?.find((c) => c.company_id === Number(savedCompanyId))
+          : null;
+        const activeCompany = savedCompany ?? firstCompany;
+        if (activeCompany) {
           set({
-            activeCompanyId: firstCompany.company_id,
-            activeCompanySlug: firstCompany.company_slug,
+            activeCompanyId: activeCompany.company_id,
+            activeCompanySlug: activeCompany.company_slug,
           });
         }
       } catch {
@@ -162,8 +169,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // Populate user from /me endpoint
         const me = await apiClient.get<MeResponse>("/api/v1/auth/me");
 
-        // Set active company from first company membership if available
+        // Set active company from saved preference or first company membership
+        const savedCompanyId = localStorage.getItem("alcoabase_active_company_id");
+        const savedCompany = savedCompanyId
+          ? me.companies?.find((c) => c.company_id === Number(savedCompanyId))
+          : null;
         const firstCompany = me.companies?.[0];
+        const activeCompany = savedCompany ?? firstCompany;
 
         set({
           user: {
@@ -176,8 +188,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           isAuthenticated: true,
           isLoading: false,
           sessionExpired: false,
-          activeCompanyId: firstCompany?.company_id ?? null,
-          activeCompanySlug: firstCompany?.company_slug ?? null,
+          activeCompanyId: activeCompany?.company_id ?? null,
+          activeCompanySlug: activeCompany?.company_slug ?? null,
         });
       } else {
         // No valid session — set unauthenticated without error
