@@ -240,10 +240,10 @@ Please write for every item in this list a short user guide after your implement
 
 ### 10.1 Setup & Environment
 
-- [ ] **10.1.1 Docker Services Health**
+- [x] **10.1.1 Docker Services Health**
   Verify all services start: postgres, minio, opensearch, redis, backend, celery-worker, frontend, csv-runner. Run `make health` and confirm all green.
 
-- [ ] **10.1.2 Setup Wizard — Admin Account**
+- [x] **10.1.2 Setup Wizard — Admin Account**
   Run `make setup`. Create root admin account. Verify login works with created credentials. Confirm setup redirect is cleared.
 
 - [ ] **10.1.3 Setup Wizard — Company Creation**

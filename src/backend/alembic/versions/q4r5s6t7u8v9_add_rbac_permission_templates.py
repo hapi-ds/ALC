@@ -304,8 +304,11 @@ def upgrade() -> None:
             {"company_id": company_id},
         ).fetchone()
 
-        # If no members exist, use user id 1 as fallback
-        creator_id = creator_row[0] if creator_row else 1
+        # If no members exist, skip seeding for this company
+        # (templates will be seeded during setup wizard)
+        if not creator_row:
+            continue
+        creator_id = creator_row[0]
 
         for template in DEFAULT_PERMISSION_TEMPLATES:
             connection.execute(

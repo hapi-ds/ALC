@@ -66,50 +66,56 @@ def upgrade() -> None:
     )
 
     # --- Add new columns to workflow_definitions_version (Continuum audit table) ---
+    # The Continuum version table may not exist yet if this is a fresh DB
+    # (it gets created by Base.metadata.create_all after migrations).
+    # Only add columns if the table already exists.
 
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column("risk_level", sa.String(length=20), nullable=True),
-    )
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column(
-            "auto_assignment_config",
-            postgresql.JSON(astext_type=sa.Text()),
-            nullable=True,
-        ),
-    )
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column("current_version", sa.Integer(), nullable=True),
-    )
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column(
-            "risk_level_mod",
-            sa.Boolean(),
-            nullable=False,
-            server_default="false",
-        ),
-    )
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column(
-            "auto_assignment_config_mod",
-            sa.Boolean(),
-            nullable=False,
-            server_default="false",
-        ),
-    )
-    op.add_column(
-        "workflow_definitions_version",
-        sa.Column(
-            "current_version_mod",
-            sa.Boolean(),
-            nullable=False,
-            server_default="false",
-        ),
-    )
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if "workflow_definitions_version" in inspector.get_table_names():
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column("risk_level", sa.String(length=20), nullable=True),
+        )
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column(
+                "auto_assignment_config",
+                postgresql.JSON(astext_type=sa.Text()),
+                nullable=True,
+            ),
+        )
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column("current_version", sa.Integer(), nullable=True),
+        )
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column(
+                "risk_level_mod",
+                sa.Boolean(),
+                nullable=False,
+                server_default="false",
+            ),
+        )
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column(
+                "auto_assignment_config_mod",
+                sa.Boolean(),
+                nullable=False,
+                server_default="false",
+            ),
+        )
+        op.add_column(
+            "workflow_definitions_version",
+            sa.Column(
+                "current_version_mod",
+                sa.Boolean(),
+                nullable=False,
+                server_default="false",
+            ),
+        )
 
     # --- Create workflow_versions table ---
 

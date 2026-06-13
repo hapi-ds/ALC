@@ -204,7 +204,7 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["generation_provenance_id"],
             ["generation_provenance.id"],
-            name="fk_cross_reference_entries_generation_provenance_id_generation_provenance",
+            name="fk_cross_ref_entries_gen_provenance_id",
         ),
         sa.ForeignKeyConstraint(
             ["source_document_id"],

@@ -10,7 +10,7 @@ References:
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from alcoabase.database import Base
@@ -56,7 +56,7 @@ class Document(Base, AuditMixin):
     )
     company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"))
     source_ingestion_record_id: Mapped[int | None] = mapped_column(
-        ForeignKey("literature_ingestion_records.id"), nullable=True, index=True
+        Integer, ForeignKey("literature_ingestion_records.id"), nullable=True, index=True
     )
     is_demo_data: Mapped[bool] = mapped_column(default=False)
 
