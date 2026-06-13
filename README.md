@@ -425,6 +425,34 @@ Mock mode returns:
 
 This allows full application testing without GPU hardware or downloaded model weights.
 
+### AI Mode Switching
+
+AlcoaBase supports three inference modes, controlled by `MODEL_MANAGER_MODE` in `.env`:
+
+| Mode | Requirement | Command |
+|------|-------------|---------|
+| `mock` | None | `make up` (default) |
+| `gpu` | NVIDIA GPU ≥ 24 GB VRAM + model weights | `make vllm-gpu` or set `MODEL_MANAGER_MODE=gpu` then `make up` |
+| `cpu` | ≥ 32 GB RAM + model weights (very slow) | `make vllm-cpu` or set `MODEL_MANAGER_MODE=cpu` then `make up` |
+
+`make up` reads `MODEL_MANAGER_MODE` from `.env` and automatically starts the corresponding vLLM container. You can also use the explicit commands:
+
+```bash
+make vllm-gpu      # Start vLLM with GPU (waits for health check)
+make vllm-cpu      # Start vLLM in CPU mode (waits for health check)
+make vllm-stop     # Stop vLLM (any mode)
+make vllm-logs     # Tail vLLM container logs
+```
+
+The mode can also be switched at runtime via the Admin UI (System Config → AI Settings) or API:
+
+```bash
+curl -X PUT http://localhost:8080/api/system-config/ai-hardware \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "X-Change-Reason: Switch to GPU mode" \
+  -d '{"inference_mode":"gpu"}'
+```
+
 ---
 ## AI Disclosure
 This project was developed with assistance from AI coding tools, including kiro, opencode, qwen, claude. All outputs were reviewed, tested, and accepted by the maintainers. AI was used to support development; all architectural decisions and responsibility remain with the authors.

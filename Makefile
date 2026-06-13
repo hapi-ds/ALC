@@ -30,14 +30,40 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-up: ## Start all services
-	docker compose up -d
+up: ## Start all services (auto-starts vLLM based on MODEL_MANAGER_MODE in .env)
+	@MODE=$$(grep -E '^MODEL_MANAGER_MODE=' .env 2>/dev/null | cut -d= -f2 | tr -d ' "'); \
+	if [ "$$MODE" = "gpu" ]; then \
+		echo "Starting with GPU profile (MODEL_MANAGER_MODE=gpu)..."; \
+		docker compose --profile gpu up -d; \
+	elif [ "$$MODE" = "cpu" ]; then \
+		echo "Starting with CPU profile (MODEL_MANAGER_MODE=cpu)..."; \
+		docker compose --profile cpu up -d; \
+	else \
+		echo "Starting in mock mode (no vLLM)..."; \
+		docker compose up -d; \
+	fi
 
 down: ## Stop all services
-	docker compose down
+	docker compose --profile gpu --profile cpu down
 
 rebuild: ## Rebuild and restart all services
 	docker compose up -d --build
+
+vllm-gpu: ## Start vLLM with GPU support (requires NVIDIA GPU ≥24 GB VRAM)
+	docker compose --profile gpu up -d vllm
+	@echo "Waiting for vLLM to load models (this may take 1-3 minutes)..."
+	@timeout 180 bash -c 'until curl -sf http://localhost:8000/health >/dev/null 2>&1; do sleep 5; echo "  Waiting..."; done' && echo "  ✓ vLLM ready!" || echo "  ✗ vLLM did not become healthy within 3 minutes"
+
+vllm-cpu: ## Start vLLM in CPU-only mode (slow, requires ≥32 GB RAM)
+	docker compose --profile cpu up -d vllm-cpu
+	@echo "Waiting for vLLM CPU to load models (this may take 5-10 minutes)..."
+	@timeout 600 bash -c 'until curl -sf http://localhost:8000/health >/dev/null 2>&1; do sleep 10; echo "  Waiting..."; done' && echo "  ✓ vLLM (CPU) ready!" || echo "  ✗ vLLM did not become healthy within 10 minutes"
+
+vllm-stop: ## Stop vLLM service (any mode)
+	docker compose --profile gpu --profile cpu stop vllm vllm-cpu 2>/dev/null || true
+
+vllm-logs: ## Tail vLLM logs
+	docker compose logs -f vllm vllm-cpu 2>/dev/null || docker compose --profile gpu logs -f vllm
 
 logs: ## Tail logs for all services
 	docker compose logs -f
