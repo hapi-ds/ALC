@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { Save, Clock, Calendar, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSystemConfigStore } from "@/stores/useSystemConfigStore";
+import { ApiError } from "@/lib/apiClient";
 
 /**
  * BackupScheduleForm — displays and edits the backup cron schedule and retention policy.
@@ -76,9 +77,18 @@ export function BackupScheduleForm() {
       setShowScheduleReasonDialog(false);
       setReason("");
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to update backup schedule"
-      );
+      let message = "Failed to update backup schedule";
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          message = body.detail || message;
+        } catch {
+          // body wasn't JSON
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setSubmitError(message);
       setShowScheduleReasonDialog(false);
       setReason("");
     }
@@ -93,9 +103,18 @@ export function BackupScheduleForm() {
       setShowRetentionReasonDialog(false);
       setReason("");
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to update retention policy"
-      );
+      let message = "Failed to update retention policy";
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          message = body.detail || message;
+        } catch {
+          // body wasn't JSON
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setSubmitError(message);
       setShowRetentionReasonDialog(false);
       setReason("");
     }

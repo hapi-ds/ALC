@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { Save, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSystemConfigStore } from "@/stores/useSystemConfigStore";
+import { ApiError } from "@/lib/apiClient";
 import type { CompanyStorageUsage, StorageQuotaUpdate } from "@/types/systemConfig";
 
 /**
@@ -93,9 +94,18 @@ export function QuotaEditForm({ company, onClose }: QuotaEditFormProps) {
       setShowReasonDialog(false);
       setReason("");
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to update quota"
-      );
+      let message = "Failed to update quota";
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          message = body.detail || message;
+        } catch {
+          // body wasn't JSON
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setSubmitError(message);
       setShowReasonDialog(false);
       setReason("");
     }

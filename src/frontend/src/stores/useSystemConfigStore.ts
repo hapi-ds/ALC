@@ -7,7 +7,7 @@
  */
 
 import { create } from "zustand";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, ApiError } from "@/lib/apiClient";
 import type {
   AIHardwareConfig,
   AIHardwareUpdate,
@@ -114,6 +114,23 @@ function setError(set: (partial: Partial<SystemConfigState>) => void, key: strin
   set({ errors: { ...useSystemConfigStore.getState().errors, [key]: error } });
 }
 
+/** Extract a human-readable error message from an API error or generic error. */
+function extractErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) {
+    try {
+      const body = JSON.parse(error.body);
+      if (body.detail) return body.detail;
+    } catch {
+      // body wasn't JSON — fall through
+    }
+    return error.message;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
+
 // ---------------------------------------------------------------------------
 // Store
 // ---------------------------------------------------------------------------
@@ -150,7 +167,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const response = await apiClient.get<AIHardwareConfig>("/api/system-config/ai-hardware");
       set({ aiHardware: response });
     } catch (error) {
-      setError(set, "aiHardware", error instanceof Error ? error.message : "Failed to fetch AI hardware config");
+      setError(set, "aiHardware", extractErrorMessage(error, "Failed to fetch AI hardware config"));
     } finally {
       setLoading(set, "aiHardware", false);
     }
@@ -167,7 +184,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ aiHardware: response });
     } catch (error) {
-      setError(set, "aiHardware", error instanceof Error ? error.message : "Failed to update AI hardware config");
+      setError(set, "aiHardware", extractErrorMessage(error, "Failed to update AI hardware config"));
       throw error;
     } finally {
       setLoading(set, "aiHardware", false);
@@ -181,7 +198,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       await apiClient.post("/api/system-config/ai-hardware/restart-vllm", undefined, { changeReason: reason });
       set({ vllmStatus: { status: "restarting", elapsed_time: 0, error: null } });
     } catch (error) {
-      setError(set, "vllmRestart", error instanceof Error ? error.message : "Failed to restart vLLM");
+      setError(set, "vllmRestart", extractErrorMessage(error, "Failed to restart vLLM"));
       throw error;
     } finally {
       setLoading(set, "vllmRestart", false);
@@ -195,7 +212,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const response = await apiClient.get<VLLMStatus>("/api/system-config/ai-hardware/vllm-status");
       set({ vllmStatus: response });
     } catch (error) {
-      setError(set, "vllmStatus", error instanceof Error ? error.message : "Failed to fetch vLLM status");
+      setError(set, "vllmStatus", extractErrorMessage(error, "Failed to fetch vLLM status"));
     } finally {
       setLoading(set, "vllmStatus", false);
     }
@@ -214,7 +231,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ storageUsage: response.companies, storageTotals: response.totals });
     } catch (error) {
-      setError(set, "storageUsage", error instanceof Error ? error.message : "Failed to fetch storage usage");
+      setError(set, "storageUsage", extractErrorMessage(error, "Failed to fetch storage usage"));
     } finally {
       setLoading(set, "storageUsage", false);
     }
@@ -233,7 +250,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       }
       set({ quotas: quotasMap });
     } catch (error) {
-      setError(set, "quotas", error instanceof Error ? error.message : "Failed to fetch quotas");
+      setError(set, "quotas", extractErrorMessage(error, "Failed to fetch quotas"));
     } finally {
       setLoading(set, "quotas", false);
     }
@@ -260,7 +277,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
         },
       });
     } catch (error) {
-      setError(set, "quotas", error instanceof Error ? error.message : "Failed to update quota");
+      setError(set, "quotas", extractErrorMessage(error, "Failed to update quota"));
       throw error;
     } finally {
       setLoading(set, "quotas", false);
@@ -278,7 +295,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const response = await apiClient.get<BackupSchedule>("/api/system-config/backups/schedule");
       set({ backupSchedule: response });
     } catch (error) {
-      setError(set, "backupSchedule", error instanceof Error ? error.message : "Failed to fetch backup schedule");
+      setError(set, "backupSchedule", extractErrorMessage(error, "Failed to fetch backup schedule"));
     } finally {
       setLoading(set, "backupSchedule", false);
     }
@@ -295,7 +312,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ backupSchedule: response });
     } catch (error) {
-      setError(set, "backupSchedule", error instanceof Error ? error.message : "Failed to update backup schedule");
+      setError(set, "backupSchedule", extractErrorMessage(error, "Failed to update backup schedule"));
       throw error;
     } finally {
       setLoading(set, "backupSchedule", false);
@@ -309,7 +326,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const response = await apiClient.get<RetentionPolicy>("/api/system-config/backups/retention");
       set({ retentionPolicy: response });
     } catch (error) {
-      setError(set, "retentionPolicy", error instanceof Error ? error.message : "Failed to fetch retention policy");
+      setError(set, "retentionPolicy", extractErrorMessage(error, "Failed to fetch retention policy"));
     } finally {
       setLoading(set, "retentionPolicy", false);
     }
@@ -326,7 +343,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ retentionPolicy: response });
     } catch (error) {
-      setError(set, "retentionPolicy", error instanceof Error ? error.message : "Failed to update retention policy");
+      setError(set, "retentionPolicy", extractErrorMessage(error, "Failed to update retention policy"));
       throw error;
     } finally {
       setLoading(set, "retentionPolicy", false);
@@ -344,7 +361,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ activeBackupTaskId: response.task_id });
     } catch (error) {
-      setError(set, "triggerBackup", error instanceof Error ? error.message : "Failed to trigger backup");
+      setError(set, "triggerBackup", extractErrorMessage(error, "Failed to trigger backup"));
       throw error;
     } finally {
       setLoading(set, "triggerBackup", false);
@@ -359,7 +376,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const backups = Array.isArray(response) ? response : (response.backups ?? []);
       set({ backupHistory: backups });
     } catch (error) {
-      setError(set, "backupHistory", error instanceof Error ? error.message : "Failed to fetch backup history");
+      setError(set, "backupHistory", extractErrorMessage(error, "Failed to fetch backup history"));
     } finally {
       setLoading(set, "backupHistory", false);
     }
@@ -383,7 +400,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
         set({ activeBackupTaskId: null });
       }
     } catch (error) {
-      setError(set, "backupStatus", error instanceof Error ? error.message : "Failed to poll backup status");
+      setError(set, "backupStatus", extractErrorMessage(error, "Failed to poll backup status"));
     } finally {
       setLoading(set, "backupStatus", false);
     }
@@ -402,7 +419,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const services = Array.isArray(response) ? response : (response.services ?? []);
       set({ healthStatus: services });
     } catch (error) {
-      setError(set, "healthStatus", error instanceof Error ? error.message : "Failed to fetch health status");
+      setError(set, "healthStatus", extractErrorMessage(error, "Failed to fetch health status"));
     } finally {
       setLoading(set, "healthStatus", false);
     }
@@ -414,7 +431,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
     try {
       await apiClient.get(`/api/system-config/health/history/${service}`);
     } catch (error) {
-      setError(set, "healthHistory", error instanceof Error ? error.message : "Failed to fetch health history");
+      setError(set, "healthHistory", extractErrorMessage(error, "Failed to fetch health history"));
     } finally {
       setLoading(set, "healthHistory", false);
     }
@@ -427,7 +444,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const response = await apiClient.get<HealthCheckConfig>("/api/system-config/health/config");
       set({ healthConfig: response, healthPollingInterval: response.polling_interval_seconds });
     } catch (error) {
-      setError(set, "healthConfig", error instanceof Error ? error.message : "Failed to fetch health config");
+      setError(set, "healthConfig", extractErrorMessage(error, "Failed to fetch health config"));
     } finally {
       setLoading(set, "healthConfig", false);
     }
@@ -444,7 +461,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       set({ healthConfig: response, healthPollingInterval: response.polling_interval_seconds });
     } catch (error) {
-      setError(set, "healthConfig", error instanceof Error ? error.message : "Failed to update health config");
+      setError(set, "healthConfig", extractErrorMessage(error, "Failed to update health config"));
       throw error;
     } finally {
       setLoading(set, "healthConfig", false);
@@ -463,7 +480,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const services = Array.isArray(response) ? response : (response.services ?? []);
       set({ services });
     } catch (error) {
-      setError(set, "services", error instanceof Error ? error.message : "Failed to fetch services");
+      setError(set, "services", extractErrorMessage(error, "Failed to fetch services"));
     } finally {
       setLoading(set, "services", false);
     }
@@ -479,7 +496,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const current = get().resourceMetrics;
       set({ resourceMetrics: { ...current, [service]: response.metrics } });
     } catch (error) {
-      setError(set, "resourceMetrics", error instanceof Error ? error.message : "Failed to fetch service metrics");
+      setError(set, "resourceMetrics", extractErrorMessage(error, "Failed to fetch service metrics"));
     } finally {
       setLoading(set, "resourceMetrics", false);
     }
@@ -495,7 +512,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       const current = get().resourceMetrics;
       set({ resourceMetrics: { ...current, [service]: response.metrics } });
     } catch (error) {
-      setError(set, "resourceMetrics", error instanceof Error ? error.message : "Failed to fetch resource metrics");
+      setError(set, "resourceMetrics", extractErrorMessage(error, "Failed to fetch resource metrics"));
     } finally {
       setLoading(set, "resourceMetrics", false);
     }
@@ -515,7 +532,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       }>(`/api/system-config/snapshots?page=${page}&page_size=20`);
       set({ snapshots: response.snapshots, snapshotsPagination: response.pagination });
     } catch (error) {
-      setError(set, "snapshots", error instanceof Error ? error.message : "Failed to fetch snapshots");
+      setError(set, "snapshots", extractErrorMessage(error, "Failed to fetch snapshots"));
     } finally {
       setLoading(set, "snapshots", false);
     }
@@ -530,7 +547,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       return response.diff;
     } catch (error) {
-      setError(set, "snapshotDiff", error instanceof Error ? error.message : "Failed to fetch snapshot diff");
+      setError(set, "snapshotDiff", extractErrorMessage(error, "Failed to fetch snapshot diff"));
       throw error;
     } finally {
       setLoading(set, "snapshotDiff", false);
@@ -548,7 +565,7 @@ export const useSystemConfigStore = create<SystemConfigState>((set, get) => ({
       );
       return response;
     } catch (error) {
-      setError(set, "rollback", error instanceof Error ? error.message : "Failed to rollback to snapshot");
+      setError(set, "rollback", extractErrorMessage(error, "Failed to rollback to snapshot"));
       throw error;
     } finally {
       setLoading(set, "rollback", false);

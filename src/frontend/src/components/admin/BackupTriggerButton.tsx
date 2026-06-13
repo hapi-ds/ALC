@@ -92,9 +92,18 @@ export function BackupTriggerButton() {
         setConcurrentError(true);
         setTriggerError(null);
       } else {
-        setTriggerError(
-          err instanceof Error ? err.message : "Failed to trigger backup"
-        );
+        let message = "Failed to trigger backup";
+        if (err instanceof ApiError) {
+          try {
+            const body = JSON.parse(err.body);
+            message = body.detail || message;
+          } catch {
+            // body wasn't JSON
+          }
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+        setTriggerError(message);
       }
       setShowReasonDialog(false);
       setReason("");

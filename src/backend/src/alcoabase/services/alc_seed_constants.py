@@ -26,25 +26,25 @@ ALC_USER_POOL: list[dict[str, str]] = [
         "username": "alc-it-admin",
         "full_name": "ALC IT Administrator",
         "email": "it-admin@alc.local",
-        "role": "system_administrator",
+        "role": "system_admin",
     },
     {
         "username": "alc-doc-admin",
         "full_name": "ALC Document Administrator",
         "email": "doc-admin@alc.local",
-        "role": "document_administrator",
+        "role": "doc_admin",
     },
     {
         "username": "alc-quality-mgr",
         "full_name": "ALC Quality Manager",
         "email": "quality@alc.local",
-        "role": "quality_manager",
+        "role": "doc_admin",
     },
     {
         "username": "alc-user",
         "full_name": "ALC Standard User",
         "email": "user@alc.local",
-        "role": "user",
+        "role": "member",
     },
 ]
 

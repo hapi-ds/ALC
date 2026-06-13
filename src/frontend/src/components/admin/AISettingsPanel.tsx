@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Cpu, Zap, TestTube, RefreshCw, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, ApiError } from "@/lib/apiClient";
 
 interface AIHardwareConfig {
   model_chat_name: string;
@@ -40,7 +40,16 @@ export function AISettingsPanel() {
       const data = await apiClient.get<AIHardwareConfig>("/api/system-config/ai-hardware");
       setConfig(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load AI configuration");
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          setError(body.detail || `API error ${err.status}`);
+        } catch {
+          setError(`API error ${err.status}: ${err.body}`);
+        }
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to load AI configuration");
+      }
     } finally {
       setLoading(false);
     }
@@ -60,7 +69,16 @@ export function AISettingsPanel() {
       );
       setConfig(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to switch mode");
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          setError(body.detail || `API error ${err.status}`);
+        } catch {
+          setError(`API error ${err.status}: ${err.body}`);
+        }
+      } else {
+        setError(err instanceof Error ? err.message : "Failed to switch mode");
+      }
     } finally {
       setSwitching(false);
     }

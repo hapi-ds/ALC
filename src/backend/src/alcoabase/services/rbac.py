@@ -194,11 +194,16 @@ class RBACService:
         # 3. Load role permissions
         permissions = await self._get_role_permissions(membership, session)
         if permissions is None:
+            role_name = membership.role or "unknown"
+            role_id_info = f" (role_id={membership.role_id})" if membership.role_id else ""
             return AccessDenied(
                 user_id=user_id,
                 resource=resource,
                 action=action,
-                reason="Role not found.",
+                reason=(
+                    f"Role '{role_name}'{role_id_info} not recognized. "
+                    f"Valid roles: system_admin, doc_admin, it_admin, member, viewer."
+                ),
             )
 
         # 4. Evaluate resource:action grant
@@ -209,11 +214,16 @@ class RBACService:
                 action=action,
             )
 
+        role_name = membership.role or "unknown"
+        role_id_info = f" (role_id={membership.role_id})" if membership.role_id else ""
         return AccessDenied(
             user_id=user_id,
             resource=resource,
             action=action,
-            reason=f"Missing permission: {action} on {resource}",
+            reason=(
+                f"Role '{role_name}'{role_id_info} does not have "
+                f"'{action}' permission on '{resource}'."
+            ),
         )
 
     async def check_document_access(
@@ -408,8 +418,13 @@ class RBACService:
             role_stmt = select(Role).where(Role.id == membership.role_id)
             role_result = await session.execute(role_stmt)
             role = role_result.scalar_one_or_none()
-            if role is not None:
+            if role is not None and role.permissions:
+                # Only use DB permissions if they're non-empty
                 return role.permissions
+            # If role exists but permissions is empty/{}, fall through to defaults
+            # using the role name from the DB record
+            if role is not None and role.name in DEFAULT_ROLE_PERMISSIONS:
+                return DEFAULT_ROLE_PERMISSIONS[role.name]
 
         # Fallback to legacy role string → default permissions
         legacy_role = membership.role

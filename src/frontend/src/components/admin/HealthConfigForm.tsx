@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { Save, Settings, AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSystemConfigStore } from "@/stores/useSystemConfigStore";
+import { ApiError } from "@/lib/apiClient";
 import type { HealthCheckConfig } from "@/types/systemConfig";
 
 /**
@@ -61,9 +62,18 @@ export function HealthConfigForm() {
       setShowReasonDialog(false);
       setReason("");
     } catch (err) {
-      setSubmitError(
-        err instanceof Error ? err.message : "Failed to update health check configuration",
-      );
+      let message = "Failed to update health check configuration";
+      if (err instanceof ApiError) {
+        try {
+          const body = JSON.parse(err.body);
+          message = body.detail || message;
+        } catch {
+          // body wasn't JSON
+        }
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setSubmitError(message);
       setShowReasonDialog(false);
       setReason("");
     }
