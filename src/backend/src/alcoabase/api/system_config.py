@@ -311,12 +311,11 @@ async def get_ai_hardware_config(
     config = await service.get_config("ai_hardware", session)
 
     # Check vLLM reachability for both instances
-    vllm_chat_status = await _check_vllm_reachability(
-        config.get("vllm_chat_url", "")
-    )
-    vllm_embedding_status = await _check_vllm_reachability(
-        config.get("vllm_embedding_url", "")
-    )
+    settings = get_settings()
+    chat_url = config.get("vllm_chat_url", "") or settings.vllm_base_url
+    embedding_url = config.get("vllm_embedding_url", "") or getattr(settings, "vllm_embedding_url", chat_url)
+    vllm_chat_status = await _check_vllm_reachability(chat_url)
+    vllm_embedding_status = await _check_vllm_reachability(embedding_url)
 
     return AIHardwareConfigResponse(
         model_chat_name=config.get("model_chat_name", ""),
@@ -329,8 +328,8 @@ async def get_ai_hardware_config(
         model_ocr_path=config.get("model_ocr_path", ""),
         inference_mode=config.get("inference_mode", "mock"),
         gpu_device_id=config.get("gpu_device_id", 0),
-        vllm_chat_url=config.get("vllm_chat_url", ""),
-        vllm_embedding_url=config.get("vllm_embedding_url", ""),
+        vllm_chat_url=chat_url,
+        vllm_embedding_url=embedding_url,
         vllm_chat_status=vllm_chat_status,
         vllm_embedding_status=vllm_embedding_status,
     )

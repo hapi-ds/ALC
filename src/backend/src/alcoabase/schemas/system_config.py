@@ -47,6 +47,8 @@ class AIHardwareConfigUpdate(BaseModel):
     model_ocr_path: str | None = None
     inference_mode: Literal["gpu", "cpu", "mock"] | None = None
     gpu_device_id: int | None = Field(None, ge=0)
+    vllm_chat_url: str | None = None
+    vllm_embedding_url: str | None = None
 
 
 class StorageQuotaUpdate(BaseModel):

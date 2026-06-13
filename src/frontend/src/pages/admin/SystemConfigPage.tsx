@@ -23,6 +23,7 @@ import { ServiceInfoList } from "@/components/admin/ServiceInfoList";
 import { ResourceUtilizationCharts } from "@/components/admin/ResourceUtilizationCharts";
 import { SnapshotHistoryList } from "@/components/admin/SnapshotHistoryList";
 import { useSystemConfigStore } from "@/stores/useSystemConfigStore";
+import { AISettingsPanel } from "@/components/admin/AISettingsPanel";
 import type { CompanyStorageUsage } from "@/types/systemConfig";
 
 // ---------------------------------------------------------------------------
@@ -91,12 +92,7 @@ export function SystemConfigPage() {
 
         {/* AI Settings Tab */}
         <TabsContent value="ai-settings">
-          <div className="rounded-lg border border-border p-6">
-            <h3 className="text-lg font-semibold mb-2">AI Hardware Settings</h3>
-            <p className="text-sm text-muted-foreground">
-              Configure AI model paths, GPU allocation, and inference mode. Manage vLLM service status.
-            </p>
-          </div>
+          <AISettingsPanel />
         </TabsContent>
 
         {/* Storage Tab */}

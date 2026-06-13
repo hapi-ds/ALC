@@ -249,10 +249,10 @@ Please write for every item in this list a short user guide after your implement
 - [x] **10.1.3 Setup Wizard — Company Creation**
   Create a second company via setup wizard. Verify it appears in company list. Switch between companies. Verify data isolation.
 
-- [ ] **10.1.4 Setup Wizard — AI Mode Configuration**
+- [x] **10.1.4 Setup Wizard — AI Mode Configuration**
   Test all 3 AI modes: `mock` (default), `gpu`, `cpu`. Verify vLLM service status reflects the selected mode. Test AI mode switch post-setup.
 
-- [ ] **10.1.5 Setup Wizard — Demo Data Seeding**
+- [x] **10.1.5 Setup Wizard — Demo Data Seeding**
   Complete setup with demo data. Verify demo company (ALC) is populated with sample documents, templates, workflows, and users.
 
 - [ ] **10.1.6 Authentication — Login/Logout**
