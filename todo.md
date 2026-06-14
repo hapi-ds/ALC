@@ -255,7 +255,7 @@ Please write for every item in this list a short user guide after your implement
 - [x] **10.1.5 Setup Wizard — Demo Data Seeding**
   Complete setup with demo data. Verify demo company (ALC) is populated with sample documents, templates, workflows, and users.
 
-- [ ] **10.1.6 Authentication — Login/Logout**
+- [x] **10.1.6 Authentication — Login/Logout**
   Test login with valid/invalid credentials. Test session expiry behavior. Test logout clears session. Test refresh token rotation.
 
 - [ ] **10.1.7 Multi-Tenancy Isolation**

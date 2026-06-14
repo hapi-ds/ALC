@@ -890,10 +890,10 @@ class ALCSeedService:
                 skipped.append(title)
                 continue
 
-            # Create the document record (file storage is handled separately
-            # by the document service on actual upload; here we create the
-            # metadata record so it appears in the system)
+            file_content = filepath.read_bytes()
+
             from datetime import datetime, timezone
+            import hashlib
 
             year = datetime.now(timezone.utc).year
             # Generate a unique UUID by counting ALL existing docs globally
@@ -903,6 +903,7 @@ class ALCSeedService:
             next_seq = (count_result.scalar_one() or 0) + 1
             document_uuid = f"{year}-{next_seq:05d}"
 
+            # Create document record
             doc = Document(
                 document_uuid=document_uuid,
                 title=title,
@@ -914,6 +915,42 @@ class ALCSeedService:
                 is_demo_data=False,
             )
             self._session.add(doc)
+            await self._session.flush()
+
+            # Upload file to MinIO
+            storage_key = f"documents/{document_uuid}/1.0/document"
+            file_hash = hashlib.sha512(file_content).hexdigest()
+
+            try:
+                from alcoabase.services.storage_service import StorageService
+
+                storage = StorageService()
+                await storage.upload_file(
+                    key=storage_key,
+                    data=file_content,
+                    content_type="text/markdown",
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to upload governance doc to MinIO: %s (%s)",
+                    title,
+                    e,
+                    extra={"seed_step": "upload_governance_documents"},
+                )
+
+            # Create version record
+            from alcoabase.models.document import DocumentVersion
+
+            version = DocumentVersion(
+                document_id=doc.id,
+                major_version=1,
+                minor_version=0,
+                storage_key=storage_key,
+                file_hash=file_hash,
+                uploaded_by=it_admin.id,
+                change_reason="Initial governance document (seeded)",
+            )
+            self._session.add(version)
             await self._session.flush()
             uploaded.append(title)
 
