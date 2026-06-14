@@ -1,6 +1,8 @@
+export { ContentViewer } from "./ContentViewer";
 export { DiffMetadataView } from "./DiffMetadataView";
 export { DocumentDetail } from "./DocumentDetail";
 export { DocumentList } from "./DocumentList";
+export { DownloadButton } from "./DownloadButton";
 export { DocumentUpload } from "./DocumentUpload";
 export { FilterBar } from "./FilterBar";
 export { Pagination } from "./Pagination";

@@ -104,6 +104,7 @@ class DocumentVersion(Base, AuditMixin):
         uploaded_by: Foreign key to the uploading user.
         uploaded_at: Server-side UTC timestamp of upload.
         change_reason: User-provided reason for the version change.
+        content_type: MIME type of the stored file (nullable for legacy rows).
         document: Back-reference to the parent Document.
     """
 
@@ -120,5 +121,6 @@ class DocumentVersion(Base, AuditMixin):
         DateTime(timezone=True), server_default=func.now()
     )
     change_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    content_type: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
     document: Mapped["Document"] = relationship(back_populates="versions")

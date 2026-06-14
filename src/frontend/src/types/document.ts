@@ -12,6 +12,7 @@ export interface DocumentVersion {
   uploaded_by: number;
   uploaded_at: string;
   change_reason: string | null;
+  content_type?: string | null;
 }
 
 export interface DocumentResponse {

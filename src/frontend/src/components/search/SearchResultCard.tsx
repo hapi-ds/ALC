@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { SearchResult } from "@/stores/searchStore";
+import { DownloadButton } from "@/components/documents";
 
 interface SearchResultCardProps {
   result: SearchResult;
@@ -36,6 +37,18 @@ function HighlightedExcerpt({ text, query }: { text: string; query: string }) {
 }
 
 /**
+ * Parses a version string like "1.0" into major and minor version numbers.
+ * Returns undefined if parsing fails.
+ */
+function parseVersion(version: string): { major_version: number; minor_version: number } | undefined {
+  const parts = version.split(".");
+  const major = Number(parts[0]);
+  const minor = Number(parts[1] ?? 0);
+  if (Number.isNaN(major) || Number.isNaN(minor)) return undefined;
+  return { major_version: major, minor_version: minor };
+}
+
+/**
  * SearchResultCard renders a single search result with title link, version badge,
  * relevance score meter, highlighted excerpt, and metadata badges.
  *
@@ -44,6 +57,7 @@ function HighlightedExcerpt({ text, query }: { text: string; query: string }) {
 export function SearchResultCard({ result, query }: SearchResultCardProps) {
   const clampedScore = Math.max(0, Math.min(1, result.relevance_score));
   const percentage = Math.round(clampedScore * 100);
+  const parsedVersion = parseVersion(result.version);
 
   return (
     <div className="border border-border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors">
@@ -58,6 +72,14 @@ export function SearchResultCard({ result, query }: SearchResultCardProps) {
         <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-muted text-muted-foreground">
           {result.version}
         </span>
+        <div className="ml-auto">
+          <DownloadButton
+            documentUuid={result.document_uuid}
+            documentTitle={result.title}
+            version={parsedVersion}
+            variant="icon"
+          />
+        </div>
       </div>
 
       {/* Relevance score bar */}

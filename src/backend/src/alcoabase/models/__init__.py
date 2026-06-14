@@ -9,6 +9,7 @@ from alcoabase.models.anomaly import AnomalyAlert
 from alcoabase.models.audit import AuditMixin
 from alcoabase.models.audit_access_log import AuditAccessLog
 from alcoabase.models.audit_profile import AuditProfile
+from alcoabase.models.document_access_log import DocumentAccessLog
 from alcoabase.models.company import Company, CompanyAgentActivation, CompanyMembership
 from alcoabase.models.document import Document, DocumentTag, DocumentVersion
 from alcoabase.models.document_generation import (
@@ -110,6 +111,7 @@ __all__ = [
     "DependencyEdge",
     "DiscrepancyReport",
     "Document",
+    "DocumentAccessLog",
     "DocumentState",
     "DocumentTag",
     "DocumentTemplate",

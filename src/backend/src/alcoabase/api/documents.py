@@ -1,18 +1,24 @@
 """FastAPI router for document management endpoints.
 
 Provides endpoints for document creation, versioning, retrieval,
-search operations, and AI-powered document generation.
+search operations, AI-powered document generation, and document
+content download/preview.
 
 References:
     - Design doc Section 3: Document Service API
     - Design doc Section 10: Document Generator
     - Requirements 1, 2: Document CRUD and versioning
     - Task 14.6: POST /api/documents/generate endpoint
+    - Document Content Viewer spec: Download and content preview endpoints
 """
+
+import io
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.responses import StreamingResponse
 
 from alcoabase.database import get_db_session
 from alcoabase.dependencies.tenant import TenantContext, get_tenant_context
@@ -22,6 +28,12 @@ from alcoabase.schemas.document import (
     DocumentVersionCreate,
     DocumentVersionResponse,
 )
+from alcoabase.services.audit_access_logger import log_document_access
+from alcoabase.services.content_type_utils import (
+    build_content_disposition,
+    is_previewable,
+    resolve_content_type,
+)
 from alcoabase.services.document_generator import DocumentGenerator
 from alcoabase.services.document_reviewer import (
     DocumentReviewer,
@@ -29,12 +41,16 @@ from alcoabase.services.document_reviewer import (
 )
 from alcoabase.services.document_service import DocumentService
 from alcoabase.services.rbac import RBACService
+from alcoabase.services.storage_service import StorageService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
-# Module-level service instance
+# Module-level service instances
 _rbac_service = RBACService()
 _document_service = DocumentService(rbac_service=_rbac_service)
+_storage_service = StorageService()
 
 
 def get_document_service() -> DocumentService:
@@ -44,6 +60,15 @@ def get_document_service() -> DocumentService:
         The module-level DocumentService instance.
     """
     return _document_service
+
+
+def get_storage_service() -> StorageService:
+    """Provide the StorageService instance as a dependency.
+
+    Returns:
+        The module-level StorageService instance.
+    """
+    return _storage_service
 
 
 @router.post("", response_model=DocumentResponse, status_code=201)
@@ -226,6 +251,225 @@ async def get_version(
             detail=f"Version {major_version}.{minor_version} not found for document {document_uuid}",
         )
     return DocumentVersionResponse.model_validate(version)
+
+
+@router.get(
+    "/{document_uuid}/versions/{major_version}/{minor_version}/download",
+    responses={401: {}, 403: {}, 404: {}, 502: {}},
+)
+async def download_document_version(
+    document_uuid: str,
+    major_version: int,
+    minor_version: int,
+    session: AsyncSession = Depends(get_db_session),
+    service: DocumentService = Depends(get_document_service),
+    storage: StorageService = Depends(get_storage_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    """Download a specific version of a document as an attachment.
+
+    Streams file bytes from MinIO storage with correct Content-Type,
+    Content-Disposition (attachment), and Content-Length headers. Enforces
+    RBAC access checks and logs the download event to the audit trail.
+
+    Args:
+        document_uuid: The Document-UUID of the document.
+        major_version: Major version number.
+        minor_version: Minor version number.
+        session: Database session dependency.
+        service: DocumentService dependency.
+        storage: StorageService dependency.
+        tenant: Resolved tenant context (provides user_id, company_id).
+
+    Returns:
+        StreamingResponse with file bytes and appropriate headers.
+
+    Raises:
+        HTTPException: 404 if document version not found.
+        HTTPException: 403 if user lacks read permission.
+        HTTPException: 502 if storage retrieval fails.
+    """
+    # Look up document and version
+    document = await service.get_document(session, document_uuid)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document version not found")
+
+    version = await service.get_version(session, document_uuid, major_version, minor_version)
+    if version is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {major_version}.{minor_version} not found for document {document_uuid}",
+        )
+
+    # RBAC enforcement
+    has_access = await service.check_document_access(
+        session=session,
+        document=document,
+        user_id=tenant.user_id,
+        company_id=tenant.company_id,
+        action="read",
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions",
+        )
+
+    # Retrieve file bytes from storage
+    try:
+        file_bytes = await storage.download_file(version.storage_key)
+    except Exception:
+        logger.exception(
+            "Storage retrieval failure for document %s version %d.%d (key=%s)",
+            document_uuid,
+            major_version,
+            minor_version,
+            version.storage_key,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Storage retrieval failure",
+        )
+
+    # Resolve content type and build headers
+    content_type = resolve_content_type(version.content_type, version.storage_key)
+    disposition = build_content_disposition("attachment", document.title)
+
+    # Log the download event (fire-and-forget)
+    await log_document_access(
+        session=session,
+        user_id=tenant.user_id,
+        document_uuid=document_uuid,
+        major_version=major_version,
+        minor_version=minor_version,
+        action="download",
+    )
+
+    return StreamingResponse(
+        content=io.BytesIO(file_bytes),
+        media_type=content_type,
+        headers={
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(file_bytes)),
+        },
+    )
+
+
+@router.get(
+    "/{document_uuid}/versions/{major_version}/{minor_version}/content",
+    responses={401: {}, 403: {}, 404: {}, 502: {}},
+)
+async def get_document_content(
+    document_uuid: str,
+    major_version: int,
+    minor_version: int,
+    session: AsyncSession = Depends(get_db_session),
+    service: DocumentService = Depends(get_document_service),
+    storage: StorageService = Depends(get_storage_service),
+    tenant: TenantContext = Depends(get_tenant_context),
+) -> StreamingResponse:
+    """Preview content of a specific document version inline.
+
+    Streams file bytes from MinIO storage for inline browser rendering.
+    For previewable content types (PDF, markdown, images, plain text),
+    sets Content-Disposition to ``inline``. For non-previewable types
+    (e.g. DOCX), falls back to ``attachment`` disposition to trigger
+    a download.
+
+    For markdown files, overrides the Content-Type to
+    ``text/markdown; charset=utf-8`` to ensure proper encoding.
+
+    Args:
+        document_uuid: The Document-UUID of the document.
+        major_version: Major version number.
+        minor_version: Minor version number.
+        session: Database session dependency.
+        service: DocumentService dependency.
+        storage: StorageService dependency.
+        tenant: Resolved tenant context (provides user_id, company_id).
+
+    Returns:
+        StreamingResponse with file bytes and appropriate headers.
+
+    Raises:
+        HTTPException: 404 if document version not found.
+        HTTPException: 403 if user lacks read permission.
+        HTTPException: 502 if storage retrieval fails.
+    """
+    # Look up document and version
+    document = await service.get_document(session, document_uuid)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document version not found")
+
+    version = await service.get_version(session, document_uuid, major_version, minor_version)
+    if version is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {major_version}.{minor_version} not found for document {document_uuid}",
+        )
+
+    # RBAC enforcement
+    has_access = await service.check_document_access(
+        session=session,
+        document=document,
+        user_id=tenant.user_id,
+        company_id=tenant.company_id,
+        action="read",
+    )
+    if not has_access:
+        raise HTTPException(
+            status_code=403,
+            detail="Insufficient permissions",
+        )
+
+    # Retrieve file bytes from storage
+    try:
+        file_bytes = await storage.download_file(version.storage_key)
+    except Exception:
+        logger.exception(
+            "Storage retrieval failure for document %s version %d.%d (key=%s)",
+            document_uuid,
+            major_version,
+            minor_version,
+            version.storage_key,
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="Storage retrieval failure",
+        )
+
+    # Resolve content type
+    content_type = resolve_content_type(version.content_type, version.storage_key)
+
+    # Determine disposition based on previewability
+    if is_previewable(content_type):
+        disposition = build_content_disposition("inline", document.title)
+    else:
+        disposition = build_content_disposition("attachment", document.title)
+
+    # Override Content-Type for markdown to include charset
+    media_type = content_type
+    if content_type == "text/markdown":
+        media_type = "text/markdown; charset=utf-8"
+
+    # Log the content preview event (fire-and-forget)
+    await log_document_access(
+        session=session,
+        user_id=tenant.user_id,
+        document_uuid=document_uuid,
+        major_version=major_version,
+        minor_version=minor_version,
+        action="content_preview",
+    )
+
+    return StreamingResponse(
+        content=io.BytesIO(file_bytes),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": disposition,
+            "Content-Length": str(len(file_bytes)),
+        },
+    )
 
 
 @router.get("", response_model=DocumentSearchResponse)

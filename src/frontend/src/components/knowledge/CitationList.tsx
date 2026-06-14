@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronRight, FileText, Image } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, FileText, Image } from "lucide-react";
 import type { SourceCitation } from "@/stores/knowledgeStore";
 
 interface CitationListProps {
@@ -10,11 +10,32 @@ interface CitationListProps {
 }
 
 /**
+ * Parses a version string like "1.0" or "2.1" into major and minor integers.
+ * Returns null if the version cannot be parsed.
+ */
+function parseVersion(version: string): { major: number; minor: number } | null {
+  const parts = version.split(".");
+  if (parts.length < 2) return null;
+  const major = parseInt(parts[0], 10);
+  const minor = parseInt(parts[1], 10);
+  if (isNaN(major) || isNaN(minor)) return null;
+  return { major, minor };
+}
+
+/**
+ * Builds the content endpoint URL for viewing a document in a new tab.
+ */
+function buildContentUrl(documentUuid: string, major: number, minor: number): string {
+  return `/api/documents/${documentUuid}/versions/${major}/${minor}/content`;
+}
+
+/**
  * CitationList renders a collapsible list of source citations.
  *
  * - Displays a summary label with citation count (e.g., "3 sources"), collapsed by default
  * - Expands on click to show the full citation list
  * - Each citation shows: title as a link to /documents/{document_uuid}, version badge, page_or_section
+ * - Each citation includes a download/view link that opens the document content in a new tab
  * - Visual citations (content_type: "visual") display a distinct image icon and a visual_type badge
  * - Text citations display a document icon
  * - Maximum 50 citations displayed
@@ -85,6 +106,22 @@ export function CitationList({
                 <span className="bg-gray-200 dark:bg-gray-700 rounded-full px-2 py-0.5 text-xs text-muted-foreground whitespace-nowrap">
                   v{citation.version}
                 </span>
+                {/* Download/view link — opens content in new tab */}
+                {(() => {
+                  const parsed = parseVersion(citation.version);
+                  if (!parsed) return null;
+                  return (
+                    <a
+                      href={buildContentUrl(citation.document_uuid, parsed.major, parsed.minor)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`View or download ${citation.title}`}
+                      className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                    </a>
+                  );
+                })()}
                 {/* Visual type badge for visual citations */}
                 {isVisual && citation.visual_type && (
                   <span className="bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap">

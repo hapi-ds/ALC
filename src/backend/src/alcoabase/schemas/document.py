@@ -74,6 +74,7 @@ class DocumentVersionResponse(BaseModel):
         uploaded_by: ID of the uploading user.
         uploaded_at: Upload timestamp.
         change_reason: Reason for the version change.
+        content_type: MIME type of the stored file (nullable for legacy rows).
     """
 
     id: int
@@ -84,6 +85,7 @@ class DocumentVersionResponse(BaseModel):
     uploaded_by: int
     uploaded_at: datetime | None = None
     change_reason: str | None = None
+    content_type: str | None = None
 
     model_config = {"from_attributes": True}
 

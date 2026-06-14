@@ -10,6 +10,7 @@ import { TrainingStatusBanner } from "@/components/training/TrainingStatusBanner
 import { SignatureRecordsPanel } from "@/components/signatures/SignatureRecordsPanel";
 import { SubmitForReviewModal } from "@/components/reviews/SubmitForReviewModal";
 import { DocumentImpactStatus } from "@/components/impact/DocumentImpactStatus";
+import { ContentViewer, DownloadButton } from "@/components/documents";
 import { VersionHistoryPanel } from "./VersionHistoryPanel";
 import { VersionDetailView } from "./VersionDetailView";
 import { VersionComparisonView } from "./VersionComparisonView";
@@ -109,6 +110,18 @@ export function DocumentDetail({
     return sorted[0].id;
   }, [document.versions]);
 
+  // Derive the version currently displayed in ContentViewer:
+  // Use selectedVersion if available, otherwise fall back to the latest version.
+  const viewedVersion = useMemo(() => {
+    if (selectedVersion) return selectedVersion;
+    if (document.versions.length === 0) return null;
+    const sorted = [...document.versions].sort((a, b) => {
+      if (a.major_version !== b.major_version) return b.major_version - a.major_version;
+      return b.minor_version - a.minor_version;
+    });
+    return sorted[0];
+  }, [selectedVersion, document.versions]);
+
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -133,6 +146,17 @@ export function DocumentDetail({
             <FileSearch className="h-4 w-4" aria-hidden="true" />
             Submit for Review
           </Button>
+          {viewedVersion && (
+            <DownloadButton
+              documentUuid={document.document_uuid}
+              version={{
+                major_version: viewedVersion.major_version,
+                minor_version: viewedVersion.minor_version,
+              }}
+              documentTitle={document.title}
+              variant="button"
+            />
+          )}
           <Button onClick={onNewVersion} size="sm" className="gap-1">
             <Plus className="h-4 w-4" aria-hidden="true" />
             New Version
@@ -198,6 +222,16 @@ export function DocumentDetail({
           </div>
         )}
       </div>
+
+      {/* Content Viewer — shows preview of the latest or selected version */}
+      {viewedVersion && (
+        <ContentViewer
+          documentUuid={document.document_uuid}
+          majorVersion={viewedVersion.major_version}
+          minorVersion={viewedVersion.minor_version}
+          contentType={viewedVersion.content_type ?? "application/octet-stream"}
+        />
+      )}
 
       {/* Impact Analysis Status */}
       <DocumentImpactStatus documentUuid={document.document_uuid} />
