@@ -511,19 +511,21 @@ class TemplateService:
         return result.scalar_one_or_none()
 
     async def list_templates(
-        self, session: AsyncSession
+        self, session: AsyncSession, company_id: int | None = None
     ) -> list[Template]:
-        """List all templates.
+        """List all templates, optionally filtered by company.
 
         Args:
             session: Active async database session.
+            company_id: Optional company ID for tenant scoping.
 
         Returns:
-            List of all Template instances with fields loaded.
+            List of Template instances with fields loaded.
         """
-        result = await session.execute(
-            select(Template).options(selectinload(Template.fields))
-        )
+        query = select(Template).options(selectinload(Template.fields))
+        if company_id is not None:
+            query = query.where(Template.company_id == company_id)
+        result = await session.execute(query)
         return list(result.scalars().unique().all())
 
     async def create_version(

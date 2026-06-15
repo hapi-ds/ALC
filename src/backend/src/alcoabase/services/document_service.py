@@ -601,6 +601,10 @@ class DocumentService:
             selectinload(Document.versions),
         )
 
+        # Tenant isolation: only return documents belonging to this company
+        if company_id is not None:
+            query = query.where(Document.company_id == company_id)
+
         if tag:
             query = query.join(DocumentTag).where(DocumentTag.tag == tag)
 
@@ -616,6 +620,8 @@ class DocumentService:
 
         # Get total count with same filters
         count_query = select(func.count()).select_from(Document)
+        if company_id is not None:
+            count_query = count_query.where(Document.company_id == company_id)
         if tag:
             count_query = count_query.join(DocumentTag).where(DocumentTag.tag == tag)
         if folder_path:

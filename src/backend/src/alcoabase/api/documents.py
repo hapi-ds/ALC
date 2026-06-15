@@ -332,7 +332,7 @@ async def download_document_version(
         )
 
     # Resolve content type and build headers
-    content_type = resolve_content_type(version.content_type, version.storage_key)
+    content_type = resolve_content_type(version.content_type, version.storage_key, document.title)
     disposition = build_content_disposition("attachment", document.title)
 
     # Log the download event (fire-and-forget)
@@ -439,7 +439,7 @@ async def get_document_content(
         )
 
     # Resolve content type
-    content_type = resolve_content_type(version.content_type, version.storage_key)
+    content_type = resolve_content_type(version.content_type, version.storage_key, document.title)
 
     # Determine disposition based on previewability
     if is_previewable(content_type):

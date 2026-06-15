@@ -258,7 +258,7 @@ Please write for every item in this list a short user guide after your implement
 - [x] **10.1.6 Authentication — Login/Logout**
   Test login with valid/invalid credentials. Test session expiry behavior. Test logout clears session. Test refresh token rotation.
 
-- [ ] **10.1.7 Multi-Tenancy Isolation**
+- [x] **10.1.7 Multi-Tenancy Isolation**
   Verify documents, templates, workflows, users are scoped to company. Cross-company queries blocked for non-admin. Verify virtual folders are company-scoped.
 
 ---
@@ -412,6 +412,9 @@ Please write for every item in this list a short user guide after your implement
 
 - [ ] **12.1 Migrate to DSPy?**
 - [ ] **12.2 Easy setup (make ..?) of companys?**
+
+- [x] **12.3 Document Content Viewer & Download**
+  Inline document viewing on the document detail page — PDFs render natively in-browser via `<iframe>`/`<object>`, Markdown is displayed as formatted HTML, unsupported formats offer a fallback download button. Backend streaming API (`/api/documents/{uuid}/versions/{major}/{minor}/download` and `.../content`) serves files from MinIO with correct MIME types, `Content-Length` headers, and `Content-Disposition` (attachment vs. inline). RBAC enforcement on all download/preview requests. Download buttons on search results, knowledge chat citations, and signature pages. Version-aware content switching on the document detail page. All access events logged to the audit trail. Frontend API client extended with a `download` method returning Blob for browser-native file save dialogs.
 
 
 ## Notes

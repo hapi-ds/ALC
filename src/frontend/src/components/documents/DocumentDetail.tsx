@@ -122,6 +122,29 @@ export function DocumentDetail({
     return sorted[0];
   }, [selectedVersion, document.versions]);
 
+  // Infer content type from storage_key or document title when content_type is null
+  const viewedContentType = useMemo(() => {
+    if (!viewedVersion) return "application/octet-stream";
+    if (viewedVersion.content_type) return viewedVersion.content_type;
+    // Infer from storage_key extension or document title
+    const key = viewedVersion.storage_key ?? document.title;
+    if (key.endsWith(".pdf")) return "application/pdf";
+    if (key.endsWith(".md")) return "text/markdown";
+    if (key.endsWith(".docx"))
+      return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+    if (key.endsWith(".txt")) return "text/plain";
+    // Check document title as fallback
+    const title = document.title.toLowerCase();
+    if (title.endsWith(".pdf")) return "application/pdf";
+    if (title.endsWith(".md")) return "text/markdown";
+    // For governance docs (generated markdown), detect from document_type or tags
+    if (document.document_type === "urs" || document.document_type === "guideline" ||
+        document.document_type === "user-guide" || document.document_type === "admin-guide" ||
+        document.document_type === "user_guide" || document.document_type === "admin_guide" ||
+        document.document_type === "governance") return "text/markdown";
+    return "application/octet-stream";
+  }, [viewedVersion, document.title, document.document_type]);
+
   return (
     <div className="space-y-6">
       {/* Header with back button and actions */}
@@ -229,7 +252,7 @@ export function DocumentDetail({
           documentUuid={document.document_uuid}
           majorVersion={viewedVersion.major_version}
           minorVersion={viewedVersion.minor_version}
-          contentType={viewedVersion.content_type ?? "application/octet-stream"}
+          contentType={viewedContentType}
         />
       )}
 

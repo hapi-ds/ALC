@@ -166,7 +166,7 @@ async def list_templates(
     service: TemplateService = Depends(get_template_service),
     tenant: TenantContext = Depends(get_tenant_context),
 ) -> list[TemplateResponse]:
-    """List all templates.
+    """List all templates scoped to the current tenant.
 
     Args:
         session: Database session dependency.
@@ -175,8 +175,7 @@ async def list_templates(
     Returns:
         List of all templates with metadata and fields.
     """
-    # TODO: Pass tenant.company_id to service layer for filtering
-    templates = await service.list_templates(session)
+    templates = await service.list_templates(session, company_id=tenant.company_id)
     return [TemplateResponse.model_validate(t) for t in templates]
 
 

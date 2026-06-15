@@ -47,9 +47,12 @@ async def create_virtual_folder(
     Raises:
         HTTPException: 400 if name already exists.
     """
-    # Check for duplicate name
+    # Check for duplicate name within the same company
     existing = await session.execute(
-        select(VirtualFolder).where(VirtualFolder.name == data.name)
+        select(VirtualFolder).where(
+            VirtualFolder.name == data.name,
+            VirtualFolder.company_id == tenant.company_id,
+        )
     )
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=400, detail=f"Virtual folder '{data.name}' already exists.")
@@ -60,8 +63,8 @@ async def create_virtual_folder(
         sort_order=data.sort_order,
         is_system_default=False,
         created_by=user_id,
+        company_id=tenant.company_id,
     )
-    # TODO: Set company_id=tenant.company_id on created resource
     session.add(folder)
     await session.flush()
 
@@ -79,11 +82,12 @@ async def list_virtual_folders(
         session: Database session dependency.
 
     Returns:
-        List of all virtual folders.
+        List of all virtual folders scoped to the current tenant.
     """
-    # TODO: Pass tenant.company_id to service layer for filtering
     result = await session.execute(
-        select(VirtualFolder).order_by(VirtualFolder.is_system_default.desc(), VirtualFolder.name)
+        select(VirtualFolder)
+        .where(VirtualFolder.company_id == tenant.company_id)
+        .order_by(VirtualFolder.is_system_default.desc(), VirtualFolder.name)
     )
     folders = result.scalars().all()
     return [VirtualFolderResponse.model_validate(f) for f in folders]
@@ -108,7 +112,10 @@ async def get_virtual_folder(
         HTTPException: 404 if not found.
     """
     result = await session.execute(
-        select(VirtualFolder).where(VirtualFolder.id == folder_id)
+        select(VirtualFolder).where(
+            VirtualFolder.id == folder_id,
+            VirtualFolder.company_id == tenant.company_id,
+        )
     )
     folder = result.scalar_one_or_none()
     if folder is None:
@@ -143,19 +150,21 @@ async def get_virtual_folder_documents(
     """
     # Get the virtual folder
     result = await session.execute(
-        select(VirtualFolder).where(VirtualFolder.id == folder_id)
+        select(VirtualFolder).where(
+            VirtualFolder.id == folder_id,
+            VirtualFolder.company_id == tenant.company_id,
+        )
     )
     folder = result.scalar_one_or_none()
     if folder is None:
         raise HTTPException(status_code=404, detail="Virtual folder not found.")
 
     # Build dynamic query from tag_filter
-    # TODO: Pass tenant.company_id to service layer for filtering
-    # Ensure tag filter matches only documents within the same company
+    # Ensure documents are scoped to the same company
     query = select(Document).options(
         selectinload(Document.tags),
         selectinload(Document.versions),
-    )
+    ).where(Document.company_id == tenant.company_id)
 
     tag_filter = folder.tag_filter or {}
 
@@ -197,7 +206,10 @@ async def update_virtual_folder(
         HTTPException: 404 if not found, 400 if name conflict.
     """
     result = await session.execute(
-        select(VirtualFolder).where(VirtualFolder.id == folder_id)
+        select(VirtualFolder).where(
+            VirtualFolder.id == folder_id,
+            VirtualFolder.company_id == tenant.company_id,
+        )
     )
     folder = result.scalar_one_or_none()
     if folder is None:
@@ -206,7 +218,10 @@ async def update_virtual_folder(
     # Check name uniqueness if updating name
     if data.name is not None and data.name != folder.name:
         existing = await session.execute(
-            select(VirtualFolder).where(VirtualFolder.name == data.name)
+            select(VirtualFolder).where(
+                VirtualFolder.name == data.name,
+                VirtualFolder.company_id == tenant.company_id,
+            )
         )
         if existing.scalar_one_or_none() is not None:
             raise HTTPException(status_code=400, detail=f"Virtual folder '{data.name}' already exists.")
@@ -240,7 +255,10 @@ async def delete_virtual_folder(
         HTTPException: 404 if not found, 400 if system default.
     """
     result = await session.execute(
-        select(VirtualFolder).where(VirtualFolder.id == folder_id)
+        select(VirtualFolder).where(
+            VirtualFolder.id == folder_id,
+            VirtualFolder.company_id == tenant.company_id,
+        )
     )
     folder = result.scalar_one_or_none()
     if folder is None:

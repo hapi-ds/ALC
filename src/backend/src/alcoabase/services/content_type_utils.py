@@ -33,20 +33,28 @@ PREVIEWABLE_TYPES: set[str] = {
 }
 
 
-def resolve_content_type(stored_content_type: str | None, storage_key: str) -> str:
+def resolve_content_type(
+    stored_content_type: str | None,
+    storage_key: str,
+    filename: str | None = None,
+) -> str:
     """Determine MIME type from stored value or file extension fallback.
 
     Resolution priority:
       1. If a stored content type is present and non-empty, use it directly.
       2. Infer from the file extension of the storage key using the
          extension-to-MIME mapping.
-      3. Fall back to ``application/octet-stream`` if no match is found.
+      3. Infer from the optional filename (e.g., document title) if it
+         has a recognizable extension.
+      4. Fall back to ``application/octet-stream`` if no match is found.
 
     Args:
         stored_content_type: The content type persisted at upload time,
             or None if not available.
         storage_key: The object storage key (path) for the file, used
             to extract the file extension.
+        filename: An optional filename (e.g., document title) to use as
+            a secondary source for extension inference.
 
     Returns:
         A MIME type string. Never returns an empty string.
@@ -59,6 +67,13 @@ def resolve_content_type(stored_content_type: str | None, storage_key: str) -> s
 
     if ext_lower in EXTENSION_MIME_MAP:
         return EXTENSION_MIME_MAP[ext_lower]
+
+    # Try inferring from the filename (document title) if storage key has no extension
+    if filename:
+        _, fname_ext = os.path.splitext(filename)
+        fname_ext_lower = fname_ext.lower()
+        if fname_ext_lower in EXTENSION_MIME_MAP:
+            return EXTENSION_MIME_MAP[fname_ext_lower]
 
     return "application/octet-stream"
 

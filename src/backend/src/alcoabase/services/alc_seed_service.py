@@ -949,6 +949,7 @@ class ALCSeedService:
                 file_hash=file_hash,
                 uploaded_by=it_admin.id,
                 change_reason="Initial governance document (seeded)",
+                content_type="text/markdown",
             )
             self._session.add(version)
             await self._session.flush()
